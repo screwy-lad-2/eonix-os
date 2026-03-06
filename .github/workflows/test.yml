@@ -1,0 +1,70 @@
+name: Eonix OS Tests
+on: [push, pull_request]
+
+jobs:
+  build-c:
+    name: Build & Test C Modules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential linux-headers-$(uname -r) \
+            qemu-system-x86_64 bpfcc-tools libbpf-dev clang llvm
+
+      - name: Build deadlock module
+        run: |
+          cd eonix-core/deadlock
+          if [ -f Makefile ]; then make; fi
+
+      - name: Build scheduler simulator
+        run: |
+          cd eonix-core/scheduler
+          if [ -f Makefile ]; then make; fi
+
+  build-rust:
+    name: Build Rust Components
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+
+      - name: Build eonix-silicon
+        run: |
+          cd eonix-silicon
+          if [ -f Cargo.toml ]; then cargo build; fi
+
+      - name: Build IPC broker
+        run: |
+          cd eonix-core/ipc
+          if [ -f Cargo.toml ]; then cargo build; fi
+
+  test-python:
+    name: Test Python Components
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest psutil scikit-learn
+
+      - name: Run tests
+        run: |
+          if [ -d tests ] && ls tests/test_*.py 1>/dev/null 2>&1; then
+            pytest tests/ -v
+          else
+            echo "No tests found yet — skipping"
+          fi

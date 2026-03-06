@@ -1,0 +1,16 @@
+# Eonix Silicon — Hardware Abstraction Layer
+# ============================================
+# Rust-based HAL for CPU, GPU, NPU, and sensor abstraction.
+# This is a placeholder Cargo project for Phase 0.
+
+[package]
+name = "eonix-silicon"
+version = "0.1.0"
+edition = "2021"
+description = "Eonix OS Hardware Abstraction Layer"
+license = "MIT"
+authors = ["shahnoor-exe"]
+
+[dependencies]
+
+[dev-dependencies]

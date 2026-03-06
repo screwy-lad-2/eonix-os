@@ -1,0 +1,60 @@
+# Dependencies
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+venv/
+.venv/
+env/
+node_modules/
+
+# Rust
+target/
+Cargo.lock
+
+# C build artifacts
+*.o
+*.ko
+*.mod
+*.mod.c
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# ML Models (large files — use Git LFS or download separately)
+models/gguf/*.gguf
+models/whisper/*.bin
+models/onnx/*.onnx
+!models/onnx/.gitkeep
+!models/gguf/.gitkeep
+!models/whisper/.gitkeep
+
+# Datasets (download separately)
+datasets/**/*.sqlite
+datasets/**/*.csv
+datasets/**/*.parquet
+!datasets/**/.gitkeep
+
+# Environment
+.env
+*.log
+
+# QEMU
+*.qcow2
+*.img

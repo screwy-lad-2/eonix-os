@@ -1,0 +1,16 @@
+# Eonix Core — IPC Broker
+# ========================
+# Capability-based IPC using Cap'n Proto (zero-copy serialization).
+# Inspired by seL4's capability model.
+
+[package]
+name = "eonix-ipc"
+version = "0.1.0"
+edition = "2021"
+description = "Eonix OS Capability-Based IPC Broker"
+license = "MIT"
+authors = ["shahnoor-exe"]
+
+[dependencies]
+
+[dev-dependencies]
