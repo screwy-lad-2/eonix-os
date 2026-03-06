@@ -1,0 +1,14 @@
+[Unit]
+Description=Eonix Scheduler Data Collector
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/python3 /opt/eonix-os/eonix-core/scheduler/collect_data.py --daemon
+ExecStop=/usr/bin/python3 /opt/eonix-os/eonix-core/scheduler/collect_data.py --stop
+PIDFile=%h/.eonix/collector.pid
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

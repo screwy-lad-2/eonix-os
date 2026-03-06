@@ -1,0 +1,2 @@
+# Eonix OS — Python dependencies
+psutil>=5.9.0
