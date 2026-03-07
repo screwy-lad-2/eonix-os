@@ -7,10 +7,12 @@ LAUNCH and EXIT events, and stores them in SQLite for later ML training
 of the predictive scheduler.
 
 Usage:
-    python3 collect_data.py --daemon      # Start as background daemon
-    python3 collect_data.py --foreground  # Run in foreground (dev/debug)
-    python3 collect_data.py --stop        # Stop the running daemon
-    python3 collect_data.py --status      # Check if daemon is running
+    python collect_data.py --daemon        # Start as background process
+    python collect_data.py --foreground    # Run in foreground (dev/debug)
+    python collect_data.py --stop          # Stop the running daemon
+    python collect_data.py --status        # Check if daemon is running
+    python collect_data.py --install       # Auto-start on login (Windows Task Scheduler)
+    python collect_data.py --uninstall     # Remove auto-start task
 
 Data is stored at:  ~/.eonix/scheduler_data.db
 PID file:           ~/.eonix/collector.pid
@@ -23,11 +25,15 @@ import logging
 import os
 import signal
 import sqlite3
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone, timedelta
 
 import psutil
+
+IS_WINDOWS = sys.platform == "win32"
+TASK_NAME = "EonixSchedulerCollector"
 
 # ---- Paths ----
 EONIX_DIR = os.path.expanduser("~/.eonix")
@@ -261,8 +267,11 @@ def collection_loop(foreground: bool = False):
         logging.info("Received signal %d, shutting down...", signum)
         running = False
 
-    signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
+    if not IS_WINDOWS:
+        signal.signal(signal.SIGTERM, handle_signal)
+    else:
+        signal.signal(signal.SIGBREAK, handle_signal)
 
     # Counters
     total_launches = 0
@@ -327,33 +336,29 @@ def collection_loop(foreground: bool = False):
     logging.info("Collector stopped cleanly.")
 
 
-# ---- Daemon Mode ----
+# ---- Daemon / Background Mode ----
 
-def daemonize():
+def daemonize_unix():
     """Double-fork to daemonize the process (Unix only)."""
-    # First fork
     try:
         pid = os.fork()
         if pid > 0:
-            sys.exit(0)  # Parent exits
+            sys.exit(0)
     except OSError as e:
         sys.stderr.write(f"Fork #1 failed: {e}\n")
         sys.exit(1)
 
-    # Decouple from parent environment
     os.setsid()
     os.umask(0o022)
 
-    # Second fork
     try:
         pid = os.fork()
         if pid > 0:
-            sys.exit(0)  # First child exits
+            sys.exit(0)
     except OSError as e:
         sys.stderr.write(f"Fork #2 failed: {e}\n")
         sys.exit(1)
 
-    # Redirect stdin/stdout/stderr to /dev/null
     sys.stdout.flush()
     sys.stderr.flush()
     devnull = os.open(os.devnull, os.O_RDWR)
@@ -363,20 +368,54 @@ def daemonize():
     os.close(devnull)
 
 
+def spawn_background_windows():
+    """Spawn a detached background process on Windows using pythonw."""
+    # Find pythonw.exe next to the current python.exe
+    python_dir = os.path.dirname(sys.executable)
+    pythonw = os.path.join(python_dir, "pythonw.exe")
+    if not os.path.exists(pythonw):
+        pythonw = sys.executable  # fallback
+
+    script = os.path.abspath(__file__)
+    # Launch with --foreground but via pythonw (no console window)
+    # Use CREATE_NO_WINDOW flag for extra safety
+    CREATE_NO_WINDOW = 0x08000000
+    DETACHED_PROCESS = 0x00000008
+    proc = subprocess.Popen(
+        [pythonw, script, "--foreground"],
+        creationflags=CREATE_NO_WINDOW | DETACHED_PROCESS,
+        close_fds=True,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return proc.pid
+
+
 def cmd_start_daemon():
-    """Start the collector as a background daemon."""
+    """Start the collector as a background process."""
     running, pid = is_daemon_running()
     if running:
         print(f"Collector is already running (PID {pid})")
         sys.exit(1)
 
-    print(f"Starting Eonix Scheduler Collector daemon...")
+    print("Starting Eonix Scheduler Collector...")
     print(f"  DB:  {DB_PATH}")
     print(f"  PID: {PID_FILE}")
     print(f"  Log: {LOG_FILE}")
 
-    daemonize()
-    collection_loop(foreground=False)
+    if IS_WINDOWS:
+        child_pid = spawn_background_windows()
+        # Give it a moment to write its PID file
+        time.sleep(1)
+        ok, real_pid = is_daemon_running()
+        if ok:
+            print(f"Collector started (PID {real_pid})")
+        else:
+            print(f"Spawned process PID {child_pid} — check {LOG_FILE} for details")
+    else:
+        daemonize_unix()
+        collection_loop(foreground=False)
 
 
 def cmd_foreground():
@@ -392,7 +431,7 @@ def cmd_foreground():
 
 
 def cmd_stop():
-    """Stop the running daemon."""
+    """Stop the running daemon (cross-platform)."""
     running, pid = is_daemon_running()
     if not running:
         print("Collector is not running.")
@@ -401,16 +440,16 @@ def cmd_stop():
 
     print(f"Stopping collector (PID {pid})...")
     try:
-        os.kill(pid, signal.SIGTERM)
-        # Wait for process to exit
-        for _ in range(30):  # 3 second timeout
-            time.sleep(0.1)
-            try:
-                os.kill(pid, 0)  # Check if still alive
-            except OSError:
-                break
+        proc = psutil.Process(pid)
+        proc.terminate()  # SIGTERM on Unix, TerminateProcess on Windows
+        proc.wait(timeout=5)
         print("Collector stopped.")
-    except OSError as e:
+    except psutil.NoSuchProcess:
+        print("Process already exited.")
+    except psutil.TimeoutExpired:
+        proc.kill()
+        print("Collector force-killed.")
+    except Exception as e:
         print(f"Error stopping collector: {e}")
     remove_pid_file()
 
@@ -450,6 +489,87 @@ def cmd_status():
         print("Eonix Scheduler Collector is NOT running.")
 
 
+# ---- Windows Task Scheduler (auto-start on login) ----
+
+def _get_python_exe() -> str:
+    """Return path to pythonw.exe (Windows) or python3 (Unix)."""
+    if IS_WINDOWS:
+        python_dir = os.path.dirname(sys.executable)
+        pythonw = os.path.join(python_dir, "pythonw.exe")
+        if os.path.exists(pythonw):
+            return pythonw
+    return sys.executable
+
+
+def _get_startup_folder() -> str:
+    """Return the user's Windows Startup folder path."""
+    import winreg
+    try:
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
+        )
+        path, _ = winreg.QueryValueEx(key, "Startup")
+        winreg.CloseKey(key)
+        return path
+    except Exception:
+        return os.path.join(
+            os.environ.get("APPDATA", ""),
+            r"Microsoft\Windows\Start Menu\Programs\Startup",
+        )
+
+
+def _startup_vbs_path() -> str:
+    """Path to the VBS launcher in the Startup folder."""
+    if IS_WINDOWS:
+        return os.path.join(_get_startup_folder(), "eonix-collector.vbs")
+    return ""
+
+
+def cmd_install():
+    """Place a hidden-launch script in the Windows Startup folder."""
+    if not IS_WINDOWS:
+        print("Use the systemd service file for Linux:")
+        print("  sudo cp eonix-collector.service /etc/systemd/system/")
+        print("  sudo systemctl enable --now eonix-collector")
+        return
+
+    exe = _get_python_exe()
+    script = os.path.abspath(__file__)
+    vbs_path = _startup_vbs_path()
+
+    # VBScript runs pythonw silently — no console flash at login
+    vbs_content = (
+        f'Set WshShell = CreateObject("WScript.Shell")\n'
+        f'WshShell.Run """{exe}"" ""{script}"" --foreground", 0, False\n'
+    )
+    with open(vbs_path, "w") as f:
+        f.write(vbs_content)
+
+    print("Eonix Scheduler Collector registered for auto-start at login.")
+    print(f"  Startup script: {vbs_path}")
+    print(f"  Executable:     {exe}")
+    print(f"  Collector:      {script}")
+    print("\nIt will start silently every time you log into Windows.")
+    print("To start it right now:  python collect_data.py --daemon")
+
+
+def cmd_uninstall():
+    """Remove the auto-start script from the Startup folder."""
+    if not IS_WINDOWS:
+        print("Use systemd to disable:")
+        print("  sudo systemctl disable --now eonix-collector")
+        return
+
+    vbs_path = _startup_vbs_path()
+    if os.path.exists(vbs_path):
+        os.remove(vbs_path)
+        print(f"Removed: {vbs_path}")
+        print("Collector will no longer auto-start at login.")
+    else:
+        print("Auto-start script not found (already removed or never installed).")
+
+
 # ---- Entry Point ----
 
 def main():
@@ -458,29 +578,31 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python3 collect_data.py --daemon       Start as background daemon
-  python3 collect_data.py --foreground   Run in foreground (dev mode)
-  python3 collect_data.py --stop         Stop the running daemon
-  python3 collect_data.py --status       Check daemon status & DB stats
+  python collect_data.py --daemon       Start as background process
+  python collect_data.py --foreground   Run in foreground (dev mode)
+  python collect_data.py --stop         Stop the running collector
+  python collect_data.py --status       Check status & DB stats
+  python collect_data.py --install      Auto-start on every login
+  python collect_data.py --uninstall    Remove auto-start
         """,
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--daemon", action="store_true",
-                       help="Start as a background daemon")
+                       help="Start as a background process")
     group.add_argument("--foreground", action="store_true",
                        help="Run in foreground (for development)")
     group.add_argument("--stop", action="store_true",
-                       help="Stop the running daemon")
+                       help="Stop the running collector")
     group.add_argument("--status", action="store_true",
-                       help="Show daemon status and DB statistics")
+                       help="Show status and DB statistics")
+    group.add_argument("--install", action="store_true",
+                       help="Register auto-start at login (Task Scheduler)")
+    group.add_argument("--uninstall", action="store_true",
+                       help="Remove auto-start task")
 
     args = parser.parse_args()
 
     if args.daemon:
-        if sys.platform == "win32":
-            print("Daemon mode is not supported on Windows.")
-            print("Use --foreground instead, or run on Linux.")
-            sys.exit(1)
         cmd_start_daemon()
     elif args.foreground:
         cmd_foreground()
@@ -488,6 +610,10 @@ Examples:
         cmd_stop()
     elif args.status:
         cmd_status()
+    elif args.install:
+        cmd_install()
+    elif args.uninstall:
+        cmd_uninstall()
 
 
 if __name__ == "__main__":
