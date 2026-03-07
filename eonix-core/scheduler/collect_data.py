@@ -526,8 +526,109 @@ def _startup_vbs_path() -> str:
     return ""
 
 
+def _task_xml(exe: str, script: str, username: str) -> str:
+    """Generate Task Scheduler XML for auto-start at logon."""
+    return f"""<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>Eonix Scheduler Data Collector - starts at logon to collect process launch/exit data for ML training.</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <UserId>{username}</UserId>
+      <Delay>PT30S</Delay>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>{username}</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>7</Priority>
+    <RestartOnFailure>
+      <Interval>PT1M</Interval>
+      <Count>3</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>{exe}</Command>
+      <Arguments>"{script}" --foreground</Arguments>
+    </Exec>
+  </Actions>
+</Task>"""
+
+
+def _install_task_scheduler(exe: str, script: str) -> bool:
+    """Try to register a Task Scheduler task. Returns True on success."""
+    username = os.environ.get("USERDOMAIN", "") + "\\" + os.environ.get("USERNAME", "")
+    xml_content = _task_xml(exe, script, username)
+    xml_path = os.path.join(EONIX_DIR, "collector_task.xml")
+    ensure_dirs()
+    with open(xml_path, "w", encoding="utf-16") as f:
+        f.write(xml_content)
+
+    result = subprocess.run(
+        ["schtasks", "/create", "/tn", TASK_NAME, "/xml", xml_path, "/f"],
+        capture_output=True, text=True,
+    )
+    if result.returncode == 0:
+        return True
+    # If not admin, try with /ru for current user (limited)
+    result2 = subprocess.run(
+        ["schtasks", "/create", "/tn", TASK_NAME, "/xml", xml_path,
+         "/f", "/ru", os.environ.get("USERNAME", "")],
+        capture_output=True, text=True,
+    )
+    return result2.returncode == 0
+
+
+def _install_startup_vbs(exe: str, script: str) -> bool:
+    """Place a robust VBS launcher in the Startup folder."""
+    vbs_path = _startup_vbs_path()
+    pid_file_vbs = PID_FILE.replace("\\", "\\\\")
+    # VBS with 15s delay, duplicate check, and error handling
+    vbs_content = (
+        f'On Error Resume Next\n'
+        f'WScript.Sleep 15000\n'
+        f'Set fso = CreateObject("Scripting.FileSystemObject")\n'
+        f'Set WshShell = CreateObject("WScript.Shell")\n'
+        f'pidFile = "{pid_file_vbs}"\n'
+        f'If fso.FileExists(pidFile) Then\n'
+        f'  pidVal = fso.OpenTextFile(pidFile, 1).ReadAll\n'
+        f'  Set wmi = GetObject("winmgmts:")\n'
+        f'  Set procs = wmi.ExecQuery("SELECT * FROM Win32_Process WHERE ProcessId=" & Trim(pidVal))\n'
+        f'  If procs.Count > 0 Then\n'
+        f'    WScript.Quit\n'
+        f'  End If\n'
+        f'End If\n'
+        f'WshShell.Run """{exe}"" ""{script}"" --foreground", 0, False\n'
+    )
+    try:
+        with open(vbs_path, "w") as f:
+            f.write(vbs_content)
+        return True
+    except OSError:
+        return False
+
+
 def cmd_install():
-    """Place a hidden-launch script in the Windows Startup folder."""
+    """Register auto-start via Task Scheduler + Startup folder fallback."""
     if not IS_WINDOWS:
         print("Use the systemd service file for Linux:")
         print("  sudo cp eonix-collector.service /etc/systemd/system/")
@@ -536,38 +637,68 @@ def cmd_install():
 
     exe = _get_python_exe()
     script = os.path.abspath(__file__)
-    vbs_path = _startup_vbs_path()
+    ensure_dirs()
 
-    # VBScript runs pythonw silently — no console flash at login
-    vbs_content = (
-        f'Set WshShell = CreateObject("WScript.Shell")\n'
-        f'WshShell.Run """{exe}"" ""{script}"" --foreground", 0, False\n'
-    )
-    with open(vbs_path, "w") as f:
-        f.write(vbs_content)
+    task_ok = _install_task_scheduler(exe, script)
+    vbs_ok = _install_startup_vbs(exe, script)
 
-    print("Eonix Scheduler Collector registered for auto-start at login.")
-    print(f"  Startup script: {vbs_path}")
-    print(f"  Executable:     {exe}")
-    print(f"  Collector:      {script}")
-    print("\nIt will start silently every time you log into Windows.")
-    print("To start it right now:  python collect_data.py --daemon")
+    print("Eonix Scheduler Collector — auto-start setup:")
+    print(f"  Task Scheduler ({TASK_NAME}): {'INSTALLED' if task_ok else 'SKIPPED (needs admin — run as Administrator to enable)'}")
+    print(f"  Startup folder VBS:           {'INSTALLED' if vbs_ok else 'FAILED'}")
+    print(f"  Executable: {exe}")
+    print(f"  Script:     {script}")
+    if task_ok:
+        print("\n  Task Scheduler features:")
+        print("    - 30s delay after logon (lets system settle)")
+        print("    - Won't launch duplicates")
+        print("    - Runs even on battery")
+        print("    - Auto-restart up to 3x on failure")
+    if vbs_ok and not task_ok:
+        print("\n  VBS startup features:")
+        print("    - 15s delay after logon")
+        print("    - Checks for duplicate before launching")
+    print(f"\nCollector will start automatically every time you log in.")
+    print(f"To start now: python collect_data.py --daemon")
+    if not task_ok:
+        print(f"\nTIP: For the most reliable auto-start, run this once as Administrator:")
+        print(f"  python \"{script}\" --install")
 
 
 def cmd_uninstall():
-    """Remove the auto-start script from the Startup folder."""
+    """Remove all auto-start mechanisms."""
     if not IS_WINDOWS:
         print("Use systemd to disable:")
         print("  sudo systemctl disable --now eonix-collector")
         return
 
+    removed = []
+
+    # Remove Task Scheduler task
+    result = subprocess.run(
+        ["schtasks", "/delete", "/tn", TASK_NAME, "/f"],
+        capture_output=True, text=True,
+    )
+    if result.returncode == 0:
+        removed.append(f"Task Scheduler task '{TASK_NAME}'")
+
+    # Remove Startup VBS
     vbs_path = _startup_vbs_path()
     if os.path.exists(vbs_path):
         os.remove(vbs_path)
-        print(f"Removed: {vbs_path}")
+        removed.append(f"Startup VBS ({vbs_path})")
+
+    # Remove XML
+    xml_path = os.path.join(EONIX_DIR, "collector_task.xml")
+    if os.path.exists(xml_path):
+        os.remove(xml_path)
+
+    if removed:
+        print("Removed auto-start:")
+        for r in removed:
+            print(f"  - {r}")
         print("Collector will no longer auto-start at login.")
     else:
-        print("Auto-start script not found (already removed or never installed).")
+        print("No auto-start configuration found.")
 
 
 # ---- Entry Point ----
