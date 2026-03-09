@@ -62,6 +62,38 @@ jobs:
           cd eonix-core/ipc
           if [ -f Cargo.toml ]; then cargo build; fi
 
+  test-rust-silicon:
+    name: Test Rust — Silicon HAL
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+
+      - name: Run eonix-silicon tests
+        run: |
+          cd eonix-silicon
+          cargo test --all -- --nocapture
+
+  test-rust-ipc:
+    name: Test Rust — IPC Broker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+
+      - name: Run IPC broker tests
+        run: |
+          cd eonix-core/ipc
+          cargo test --all -- --nocapture
+
   test-python:
     name: Test Python Components
     runs-on: ubuntu-latest
@@ -85,3 +117,22 @@ jobs:
           else
             echo "No tests found yet — skipping"
           fi
+
+  test-python-memory:
+    name: Test Python — Page Replacement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Run page replacement tests
+        run: pytest eonix-core/memory/page_replacement.py -v
