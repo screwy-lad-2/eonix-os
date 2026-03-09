@@ -30,7 +30,11 @@ results=()
 for i in $(seq 1 "$ITERATIONS"); do
     # Reset state
     echo "RESET" > "$INJECT"
-    sleep 0.1
+    sleep 0.2
+
+    # Read current deadlock count from status line
+    prev_count=$(grep -oP 'deadlocks=\K[0-9]+' "$LOG" 2>/dev/null | tail -1)
+    prev_count=${prev_count:-0}
 
     # Record start time in milliseconds
     start_ns=$(date +%s%N)
@@ -43,10 +47,12 @@ for i in $(seq 1 "$ITERATIONS"); do
     echo "WAIT 5001 51" > "$INJECT"
     echo "WAIT 5002 50" > "$INJECT"
 
-    # Poll for detection (max 5 seconds)
+    # Poll until deadlock count increases (max 5 seconds)
     detected=0
     for _ in $(seq 1 50); do
-        if grep -q "DEADLOCK_DETECTED" "$LOG" 2>/dev/null; then
+        cur_count=$(grep -oP 'deadlocks=\K[0-9]+' "$LOG" 2>/dev/null | tail -1)
+        cur_count=${cur_count:-0}
+        if [ "$cur_count" -gt "$prev_count" ]; then
             detected=1
             break
         fi

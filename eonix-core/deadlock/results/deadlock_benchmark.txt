@@ -1,0 +1,22 @@
+=== Eonix RAG Detection Latency Benchmark ===
+Iterations: 10
+
+  Run  1:  258ms  ✓ detected
+  Run  2:  247ms  ✓ detected
+  Run  3:  365ms  ✓ detected
+  Run  4:  247ms  ✓ detected
+  Run  5:  253ms  ✓ detected
+  Run  6:  246ms  ✓ detected
+  Run  7:  349ms  ✓ detected
+  Run  8:  234ms  ✓ detected
+  Run  9:  361ms  ✓ detected
+  Run 10:  235ms  ✓ detected
+
+--- Results ---
+  Detected: 10 / 10
+  Min:      234ms
+  Max:      365ms
+  Average:  279ms
+  Target:   < 600ms (500ms interval + overhead)
+
+BENCHMARK: PASS (avg 279ms < 600ms)
