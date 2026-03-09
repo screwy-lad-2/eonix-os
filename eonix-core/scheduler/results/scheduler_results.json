@@ -1,0 +1,66 @@
+[
+  {
+    "algorithm": "FCFS",
+    "metrics": {
+      "avg_waiting_time": 11.40,
+      "avg_turnaround_time": 17.00,
+      "cpu_utilization": 100.0,
+      "throughput": 0.1786
+    },
+    "processes": [
+      {"pid": 1, "arrival": 0, "burst": 8, "priority": 3, "start": 0, "completion": 8, "waiting": 0, "turnaround": 8},
+      {"pid": 2, "arrival": 1, "burst": 4, "priority": 1, "start": 8, "completion": 12, "waiting": 7, "turnaround": 11},
+      {"pid": 3, "arrival": 2, "burst": 9, "priority": 4, "start": 12, "completion": 21, "waiting": 10, "turnaround": 19},
+      {"pid": 4, "arrival": 3, "burst": 5, "priority": 2, "start": 21, "completion": 26, "waiting": 18, "turnaround": 23},
+      {"pid": 5, "arrival": 4, "burst": 2, "priority": 5, "start": 26, "completion": 28, "waiting": 22, "turnaround": 24}
+    ]
+  },
+  {
+    "algorithm": "SJF",
+    "metrics": {
+      "avg_waiting_time": 8.20,
+      "avg_turnaround_time": 13.80,
+      "cpu_utilization": 100.0,
+      "throughput": 0.1786
+    },
+    "processes": [
+      {"pid": 1, "arrival": 0, "burst": 8, "priority": 3, "start": 0, "completion": 8, "waiting": 0, "turnaround": 8},
+      {"pid": 2, "arrival": 1, "burst": 4, "priority": 1, "start": 10, "completion": 14, "waiting": 9, "turnaround": 13},
+      {"pid": 3, "arrival": 2, "burst": 9, "priority": 4, "start": 19, "completion": 28, "waiting": 17, "turnaround": 26},
+      {"pid": 4, "arrival": 3, "burst": 5, "priority": 2, "start": 14, "completion": 19, "waiting": 11, "turnaround": 16},
+      {"pid": 5, "arrival": 4, "burst": 2, "priority": 5, "start": 8, "completion": 10, "waiting": 4, "turnaround": 6}
+    ]
+  },
+  {
+    "algorithm": "RR",
+    "metrics": {
+      "avg_waiting_time": 13.00,
+      "avg_turnaround_time": 18.60,
+      "cpu_utilization": 100.0,
+      "throughput": 0.1786
+    },
+    "processes": [
+      {"pid": 1, "arrival": 0, "burst": 8, "priority": 3, "start": 0, "completion": 22, "waiting": 14, "turnaround": 22},
+      {"pid": 2, "arrival": 1, "burst": 4, "priority": 1, "start": 4, "completion": 8, "waiting": 3, "turnaround": 7},
+      {"pid": 3, "arrival": 2, "burst": 9, "priority": 4, "start": 8, "completion": 28, "waiting": 17, "turnaround": 26},
+      {"pid": 4, "arrival": 3, "burst": 5, "priority": 2, "start": 12, "completion": 27, "waiting": 19, "turnaround": 24},
+      {"pid": 5, "arrival": 4, "burst": 2, "priority": 5, "start": 16, "completion": 18, "waiting": 12, "turnaround": 14}
+    ]
+  },
+  {
+    "algorithm": "Priority",
+    "metrics": {
+      "avg_waiting_time": 9.60,
+      "avg_turnaround_time": 15.20,
+      "cpu_utilization": 100.0,
+      "throughput": 0.1786
+    },
+    "processes": [
+      {"pid": 1, "arrival": 0, "burst": 8, "priority": 3, "start": 0, "completion": 17, "waiting": 9, "turnaround": 17},
+      {"pid": 2, "arrival": 1, "burst": 4, "priority": 1, "start": 1, "completion": 5, "waiting": 0, "turnaround": 4},
+      {"pid": 3, "arrival": 2, "burst": 9, "priority": 4, "start": 17, "completion": 26, "waiting": 15, "turnaround": 24},
+      {"pid": 4, "arrival": 3, "burst": 5, "priority": 2, "start": 5, "completion": 10, "waiting": 2, "turnaround": 7},
+      {"pid": 5, "arrival": 4, "burst": 2, "priority": 5, "start": 26, "completion": 28, "waiting": 22, "turnaround": 24}
+    ]
+  }
+]
