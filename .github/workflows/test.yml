@@ -33,13 +33,9 @@ jobs:
           cd eonix-core/memory
           if [ -f memory_sim ]; then ./memory_sim; fi
 
-      # Note: Kernel module (deadlock/rag_monitor.c) requires matching
-      # kernel headers and cannot be built in standard CI.
-      # Build & test kernel modules locally in QEMU instead.
-      - name: Verify deadlock module compiles (syntax check only)
-        run: |
-          cd eonix-core/deadlock
-          gcc -fsyntax-only -include /dev/null rag_monitor.c 2>&1 || echo "Kernel module syntax check skipped (requires kernel headers)"
+      # Kernel module build is handled by test-deadlock-module job
+      - name: Verify deadlock module source exists
+        run: test -f eonix-core/deadlock/rag_monitor.c && echo "Deadlock module source OK"
 
   build-rust:
     name: Build Rust Components
@@ -179,3 +175,32 @@ jobs:
 
       - name: Run feature engineer tests
         run: python -m pytest eonix-core/scheduler/feature_engineer.py -v
+
+  test-deadlock-module:
+    name: Build & Test Deadlock Module
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kernel headers and build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential linux-headers-$(uname -r)
+
+      - name: Build deadlock kernel module
+        run: |
+          cd eonix-core/deadlock
+          make KBUILD_MODPOST_WARN=1
+
+      - name: Verify module built
+        run: |
+          test -f eonix-core/deadlock/eonix_deadlock.ko
+          modinfo eonix-core/deadlock/eonix_deadlock.ko
+          echo "Module build verified OK"
+
+      - name: Build trigger test programs
+        run: |
+          cd eonix-core/deadlock
+          gcc -O2 -Wall -pthread -o tests/trigger_deadlock tests/trigger_deadlock.c
+          gcc -O2 -Wall -pthread -o tests/trigger_deadlock_3way tests/trigger_deadlock_3way.c
+          echo "Test programs compiled OK"
