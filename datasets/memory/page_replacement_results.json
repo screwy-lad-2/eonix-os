@@ -1,0 +1,23 @@
+[
+  {
+    "algorithm": "lru",
+    "num_frames": 32,
+    "total_accesses": 2000,
+    "page_faults": 410,
+    "fault_rate": 0.205
+  },
+  {
+    "algorithm": "lruk",
+    "num_frames": 32,
+    "total_accesses": 2000,
+    "page_faults": 460,
+    "fault_rate": 0.23
+  },
+  {
+    "algorithm": "hybrid",
+    "num_frames": 32,
+    "total_accesses": 2000,
+    "page_faults": 340,
+    "fault_rate": 0.17
+  }
+]
