@@ -92,9 +92,33 @@ echo ""
 echo "[5] Recent events:"
 $PYTHON "$PIPELINE" --events
 
-# ------ Step 6: Cleanup ------
+# ------ Step 6: Save proof ------
 echo ""
-echo "[6] Stopping pipeline..."
+echo "[6] Saving integration proof..."
+RESULTS_DIR="$PROJECT_ROOT/results"
+mkdir -p "$RESULTS_DIR"
+{
+    echo "=== Eonix Security Pipeline Integration Proof ==="
+    echo "Date: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    echo "Kernel: $(uname -r)"
+    echo "Host: $(hostname)"
+    echo ""
+    echo "--- Status ---"
+    $PYTHON "$PIPELINE" --status 2>&1 || true
+    echo ""
+    echo "--- Events ---"
+    $PYTHON "$PIPELINE" --events 2>&1 || true
+    echo ""
+    echo "--- Threats ---"
+    $PYTHON "$PIPELINE" --threats 2>&1 || true
+    echo ""
+    echo "=== END ==="
+} > "$RESULTS_DIR/security_integration_proof.txt"
+echo "Proof saved to results/security_integration_proof.txt"
+
+# ------ Step 7: Cleanup ------
+echo ""
+echo "[7] Stopping pipeline..."
 if [ -n "${BPF_PID:-}" ]; then
     kill "$BPF_PID" 2>/dev/null || true
 fi

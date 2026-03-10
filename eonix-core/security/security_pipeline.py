@@ -27,6 +27,11 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Ensure sibling modules (anomaly_detector, behavioral_fingerprint) are importable
+_SECURITY_DIR = str(Path(__file__).resolve().parent)
+if _SECURITY_DIR not in sys.path:
+    sys.path.insert(0, _SECURITY_DIR)
+
 # ---- Paths ----
 HOME = Path.home()
 EONIX_DIR = HOME / ".eonix"
@@ -198,19 +203,20 @@ class SecurityPipeline:
             fp_score = self.fingerprinter.score(event)
             self.fingerprinter.observe(event)
 
-        # ML score (isolation forest) — map decision_function to 0–1 range
+        # ML score — model is trained on ADFA-LD trace-level features (14-dim)
+        # Real-time per-event scoring uses fingerprint as primary signal;
+        # ML model is available for batch trace evaluation.
         if self.model is not None and self.scaler is not None:
-            import numpy as np
-            import pandas as pd
             from anomaly_detector import FEATURE_NAMES
-            features = {}
-            for f in FEATURE_NAMES:
-                features[f] = float(event.get(f, 0))
-            df = pd.DataFrame([features])
-            X = self.scaler.transform(df[FEATURE_NAMES].values)
-            raw = self.model.decision_function(X)[0]
-            # Map: raw < -0.3 → 1.0, raw > 0.2 → 0.0
-            ml_score_val = max(0.0, min(1.0, 0.5 - raw * 2.0))
+            # Only score if event has the trace-level features
+            if all(f in event for f in FEATURE_NAMES):
+                import numpy as np
+                import pandas as pd
+                features = {f: float(event.get(f, 0)) for f in FEATURE_NAMES}
+                df = pd.DataFrame([features])
+                X = self.scaler.transform(df[FEATURE_NAMES].values)
+                raw = self.model.decision_function(X)[0]
+                ml_score_val = max(0.0, min(1.0, 0.5 - raw * 2.0))
 
         comb = combined_score(fp_score, ml_score_val)
         action = action_for_score(comb)

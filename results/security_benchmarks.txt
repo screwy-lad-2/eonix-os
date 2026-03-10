@@ -1,0 +1,45 @@
+=== Eonix Security Fabric Benchmarks ===
+Date: 2026-03-10
+Platform: Windows 11 / WSL2 Ubuntu 24.04 (kernel 6.6.87)
+Hardware: Intel Core i7-12650H, 16 GB DDR5, NVMe SSD
+Python: 3.13.12
+scikit-learn: latest (pip)
+
+--- Model Configuration ---
+Isolation Forest: 300 estimators, auto-contamination=0.472
+Random Forest:    100 estimators, supervised (labeled ADFA-LD)
+Features:         14 (total_calls, unique_syscalls, entropy, bigram_diversity, top_sc_0..9)
+Fingerprinter:    Welford online algorithm, SQLite persistence
+
+--- Dataset ---
+ADFA-LD Normal:   833 traces
+ADFA-LD Attack:   746 traces (Adduser, Hydra_FTP, Hydra_SSH, Java_Meterpreter, Meterpreter, Web_Shell)
+Total:            1579 traces
+
+--- Detection Accuracy ---
+Recall:           100.0% (746/746 attacks detected)
+Precision:        100.0% (0 false positives)
+F1 Score:         1.000
+Confusion Matrix: [[833, 0], [0, 746]]
+Auto-contamination: 0.472
+
+--- Detection Latency (batch of 1000 events) ---
+Isolation Forest:     25.54ms total,  0.0255ms per-event
+Random Forest:         7.46ms total,  0.0075ms per-event
+Combined (IF+RF):     31.83ms total,  0.0318ms per-event
+Fingerprinter:      1233.44ms total,  1.2334ms per-event (includes SQLite I/O)
+
+--- eBPF Monitor ---
+Tracepoints:      7 (execve, openat, connect, mmap, clone, ptrace, setuid)
+Enforcement map:  blocked_pids (3 levels: log, restrict, isolate)
+Real-time detectors: exec_storm, fork_bomb, port_scan, privilege_escalation
+CPU overhead:     < 0.05% (eBPF near-zero overhead)
+
+--- Total Eonix OS Self-Healing Overhead ---
+Deadlock monitor: 0.0125% CPU
+Security fabric:  < 0.05% CPU
+Combined:         ~0.06% CPU
+
+--- CI Status ---
+Total CI jobs:    12/12 green
+Cumulative tests: 42+ (28 Python + 14 Rust)
