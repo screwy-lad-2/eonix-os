@@ -18,7 +18,7 @@
 \usepackage{graphicx}
 \usepackage{tikz}
 \usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
+\pgfplotsset{compat=1.17}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit,
                 backgrounds, decorations.pathreplacing}
 
@@ -250,9 +250,7 @@ Figure~\ref{fig:rag-cycle} illustrates a minimal 2-way deadlock cycle.
                minimum size=1.3cm, font=\sffamily\bfseries},
   res/.style={rectangle, draw=eonixorange, thick, fill=orange!10,
               minimum size=1.1cm, font=\sffamily\bfseries},
-  held/.style={-{Stealth[length=5pt]}, thick, eonixgreen,
-               postaction={decorate, decoration={text along path,
-               text align=center, text={|\tiny|held by}}}},
+  held/.style={-{Stealth[length=5pt]}, thick, eonixgreen},
   wait/.style={-{Stealth[length=5pt]}, thick, eonixred, dashed},
 ]
 
@@ -1035,7 +1033,7 @@ Tracepoints & 7 \\
   height=6cm,
   ylabel={Score (\%)},
   ylabel style={font=\small},
-  symbolic x coords={Recall, Precision, F1$\times$100, Specificity, FPR},
+  symbolic x coords={Recall, Precision, F1 Score, Specificity, FPR},
   xtick=data,
   xticklabel style={font=\small},
   ymin=0, ymax=119,
@@ -1051,15 +1049,15 @@ Tracepoints & 7 \\
                draw=gray!40},
 ]
 \addplot[fill=eonixgreen!70, draw=eonixgreen!90!black] coordinates
-  {(Recall,100) (Precision,100) (F1$\times$100,100) (Specificity,100) (FPR,0)};
+  {(Recall,100) (Precision,100) (F1 Score,100) (Specificity,100) (FPR,0)};
 \addplot[fill=eonixpurple!40, draw=eonixpurple!70!black] coordinates
-  {(Recall,100) (Precision,100) (F1$\times$100,100) (Specificity,100) (FPR,0)};
+  {(Recall,100) (Precision,100) (F1 Score,100) (Specificity,100) (FPR,0)};
 \legend{Random Forest, Isolation Forest (fallback)}
 \end{axis}
 \end{tikzpicture}
 \caption{Security evaluation metrics on ADFA-LD.  Both classifiers
   achieve perfect scores; the combined pipeline inherits the best of
-  each—supervised discrimination from the Random Forest and novelty
+  each---supervised discrimination from the Random Forest and novelty
   detection from the Isolation Forest.  FPR = false positive rate
   (lower is better).}
 \label{fig:detection-ebpf}
