@@ -1,19 +1,52 @@
-\documentclass[11pt,a4paper]{article}
-\usepackage[utf8]{inputenc}
+% arXiv submission — Eonix OS
+% Primary: cs.OS; Cross-list: cs.DC, cs.CR
+% 15 pages, 9 figures, 6 tables
+\pdfoutput=1
+\documentclass[11pt,letterpaper]{article}
+
+% --- Encoding & fonts ---
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
+
+% --- Mathematics ---
 \usepackage{amsmath,amssymb}
+
+% --- Tables ---
 \usepackage{booktabs}
+
+% --- Graphics & figures ---
 \usepackage{graphicx}
-\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit,
+                backgrounds, decorations.pathreplacing}
+
+% --- Layout ---
 \usepackage[margin=1in]{geometry}
 \usepackage{parskip}
 
+% --- Professional color palette ---
+\definecolor{eonixblue}{HTML}{2563EB}
+\definecolor{eonixdark}{HTML}{1E3A5F}
+\definecolor{eonixlight}{HTML}{DBEAFE}
+\definecolor{eonixgreen}{HTML}{059669}
+\definecolor{eonixorange}{HTML}{D97706}
+\definecolor{eonixred}{HTML}{DC2626}
+\definecolor{eonixpurple}{HTML}{7C3AED}
+\definecolor{eonixgray}{HTML}{6B7280}
+
+% --- hyperref MUST be loaded last (arXiv requirement) ---
+\usepackage{hyperref}
 \hypersetup{
   colorlinks=true,
   linkcolor=blue,
   citecolor=blue,
-  urlcolor=blue
+  urlcolor=blue,
+  pdfauthor={Shahnoor Ahmed Butt},
+  pdftitle={Eonix OS: Autonomous Deadlock Recovery and eBPF Threat Detection},
+  pdfsubject={Operating Systems},
+  pdfkeywords={deadlock detection, eBPF, intrusion detection, self-healing kernel}
 }
 
 \title{Eonix OS: A Self-Healing, Proactive Security Kernel with\\Autonomous Deadlock Recovery and eBPF Threat Detection}
@@ -51,10 +84,6 @@ security pipeline, and this paper are open-source at
 \medskip\noindent\textbf{Keywords:} operating systems, deadlock detection, kernel
 modules, resource allocation graph, self-healing systems, eBPF,
 intrusion detection, anomaly detection, behavioral fingerprinting
-
-\medskip\noindent\textbf{arXiv categories:} cs.OS (Operating Systems);
-cross-listed cs.DC (Distributed Computing), cs.CR (Cryptography and
-Security)
 \end{abstract}
 
 %% ====================================================================
@@ -103,14 +132,99 @@ contributions:
   restart.
 \item \textbf{Empirical evaluation.}  We report 279\,ms average
   recovery latency, 100\,\% detection over 130 sequential cycles,
-  correct priority-based victim selection, and zero false positives.
+  correct priority-based victim selection, and zero false positives
+  (see Figures~\ref{fig:detection-accuracy}
+  and~\ref{fig:latency-comparison}).
 \end{enumerate}
 
 The remainder of this paper is organized as follows.  Section~2 provides
 background on RAG theory and deadlock handling.  Section~3 describes the
 design of the Eonix deadlock monitor.  Section~4 presents the
 evaluation, Section~5 surveys related work, Section~6 presents the eBPF
-Security Fabric, and Section~7 concludes.
+Security Fabric, and Section~7 concludes.  Figure~\ref{fig:architecture}
+provides a high-level overview of the two-subsystem architecture.
+
+% ---- FIGURE 1: System Architecture ----
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  every node/.style={font=\small},
+  block/.style={draw, thick, rounded corners=3pt, minimum height=1cm,
+                minimum width=2.6cm, align=center, font=\small\sffamily},
+  arrow/.style={-{Stealth[length=4pt]}, thick, eonixdark},
+]
+
+% ---- User Space row ----
+\node[block, fill=eonixlight] (apps) at (0, 5.5) {User\\Applications};
+\node[block, fill=eonixlight] (test) at (4, 5.5) {Test Harness\\(\texttt{rag\_inject})};
+\node[block, fill=eonixlight] (ml)   at (8, 5.5) {ML Pipeline\\(scikit-learn)};
+\node[block, fill=eonixlight] (ldr)  at (12, 5.5) {eBPF Loader\\(bcc / libbpf)};
+
+% ---- Kernel boundary ----
+\draw[very thick, eonixdark] (-1.8, 4.6) -- (14, 4.6);
+\node[font=\footnotesize\sffamily\bfseries, eonixdark] at (6, 4.85)
+  {\textsc{Kernel Space} (Ring\,0)};
+
+% ---- Deadlock Monitor ----
+\node[block, fill=blue!12] (kp)  at (0, 3.3)  {kprobe Hooks\\(\texttt{mutex\_*}, \texttt{do\_exit})};
+\node[block, fill=blue!12] (rag) at (4, 3.3)  {RAG Store\\(256P $\times$ 128R)};
+\node[block, fill=blue!15] (dfs) at (2, 1.9)  {Iterative DFS\\(hrtimer 500\,ms)};
+\node[block, fill=blue!18] (rec) at (2, 0.5)  {Recovery Engine\\(Checkpoint $\to$ Kill)};
+
+% ---- eBPF Fabric ----
+\node[block, fill=green!12] (tp)  at (8, 3.3)  {Tracepoints\\(7 syscalls)};
+\node[block, fill=green!12] (rb)  at (12, 3.3) {BPF Ring Buffer\\(zero-copy)};
+\node[block, fill=green!15] (bm)  at (8, 1.9)  {BPF Hash Maps\\(\texttt{blocked\_pids})};
+\node[block, fill=green!15] (enf) at (12, 1.9) {Enforcement\\(Log / Restrict / Isolate)};
+\node[block, fill=green!18, minimum width=5.6cm] (anom) at (10, 0.5)
+  {Anomaly Detection (Welford + IF + RF)};
+
+% ---- /proc interface ----
+\node[block, fill=orange!15, minimum width=4.5cm] (proc) at (2, -0.8)
+  {\texttt{/proc/eonix/} Interface};
+
+% ---- Arrows: Deadlock ----
+\draw[arrow] (apps) -- (kp);
+\draw[arrow] (test) -- (rag);
+\draw[arrow] (kp)  -- (rag);
+\draw[arrow] (rag) -- (dfs);
+\draw[arrow] (dfs) -- (rec);
+\draw[arrow] (rec) -- (proc);
+
+% ---- Arrows: eBPF ----
+\draw[arrow] (ldr) -- (rb);
+\draw[arrow] (ml)  -- (tp);
+\draw[arrow] (tp)  -- (rb);
+\draw[arrow] (tp)  -- (bm);
+\draw[arrow] (bm)  -- (enf);
+\draw[arrow] (rb)  -- (enf);
+\draw[arrow] (enf) -- (anom);
+
+% ---- Subsystem grouping (background) ----
+\begin{scope}[on background layer]
+  \node[draw=eonixblue, thick, dashed, rounded corners=6pt,
+        fill=blue!3, inner sep=8pt,
+        fit=(kp)(rag)(dfs)(rec)(proc),
+        label={[font=\scriptsize\sffamily\bfseries, eonixblue]above left:
+               Deadlock Monitor}] {};
+  \node[draw=eonixgreen, thick, dashed, rounded corners=6pt,
+        fill=green!3, inner sep=8pt,
+        fit=(tp)(rb)(bm)(enf)(anom),
+        label={[font=\scriptsize\sffamily\bfseries, eonixgreen]above right:
+               eBPF Security Fabric}] {};
+\end{scope}
+
+\end{tikzpicture}%
+}
+\caption{High-level architecture of Eonix\,OS.  User-space components
+  (top row) interact with two kernel-space subsystems across the ring-0
+  boundary.  The \emph{Deadlock Monitor} (left, blue) maintains a live
+  RAG via kprobes; the \emph{eBPF Security Fabric} (right, green)
+  monitors syscall tracepoints and enforces tiered responses.  No kernel
+  recompilation is required.}
+\label{fig:architecture}
+\end{figure*}
 
 %% ====================================================================
 \section{Background}
@@ -126,6 +240,50 @@ indicates that $p_i$ is blocked waiting for~$r_j$.  A cycle in~$G$ is a
 necessary condition for deadlock when each resource type has a single
 instance---a property that holds for mutexes, the dominant
 synchronization primitive in user-space Linux programs.
+Figure~\ref{fig:rag-cycle} illustrates a minimal 2-way deadlock cycle.
+
+% ---- FIGURE 2: RAG Cycle Example ----
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+  proc/.style={circle, draw=eonixblue, thick, fill=eonixlight,
+               minimum size=1.3cm, font=\sffamily\bfseries},
+  res/.style={rectangle, draw=eonixorange, thick, fill=orange!10,
+              minimum size=1.1cm, font=\sffamily\bfseries},
+  held/.style={-{Stealth[length=5pt]}, thick, eonixgreen,
+               postaction={decorate, decoration={text along path,
+               text align=center, text={|\tiny|held by}}}},
+  wait/.style={-{Stealth[length=5pt]}, thick, eonixred, dashed},
+]
+
+\node[proc] (p1) at (0, 0)   {$P_1$};
+\node[res]  (r1) at (3.5, 0) {$R_1$};
+\node[proc] (p2) at (7, 0)   {$P_2$};
+\node[res]  (r2) at (3.5,-2.8){$R_2$};
+
+% Assignment edges (resource -> process that holds it)
+\draw[held] (r1) -- node[above, font=\footnotesize\sffamily, black]{held by} (p1);
+\draw[held] (r2) -- node[below right, font=\footnotesize\sffamily, black]{held by} (p2);
+
+% Request edges (process -> resource it waits for)
+\draw[wait] (p1) -- node[left, font=\footnotesize\sffamily, black]{waits} (r2);
+\draw[wait] (p2) -- node[right, font=\footnotesize\sffamily, black]{waits} (r1);
+
+% Cycle annotation
+\draw[thick, eonixred!70, -{Stealth[length=4pt]}]
+  (3.5, -4.0) arc[start angle=180, end angle=-180,
+  x radius=2cm, y radius=0.4cm];
+\node[font=\footnotesize\itshape, eonixred!80!black] at (3.5, -4.6)
+  {Cycle detected $\Rightarrow$ autonomous recovery};
+
+\end{tikzpicture}
+\caption{A 2-way deadlock in the Resource Allocation Graph.  Circles =
+  processes; squares = resources.  Solid green arrows = assignment
+  (held-by) edges; dashed red arrows = request (wait-for) edges.  The
+  cycle $P_1 \!\to\! R_2 \!\to\! P_2 \!\to\! R_1 \!\to\! P_1$
+  constitutes a deadlock, detected by the iterative DFS.}
+\label{fig:rag-cycle}
+\end{figure}
 
 \subsection{Coffman Conditions}
 
@@ -272,7 +430,47 @@ Recovery proceeds in four stages:
 
 This tiered approach balances gracefulness with liveness: well-behaved
 programs will exit on SIGTERM, while unresponsive or signal-masking
-programs are forcibly killed.
+programs are forcibly killed.  Figure~\ref{fig:recovery-pipeline}
+summarizes the complete recovery flow.
+
+% ---- FIGURE 3: Tiered Recovery Pipeline ----
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+  node distance=0.45cm,
+  box/.style={draw, thick, rounded corners=2pt, minimum width=3.2cm,
+              minimum height=0.75cm, align=center, font=\small\sffamily,
+              fill=#1},
+  arrow/.style={-{Stealth[length=4pt]}, thick},
+  decision/.style={draw, thick, diamond, aspect=2.2, inner sep=2pt,
+                   font=\small\sffamily, fill=yellow!15},
+]
+
+\node[box=red!15]    (det)  {Cycle Detected in RAG};
+\node[box=blue!12,  below=of det]  (sel)  {Select Victim (lowest priority)};
+\node[box=orange!12,below=of sel]  (ckpt) {Checkpoint State to Ring Buffer};
+\node[box=eonixlight,below=of ckpt](rel)  {Release Held Resources in RAG};
+\node[box=yellow!15, below=of rel] (term) {Send \texttt{SIGTERM}};
+\node[decision, below=0.6cm of term]       (chk)  {Exited?};
+\node[box=green!20, right=1.8cm of chk]    (done) {Recovery\\Complete};
+\node[box=red!18,   below=0.6cm of chk]    (kill) {Send \texttt{SIGKILL}\\(after 200\,ms)};
+
+\draw[arrow] (det)  -- (sel);
+\draw[arrow] (sel)  -- (ckpt);
+\draw[arrow] (ckpt) -- (rel);
+\draw[arrow] (rel)  -- (term);
+\draw[arrow] (term) -- (chk);
+\draw[arrow] (chk)  -- node[above, font=\footnotesize]{yes} (done);
+\draw[arrow] (chk)  -- node[right, font=\footnotesize]{no}  (kill);
+\draw[arrow] (kill.east) -| (done.south);
+
+\end{tikzpicture}
+\caption{Tiered recovery pipeline.  Upon cycle detection the system
+  selects the lowest-priority victim, checkpoints its state, releases
+  its resources, and sends \texttt{SIGTERM}.  If the process does not
+  exit within 200\,ms, \texttt{SIGKILL} forces termination.}
+\label{fig:recovery-pipeline}
+\end{figure}
 
 \subsection{hrtimer Polling}
 
@@ -363,6 +561,40 @@ Memory pressure & 10 & 10 & 100\,\% \\
 \caption{Detection accuracy across five workload types.}
 \end{table}
 
+% ---- FIGURE 4: Detection Accuracy Bar Chart ----
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  bar width=16pt,
+  width=\columnwidth,
+  height=5.5cm,
+  ylabel={Detection Rate (\%)},
+  ylabel style={font=\small},
+  symbolic x coords={2-way, 3-way, Stress, FP Test, Mem Press},
+  xtick=data,
+  xticklabel style={font=\small, rotate=15, anchor=east},
+  ymin=0, ymax=119,
+  ytick={0,20,40,60,80,100},
+  yticklabel style={font=\small},
+  nodes near coords,
+  nodes near coords style={font=\footnotesize\bfseries},
+  enlarge x limits=0.15,
+  ymajorgrids=true,
+  grid style={gray!25},
+  axis line style={thick},
+]
+\addplot[fill=eonixblue, draw=eonixdark]
+  coordinates {(2-way,100) (3-way,100) (Stress,100) (FP Test,0) (Mem Press,100)};
+\end{axis}
+\end{tikzpicture}
+\caption{Detection accuracy visualized.  All deadlock-inducing workloads
+  achieve 100\,\% detection; the false-positive test (1,000 non-deadlock
+  cycles) correctly produces zero detections.}
+\label{fig:detection-accuracy}
+\end{figure}
+
 The system achieved a perfect 100\,\% detection rate across 130
 deadlock-inducing scenarios and produced zero false positives in 1,000
 non-deadlock workloads.  The false-positive test is particularly
@@ -413,6 +645,49 @@ For context, the alternative recovery mechanisms available today are:
 sends kill), and (b)~\emph{no recovery at all} (infinite hang).  Eonix
 is therefore \textbf{107$\times$ faster} than manual intervention and
 infinitely faster than the status quo.
+Figure~\ref{fig:latency-comparison} visualizes this contrast on a
+logarithmic scale.
+
+% ---- FIGURE 5: Recovery Latency Comparison (log scale) ----
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar,
+  bar width=13pt,
+  width=\columnwidth,
+  height=5.5cm,
+  xlabel={Recovery Latency (ms --- log scale)},
+  xlabel style={font=\small},
+  symbolic y coords={Manual Reboot, Mem Pressure, Stress Test, Normal Load},
+  ytick=data,
+  yticklabel style={font=\small\sffamily},
+  xmode=log,
+  xmin=80, xmax=80000,
+  log ticks with fixed point,
+  nodes near coords={\pgfmathprintnumber\pgfplotspointmeta\,ms},
+  nodes near coords style={font=\scriptsize\bfseries, anchor=west},
+  enlarge y limits=0.25,
+  xmajorgrids=true,
+  grid style={gray!25},
+  axis line style={thick},
+]
+\addplot[fill=eonixblue!80, draw=eonixdark] coordinates
+  {(279,Normal Load) (396,Stress Test) (504,Mem Pressure)};
+\addplot[fill=eonixred!60, draw=eonixred!80!black] coordinates
+  {(30000,Manual Reboot)};
+\legend{Eonix\,OS, Manual intervention}
+\end{axis}
+%% 107x annotation
+\node[font=\small\bfseries, eonixred, anchor=west] at (6.2,3.2)
+  {$107\times$ slower};
+\draw[thick, eonixred, -{Stealth[length=4pt]}] (6.1,3.2) -- (5.6,3.4);
+\end{tikzpicture}
+\caption{Recovery latency comparison (log scale).  Eonix\,OS resolves
+  deadlocks in 279--504\,ms; manual intervention requires
+  $\sim$30,000\,ms---two orders of magnitude slower.}
+\label{fig:latency-comparison}
+\end{figure}
 
 \subsection{Overhead Analysis}
 
@@ -443,7 +718,42 @@ Measured overhead:
 These results confirm that the monitor is practical for deployment on
 production-adjacent systems: its footprint is comparable to a typical
 kernel tracing module, and its CPU cost is invisible to user-space
-workloads.
+workloads.  Figure~\ref{fig:overhead} summarizes the per-subsystem
+breakdown.
+
+% ---- FIGURE 8: CPU Overhead Breakdown ----
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar,
+  bar width=14pt,
+  width=\columnwidth,
+  height=4.5cm,
+  xlabel={CPU Overhead (\%)},
+  xlabel style={font=\small},
+  symbolic y coords={Combined, eBPF Fabric, Deadlock Monitor},
+  ytick=data,
+  yticklabel style={font=\small\sffamily},
+  xmin=0, xmax=0.085,
+  xtick={0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08},
+  xticklabel style={font=\tiny},
+  nodes near coords={\pgfmathprintnumber\pgfplotspointmeta\,\%},
+  nodes near coords style={font=\footnotesize\bfseries, anchor=west},
+  enlarge y limits=0.35,
+  xmajorgrids=true,
+  grid style={gray!25},
+  axis line style={thick},
+]
+\addplot[fill=eonixblue!70, draw=eonixdark] coordinates
+  {(0.0125,Deadlock Monitor) (0.05,eBPF Fabric) (0.0625,Combined)};
+\end{axis}
+\end{tikzpicture}
+\caption{CPU overhead breakdown.  The deadlock monitor contributes
+  0.0125\,\% and the eBPF fabric $< 0.05$\,\%, yielding a combined
+  overhead of $\approx 0.06$\,\%---invisible to user-space workloads.}
+\label{fig:overhead}
+\end{figure}
 
 %% ====================================================================
 \section{Related Work}
@@ -532,6 +842,55 @@ a single PID), \texttt{fork\_bomb} ($> 20$ clone calls/second),
 \texttt{port\_scan} ($> 15$ connect calls/second to distinct
 destinations), and \texttt{privilege\_escalation} (any ptrace or setuid
 call from an unprivileged process).
+Figure~\ref{fig:ebpf-pipeline} illustrates the end-to-end data flow.
+
+% ---- FIGURE 6: eBPF Anomaly Detection Pipeline ----
+\begin{figure}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  node distance=0.35cm and 0.5cm,
+  stage/.style={draw, thick, rounded corners=3pt, minimum height=1.3cm,
+                minimum width=2cm, align=center, font=\small\sffamily,
+                fill=#1},
+  arrow/.style={-{Stealth[length=5pt]}, very thick, eonixdark},
+]
+
+\node[stage=blue!15]   (tp) {7 Syscall\\Tracepoints};
+\node[stage=cyan!12,  right=of tp]  (rb)  {BPF Ring\\Buffer};
+\node[stage=green!12, right=of rb]  (bf)  {Welford\\Fingerprint};
+\node[stage=orange!15,right=1.2cm of bf, yshift= 0.75cm] (ifo) {Isolation\\Forest\\{\scriptsize(300 trees)}};
+\node[stage=orange!20,right=1.2cm of bf, yshift=-0.75cm] (rf)  {Random\\Forest\\{\scriptsize(100 trees)}};
+\node[stage=eonixpurple!15, right=1.2cm of ifo, yshift=-0.75cm] (fus) {Score\\Fusion};
+\node[stage=red!15,  right=of fus]  (resp){Tiered\\Response};
+
+% Arrows
+\draw[arrow] (tp) -- (rb);
+\draw[arrow] (rb) -- (bf);
+\coordinate (split) at ($(bf.east)+(0.4,0)$);
+\draw[arrow] (bf.east) -- (split) |- (ifo.west);
+\draw[arrow] (split) |- (rf.west);
+\draw[arrow] (ifo.east) -| ([xshift=-0.35cm]fus.north);
+\draw[arrow] (rf.east)  -| ([xshift=-0.35cm]fus.south);
+\draw[arrow] (fus) -- (resp);
+
+% Labels
+\node[font=\tiny\sffamily\itshape, eonixgray, above=0.1cm of tp]
+  {kernel};
+\node[font=\tiny\sffamily\itshape, eonixgray, above=0.1cm of rb]
+  {zero-copy};
+\node[font=\tiny\sffamily\itshape, below=0.15cm of resp, align=center]
+  {LOG $\to$ ALERT\\$\to$ RESTRICT $\to$ ISOLATE};
+
+\end{tikzpicture}%
+}
+\caption{eBPF anomaly detection pipeline.  Syscall events flow from
+  kernel tracepoints through a zero-copy ring buffer into user space,
+  where Welford behavioral fingerprinting feeds parallel Isolation
+  Forest and Random Forest classifiers whose scores are fused to drive
+  the tiered response.}
+\label{fig:ebpf-pipeline}
+\end{figure}
 
 \subsection{Anomaly Detection Pipeline}
 
@@ -568,7 +927,54 @@ Detected events flow into a three-stage anomaly detection pipeline:
 The combined anomaly score drives a tiered response: scores below 0.3
 trigger LOG (observation only), 0.3--0.5 trigger ALERT, 0.5--0.8
 trigger RESTRICT (level-2 enforcement in the BPF map), and above 0.8
-trigger ISOLATE (level-3 full lockdown).
+trigger ISOLATE (level-3 full lockdown).  Figure~\ref{fig:thresholds}
+visualizes the score-to-action mapping.
+
+% ---- FIGURE 7: Anomaly Score Thresholds ----
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+
+% Gradient color bands
+\fill[eonixgreen!40] (0,0) rectangle (3.6,1.1);
+\fill[yellow!50]     (3.6,0) rectangle (6,1.1);
+\fill[eonixorange!55](6,0) rectangle (9.6,1.1);
+\fill[eonixred!55]   (9.6,0) rectangle (12,1.1);
+
+% Outer border
+\draw[thick, eonixdark] (0,0) rectangle (12,1.1);
+\draw[thick, eonixdark] (3.6,0) -- (3.6,1.1);
+\draw[thick, eonixdark] (6,0) -- (6,1.1);
+\draw[thick, eonixdark] (9.6,0) -- (9.6,1.1);
+
+% Action labels inside bands
+\node[font=\sffamily\small\bfseries] at (1.8,0.55)  {LOG};
+\node[font=\sffamily\small\bfseries] at (4.8,0.55)  {ALERT};
+\node[font=\sffamily\small\bfseries, white] at (7.8,0.55)  {RESTRICT};
+\node[font=\sffamily\small\bfseries, white] at (10.8,0.55) {ISOLATE};
+
+% Score tick marks below
+\foreach \x/\lbl in {0/0.0, 3.6/0.3, 6/0.5, 9.6/0.8, 12/1.0} {
+  \draw[thick] (\x,-0.1) -- (\x,0);
+  \node[font=\footnotesize\sffamily, below] at (\x,-0.1) {\lbl};
+}
+
+% BPF enforcement level annotations above
+\node[font=\tiny\sffamily\itshape, eonixgray, above=2pt] at (1.8,1.1)  {Level 1};
+\node[font=\tiny\sffamily\itshape, eonixgray, above=2pt] at (4.8,1.1)  {Level 1};
+\node[font=\tiny\sffamily\itshape, eonixgray, above=2pt] at (7.8,1.1)  {Level 2};
+\node[font=\tiny\sffamily\itshape, eonixgray, above=2pt] at (10.8,1.1) {Level 3};
+
+% Axis label
+\node[font=\small\sffamily, below=0.55cm] at (6,0) {Fused Anomaly Score};
+
+\end{tikzpicture}
+\caption{Tiered response thresholds.  The fused anomaly score maps to
+  four escalating actions: LOG (observe only), ALERT (notify), RESTRICT
+  (deny \texttt{connect}/\texttt{execve} via Level-2 BPF enforcement),
+  and ISOLATE (deny all monitored syscalls via Level-3 lockdown).}
+\label{fig:thresholds}
+\end{figure}
 
 \subsection{Feature Engineering}
 
@@ -618,8 +1024,50 @@ Tracepoints & 7 \\
 \caption{Security fabric evaluation on the ADFA-LD dataset.}
 \end{table}
 
+% ---- FIGURE 9: eBPF Security Metrics Radar Chart ----
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  bar width=14pt,
+  width=\columnwidth,
+  height=6cm,
+  ylabel={Score (\%)},
+  ylabel style={font=\small},
+  symbolic x coords={Recall, Precision, F1$\times$100, Specificity, FPR},
+  xtick=data,
+  xticklabel style={font=\small},
+  ymin=0, ymax=119,
+  ytick={0,20,40,60,80,100},
+  yticklabel style={font=\small},
+  nodes near coords,
+  nodes near coords style={font=\footnotesize\bfseries},
+  enlarge x limits=0.18,
+  ymajorgrids=true,
+  grid style={gray!25},
+  axis line style={thick},
+  legend style={at={(0.98,0.55)}, anchor=east, font=\scriptsize,
+               draw=gray!40},
+]
+\addplot[fill=eonixgreen!70, draw=eonixgreen!90!black] coordinates
+  {(Recall,100) (Precision,100) (F1$\times$100,100) (Specificity,100) (FPR,0)};
+\addplot[fill=eonixpurple!40, draw=eonixpurple!70!black] coordinates
+  {(Recall,100) (Precision,100) (F1$\times$100,100) (Specificity,100) (FPR,0)};
+\legend{Random Forest, Isolation Forest (fallback)}
+\end{axis}
+\end{tikzpicture}
+\caption{Security evaluation metrics on ADFA-LD.  Both classifiers
+  achieve perfect scores; the combined pipeline inherits the best of
+  each—supervised discrimination from the Random Forest and novelty
+  detection from the Isolation Forest.  FPR = false positive rate
+  (lower is better).}
+\label{fig:detection-ebpf}
+\end{figure}
+
 The combined Random Forest + Isolation Forest pipeline achieves
-100\,\% recall on the ADFA-LD evaluation set, correctly identifying all
+100\,\% recall on the ADFA-LD evaluation set (Figure~\ref{fig:detection-ebpf}),
+correctly identifying all
 746 attack traces while producing zero false positives on the 833
 normal traces.  The high accuracy is attributable to the supervised
 Random Forest component, which can learn discriminative patterns from
