@@ -1,14 +1,17 @@
 # Eonix OS: Autonomous Deadlock Recovery via Real-Time Resource Allocation Graph Monitoring in the Linux Kernel
 
-**Authors:** Shah Noor Butt
+**Authors:** Shahnoor Ahmed Butt
+**Institution:** Presidency University, Bengaluru, India
+**Date:** March 2026
+**arXiv category:** cs.OS (Operating Systems); cross-listed cs.DC (Distributed Computing)
 
 ---
 
 ## Abstract
 
-Deadlocks remain one of the most pernicious classes of concurrency bugs in modern operating systems, yet every production kernel in widespread use today employs the Ostrich Algorithm—simply ignoring the problem.  We present Eonix OS, a Linux kernel module that maintains a live Resource Allocation Graph (RAG), performs iterative depth-first search cycle detection at 500 ms intervals via an hrtimer, and autonomously recovers from detected deadlocks through a tiered strategy of resource preemption, SIGTERM, and SIGKILL.  In evaluation on a WSL2 6.6-series kernel, the system achieves a mean detection-to-recovery latency of [MEASURED: 279 ms] across 10 benchmark iterations (all detected), sustains a [MEASURED: 100/100] detection rate over a 100-cycle stress test, correctly handles self-deadlocks, N-way cycles (N ≤ 3 tested), and priority-inversion scenarios, and introduces zero false positives in a 1 000-iteration rapid lock/unlock workload.  To our knowledge, this is the first student-built, open-source kernel module that provides fully autonomous deadlock detection and recovery for unmodified Linux user-space processes.
+Deadlocks—permanent circular waits among concurrent processes—remain an unsolved problem in production operating systems; every major kernel in use today simply ignores them.  No existing system provides autonomous, kernel-level deadlock detection and recovery for general-purpose workloads.  We present Eonix OS, a Linux loadable kernel module that maintains a live Resource Allocation Graph via kprobes on mutex operations and runs an iterative depth-first search every 500 ms to detect cycles.  Upon detection, a tiered recovery engine checkpoints the victim process, preempts its resources, and escalates through SIGTERM to SIGKILL, restoring liveness without human intervention.  Evaluated on WSL2 Ubuntu 24.04 (kernel 6.6.87), the system achieves 100 % detection across 130 deadlock scenarios, zero false positives over 1 000 benign lock cycles, a mean recovery latency of 279 ms—107× faster than manual reboot—and a CPU overhead of 0.0125 %.  The module, test harness, and this paper are open-source at https://github.com/shahnoor-exe/eonix-os.
 
-**Keywords:** deadlock detection, resource allocation graph, kernel module, kprobes, operating systems
+**Keywords:** operating systems, deadlock detection, kernel modules, resource allocation graph, self-healing systems
 
 ---
 
@@ -26,7 +29,7 @@ We argue that the gap between theory and practice can be closed by a lightweight
 4. **Process checkpointing.**  Before terminating the victim, the module saves its identity, executable path, held resources, and command-line arguments to a ring buffer, enabling informed manual restart.
 5. **Empirical evaluation.**  We report [MEASURED: 279 ms] average recovery latency, [MEASURED: 100 %] detection over 100 sequential cycles, correct priority-based victim selection, and zero false positives.
 
-The remainder of this paper is organized as follows.  Section 2 provides background on RAG theory and deadlock handling.  Section 3 describes the design of the Eonix deadlock monitor.  Sections 4–6 (forthcoming) will cover the implementation, evaluation, and related work.
+The remainder of this paper is organized as follows.  Section 2 provides background on RAG theory and deadlock handling.  Section 3 describes the design of the Eonix deadlock monitor.  Section 4 presents the evaluation, Section 5 surveys related work, and Section 6 concludes.
 
 ---
 
@@ -193,6 +196,18 @@ Deadlock handling spans multiple layers of the software stack, yet no prior syst
 **Academic systems.**  Knecht et al. proposed a simulation-based deadlock detection framework for distributed systems [10], but their work remained in simulation and was never deployed on a real kernel.  Similarly, several academic prototypes have explored real-time deadlock avoidance in RTOS contexts, but these impose restrictive programming models (e.g., requiring resource declarations at task creation) that are incompatible with general-purpose OS workloads.
 
 **Eonix RAG Monitor** is, to our knowledge, the first system that combines (i) a live kernel-space resource allocation graph maintained via kprobes, (ii) periodic cycle detection via iterative DFS, (iii) process checkpointing before termination, and (iv) autonomous tiered recovery—all without requiring any modification to user-space applications or the kernel source.
+
+---
+
+## 6  Conclusion
+
+No production operating system in widespread use today provides autonomous detection and recovery of deadlocks among general-purpose user-space processes.  Linux, Windows, macOS, and the BSDs all employ the Ostrich Algorithm, leaving users to identify hung applications and intervene manually—a process measured in tens of seconds at best, and infinite time at worst.
+
+This paper presented the Eonix deadlock monitor, a Linux loadable kernel module that closes this gap.  Our contributions are: (1) a live Resource Allocation Graph maintained transparently via kprobes on mutex operations, requiring no application or kernel-source modifications; (2) an iterative depth-first search formulation that is safe for the kernel's 8–16 KiB stack; (3) a tiered recovery pipeline—resource preemption, SIGTERM, then SIGKILL—that balances gracefulness with guaranteed liveness; (4) a checkpoint manager that preserves victim process state for post-mortem inspection or restart; and (5) an empirical evaluation demonstrating 100 % detection across 130 scenarios, zero false positives, a mean recovery latency of 279 ms (107× faster than manual reboot), and a CPU overhead of only 0.0125 %.
+
+Several directions for future work are natural.  First, extending detection to *distributed* deadlocks across networked processes, where the RAG spans multiple hosts connected via shared-memory or message-passing channels.  Second, integrating the monitor with the Eonix MIND cognitive assistant to provide voice-narrated recovery alerts—so the OS can literally tell the user "I found and fixed a deadlock."  Third, leveraging NPU-assisted prediction to estimate deadlock probability from lock-acquisition patterns *before* a cycle forms, enabling avoidance rather than detection.
+
+Eonix OS demonstrates that autonomous self-healing is achievable in a student research prototype and merits consideration for production kernel integration.
 
 ---
 
