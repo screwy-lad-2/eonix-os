@@ -68,3 +68,10 @@ datasets/**/*.parquet
 Module.symvers
 modules.order
 .tmp_versions/
+
+# ADFA-LD dataset (large, download separately)
+datasets/security/ADFA-LD/
+
+# Trained model pickles (regenerated via --train)
+eonix-core/security/models/
+models/security/*.pkl

@@ -36,10 +36,11 @@ HOME = Path.home()
 EONIX_DIR = HOME / ".eonix"
 ALERTS_LOG = EONIX_DIR / "security_alerts.log"
 ANOMALY_LOG = EONIX_DIR / "anomaly_detections.log"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 MODEL_DIR = Path("models/security")
 MODEL_PATH = MODEL_DIR / "isolation_forest.pkl"
 SCALER_PATH = MODEL_DIR / "scaler.pkl"
-DATASET_DIR = Path("datasets/security")
+DATASET_DIR = PROJECT_ROOT / "datasets" / "security"
 
 # Feature names
 FEATURE_NAMES = [
@@ -170,8 +171,13 @@ def load_adfa_ld(dataset_dir=None):
 def _features_from_trace_files(trace_files):
     """Convert syscall trace files to feature vectors."""
     syscall_map = {
+        # x86_64
         59: "execve", 257: "openat", 42: "connect", 9: "mmap",
         56: "clone", 101: "ptrace", 105: "setuid",
+        # i386 (ADFA-LD was collected on 32-bit Linux)
+        11: "execve", 295: "openat", 102: "connect",
+        90: "mmap", 192: "mmap",
+        120: "clone", 26: "ptrace", 23: "setuid", 213: "setuid",
     }
 
     rows = []
@@ -408,7 +414,7 @@ def test_feature_extraction_correct_shape():
 def test_isolation_forest_trains_without_error():
     """Model trains successfully on synthetic data."""
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    model, scaler = train_model()
+    model, scaler = train_model(dataset_dir="/nonexistent")
     assert model is not None
     assert scaler is not None
     assert MODEL_PATH.exists()
@@ -418,7 +424,7 @@ def test_isolation_forest_trains_without_error():
 def test_anomaly_score_range():
     """Anomaly scores fall within expected range."""
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    model, scaler = train_model()
+    model, scaler = train_model(dataset_dir="/nonexistent")
     df = generate_synthetic_training_data(50)
     X = scaler.transform(df[FEATURE_NAMES].values)
     scores = model.decision_function(X)
@@ -430,7 +436,7 @@ def test_anomaly_score_range():
 def test_normal_process_not_flagged():
     """Normal process behavior scores above threshold."""
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    model, scaler = train_model()
+    model, scaler = train_model(dataset_dir="/nonexistent")
     normal = pd.DataFrame([{
         "execve_rate": 0.5, "openat_rate": 2.0, "connect_rate": 1.0,
         "mmap_rate": 1.5, "fork_rate": 0.3, "ptrace_ever": 0.0,
@@ -445,7 +451,7 @@ def test_normal_process_not_flagged():
 def test_suspicious_process_flagged():
     """Suspicious process with extreme values is scored as anomalous."""
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    model, scaler = train_model()
+    model, scaler = train_model(dataset_dir="/nonexistent")
     suspicious = pd.DataFrame([{
         "execve_rate": 200.0, "openat_rate": 500.0, "connect_rate": 800.0,
         "mmap_rate": 200.0, "fork_rate": 500.0, "ptrace_ever": 1.0,
