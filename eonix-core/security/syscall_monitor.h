@@ -6,7 +6,19 @@
 #ifndef EONIX_SYSCALL_MONITOR_H
 #define EONIX_SYSCALL_MONITOR_H
 
+/* Portable type definitions for non-kernel builds (IntelliSense, userspace) */
+#ifndef __KERNEL__
+#ifndef __BPF__
+#include <stdint.h>
+typedef uint8_t  __u8;
+typedef uint32_t __u32;
+typedef uint64_t __u64;
+#endif
+#endif
+
+#ifndef TASK_COMM_LEN
 #define TASK_COMM_LEN 16
+#endif
 #define MAX_TRACKED_PIDS 4096
 #define RING_BUF_SIZE (256 * 1024) /* 256 KB */
 

@@ -9,6 +9,7 @@
  * Build: clang -O2 -g -target bpf -c syscall_monitor.bpf.c -o syscall_monitor.bpf.o
  */
 
+#define __BPF__ 1
 #include "vmlinux.h"
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>

@@ -88,8 +88,6 @@ int main(int argc, char **argv)
 	}
 
 	/* Attach all programs */
-	err = bpf_object__attach_skeleton(NULL);
-	/* Use bpf_program__attach for each program instead */
 	struct bpf_program *prog;
 	bpf_object__for_each_program(prog, obj) {
 		struct bpf_link *link = bpf_program__attach(prog);
