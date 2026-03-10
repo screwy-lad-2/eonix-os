@@ -11,11 +11,16 @@
  * Run:   sudo ./edge_cases
  */
 
+#define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+
+#ifndef CLOCK_MONOTONIC
+#define CLOCK_MONOTONIC 1
+#endif
 
 #define INJECT_PATH "/proc/eonix/rag_inject"
 #define LOG_PATH    "/proc/eonix/deadlock_log"

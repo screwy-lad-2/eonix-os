@@ -643,7 +643,8 @@ static ssize_t rag_inject_write(struct file *file, const char __user *ubuf,
 		idx = find_process((pid_t)pid_val);
 		if (idx >= 0)
 			processes[idx].priority_score = score;
-	} else if (strncmp(buf, "RESET", 5) == 0) {
+	} else if (strncmp(buf, "RESET", 5) == 0 ||
+		   strncmp(buf, "inject clear", 12) == 0) {
 		memset(processes, 0, sizeof(processes));
 		memset(resources, 0, sizeof(resources));
 		deadlock_count = 0;
@@ -652,6 +653,69 @@ static ssize_t rag_inject_write(struct file *file, const char __user *ubuf,
 		log_offset = 0;
 		spin_unlock(&log_lock);
 		pr_info("EONIX_RAG: State reset via rag_inject\n");
+	} else if (strncmp(buf, "inject status", 13) == 0) {
+		int ap = 0, ar = 0, si;
+
+		for (si = 0; si < MAX_PROCESSES; si++)
+			if (processes[si].active)
+				ap++;
+		for (si = 0; si < MAX_RESOURCES; si++)
+			if (resources[si].held_by != 0)
+				ar++;
+		rag_log("STATUS active_processes=%d active_resources=%d "
+			"total_deadlocks=%lu total_recoveries=%lu",
+			ap, ar, deadlock_count, recovery_count);
+		pr_info("EONIX_RAG: STATUS procs=%d res=%d deadlocks=%lu recoveries=%lu\n",
+			ap, ar, deadlock_count, recovery_count);
+	} else if (sscanf(buf, "inject deadlock %d", &pid_val) == 1) {
+		/* inject deadlock N <pid1> <pid2> ... <pidN>
+		 * Creates a circular HOLD+WAIT chain among N PIDs.
+		 * Each pid_i HOLDs resource_i and WAITs for resource_(i+1 mod N).
+		 */
+		int n = pid_val, pi;
+		int pids[MAX_CYCLE_LEN];
+		char *p = buf;
+
+		/* Skip "inject deadlock N " to reach the PID list */
+		p = strchr(p, ' '); /* skip "inject" */
+		if (p) p = strchr(p + 1, ' '); /* skip "deadlock" */
+		if (p) p = strchr(p + 1, ' '); /* skip N */
+
+		if (p && n >= 2 && n <= MAX_CYCLE_LEN) {
+			int parsed = 0;
+
+			for (pi = 0; pi < n && p; pi++) {
+				while (*p == ' ') p++;
+				if (sscanf(p, "%d", &pids[pi]) != 1)
+					break;
+				parsed++;
+				while (*p && *p != ' ') p++;
+			}
+			if (parsed == n) {
+				for (pi = 0; pi < n; pi++) {
+					int ri = pi;
+					int next_ri = (pi + 1) % n;
+
+					idx = find_or_create_process((pid_t)pids[pi]);
+					ridx = find_or_create_resource(ri);
+					if (idx >= 0 && ridx >= 0) {
+						resources[ridx].held_by = (pid_t)pids[pi];
+						if (processes[idx].held_count < MAX_HELD)
+							processes[idx].held_resources[
+								processes[idx].held_count++] = ri;
+					}
+					ridx = find_or_create_resource(next_ri);
+					if (idx >= 0 && ridx >= 0) {
+						processes[idx].waiting_for = next_ri;
+						if (resources[ridx].waiter_count < MAX_WAITERS)
+							resources[ridx].waited_by[
+								resources[ridx].waiter_count++] =
+								(pid_t)pids[pi];
+					}
+				}
+				rag_log("INJECT_DEADLOCK n=%d pids injected", n);
+			}
+		}
 	}
 
 	write_unlock_irqrestore(&rag_lock, flags);
@@ -661,8 +725,15 @@ static ssize_t rag_inject_write(struct file *file, const char __user *ubuf,
 static int rag_inject_show(struct seq_file *m, void *v)
 {
 	seq_puts(m, "Eonix RAG Inject Interface\n");
-	seq_puts(m, "Commands: HOLD|WAIT|RELEASE <pid> <rid>, ");
-	seq_puts(m, "PRIORITY <pid> <score>, RESET\n");
+	seq_puts(m, "Commands:\n");
+	seq_puts(m, "  HOLD <pid> <rid>             — pid acquires resource\n");
+	seq_puts(m, "  WAIT <pid> <rid>             — pid waits for resource\n");
+	seq_puts(m, "  RELEASE <pid> <rid>          — pid releases resource\n");
+	seq_puts(m, "  PRIORITY <pid> <score>       — set priority score\n");
+	seq_puts(m, "  RESET                        — clear all state\n");
+	seq_puts(m, "  inject deadlock N <p1>..<pN> — circular HOLD+WAIT chain\n");
+	seq_puts(m, "  inject clear                 — alias for RESET\n");
+	seq_puts(m, "  inject status                — log stats to deadlock_log\n");
 	return 0;
 }
 

@@ -6,7 +6,7 @@ jobs:
     name: Build & Test C Modules
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Install dependencies
         run: |
@@ -41,7 +41,7 @@ jobs:
     name: Build Rust Components
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
@@ -62,7 +62,7 @@ jobs:
     name: Test Rust — Silicon HAL
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
@@ -78,7 +78,7 @@ jobs:
     name: Test Rust — IPC Broker
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
@@ -94,10 +94,10 @@ jobs:
     name: Test Python Components
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.12'
 
@@ -118,10 +118,10 @@ jobs:
     name: Test Python — Page Replacement
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.12'
 
@@ -137,7 +137,7 @@ jobs:
     name: Build & Run Scheduler Simulator
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y build-essential
@@ -161,10 +161,10 @@ jobs:
     name: Test Feature Engineer
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.12'
 
@@ -180,7 +180,7 @@ jobs:
     name: Build & Test Deadlock Module
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Install kernel headers and build tools
         run: |
@@ -206,7 +206,7 @@ jobs:
           echo "Test programs compiled OK"
 
       - name: Upload module and test artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.0
         with:
           name: deadlock-module
           path: |
@@ -219,3 +219,31 @@ jobs:
           gcc -O2 -Wall -pthread -o tests/trigger_deadlock tests/trigger_deadlock.c
           gcc -O2 -Wall -pthread -o tests/trigger_deadlock_3way tests/trigger_deadlock_3way.c
           echo "Test programs compiled OK"
+
+  build-ebpf-security:
+    name: Build eBPF Security Monitor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Install eBPF toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm libbpf-dev linux-tools-common bpftool
+
+      - name: Generate vmlinux.h
+        run: |
+          cd eonix-core/security
+          bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+
+      - name: Build BPF object
+        run: |
+          cd eonix-core/security
+          clang -O2 -g -target bpf -D__TARGET_ARCH_x86 -c syscall_monitor.bpf.c -o syscall_monitor.bpf.o
+          test -f syscall_monitor.bpf.o && echo "BPF object built OK"
+
+      - name: Build userspace loader
+        run: |
+          cd eonix-core/security
+          gcc -O2 -Wall -Wextra -o syscall_monitor syscall_monitor.c -lbpf -lelf -lz
+          test -f syscall_monitor && echo "Userspace loader built OK"

@@ -1,0 +1,14 @@
+Eonix Deadlock Monitor — Overhead Measurement
+==============================================
+Date: 2026-03-10T07:59:06+00:00
+Kernel: 6.6.87.2-microsoft-standard-WSL2
+CPU: 12th Gen Intel(R) Core(TM) i7-12650H
+Cores: 16
+
+CPU Overhead: 0.0125%
+Module Memory: 122880 bytes (120 KB in-kernel)
+Module File: 548512 bytes on disk
+
+Method: /proc/stat busy-tick comparison over 5s window
+  Baseline busy ticks: 8 / 8026
+  With-module busy ticks: 9 / 8011
