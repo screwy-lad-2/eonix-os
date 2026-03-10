@@ -31,6 +31,16 @@ typedef __s16 s16;
 typedef __s32 s32;
 typedef __s64 s64;
 
+/* Network / checksum byte-order types used by bpf_helper_defs.h */
+typedef __u16 __be16;
+typedef __u32 __be32;
+typedef __u64 __be64;
+typedef __u16 __le16;
+typedef __u32 __le32;
+typedef __u64 __le64;
+typedef __u32 __wsum;
+typedef __u32 __sum16;
+
 typedef _Bool bool;
 
 enum {
@@ -42,6 +52,13 @@ enum {
 enum bpf_map_type {
 	BPF_MAP_TYPE_HASH        = 1,
 	BPF_MAP_TYPE_RINGBUF     = 27,
+};
+
+/* BPF map update flags */
+enum {
+        BPF_ANY     = 0,
+        BPF_NOEXIST = 1,
+        BPF_EXIST   = 2,
 };
 
 /* Tracepoint context — used by SEC("tracepoint/...") programs */

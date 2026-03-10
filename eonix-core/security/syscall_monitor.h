@@ -7,13 +7,11 @@
 #define EONIX_SYSCALL_MONITOR_H
 
 /* Portable type definitions for non-kernel builds (IntelliSense, userspace) */
-#ifndef __KERNEL__
-#ifndef __BPF__
+#if !defined(__KERNEL__) && !defined(__BPF__) && !defined(_LINUX_TYPES_H)
 #include <stdint.h>
 typedef uint8_t  __u8;
 typedef uint32_t __u32;
 typedef uint64_t __u64;
-#endif
 #endif
 
 #ifndef TASK_COMM_LEN
