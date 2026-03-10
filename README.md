@@ -3,7 +3,7 @@
 [![Build](https://github.com/shahnoor-exe/eonix-os/actions/workflows/test.yml/badge.svg)](https://github.com/shahnoor-exe/eonix-os/actions)
 [![Tests](https://img.shields.io/badge/tests-136_passing-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![arXiv](https://img.shields.io/badge/arXiv-2603.XXXXX-b31b1b.svg)](docs/arxiv-paper.pdf)
+[![arXiv](https://img.shields.io/badge/arXiv-2603.XXXXX-b31b1b.svg)](https://arxiv.org/abs/2603.XXXXX)
 
 > **An intent-driven, self-healing, AI-native operating system — built by a 2nd year B.Tech student.**
 
@@ -104,9 +104,21 @@ cat /proc/eonix/deadlock_log
 
 The full arXiv paper is included in this repository:
 
-📄 **[Eonix OS: Autonomous Deadlock Recovery via Real-Time Resource Allocation Graph Monitoring in the Linux Kernel](docs/arxiv-paper.pdf)** (10 pages)
+📄 **[Eonix OS: A Self-Healing, Proactive Security Kernel with Autonomous Deadlock Recovery and eBPF Threat Detection](docs/arxiv-paper.pdf)** (12 pages)
 
-**arXiv submission:** `arXiv:2603.XXXXX` *(link will be updated upon acceptance)*
+**arXiv submission:** [`arXiv:2603.XXXXX`](https://arxiv.org/abs/2603.XXXXX) *(ID will be updated once the paper is posted)*
+
+### Cite This Paper
+
+```bibtex
+@article{butt2026eonix,
+  title   = {Eonix {OS}: A Self-Healing, Proactive Security Kernel with
+             Autonomous Deadlock Recovery and {eBPF} Threat Detection},
+  author  = {Butt, Shahnoor Ahmed},
+  journal = {arXiv preprint arXiv:2603.XXXXX},
+  year    = {2026}
+}
+```
 
 ---
 
@@ -129,7 +141,7 @@ eonix-os/
 ├── eonix-mind/             # Layer 4: JARVIS Cognitive Assistant
 ├── eonix-shell/            # Layer 5: Spatial Adaptive UI
 ├── docs/                   # arXiv paper (MD + LaTeX + PDF)
-└── .github/workflows/      # CI: 10 jobs, all passing
+└── .github/workflows/      # CI: 12 jobs, all passing
 ```
 
 ---
@@ -140,7 +152,7 @@ eonix-os/
 |-------|-------|--------|
 | **1** | Environment + HAL + scheduler + memory + IPC | ✅ Complete |
 | **2** | Self-healing deadlock engine + arXiv paper | ✅ **Complete** |
-| **3** | eBPF security fabric + anomaly detection | 🔨 In progress |
+| **3** | eBPF security fabric + anomaly detection | ✅ **Complete** |
 | **4** | EONIX MIND — voice assistant (STT/LLM/TTS) | 📋 Planned |
 | **5** | Agent Kernel + cross-device sync | 📋 Planned |
 | **6** | Spatial shell + compositor | 📋 Planned |
