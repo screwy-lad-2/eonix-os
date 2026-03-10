@@ -198,6 +198,21 @@ jobs:
           modinfo eonix-core/deadlock/eonix_deadlock.ko
           echo "Module build verified OK"
 
+      - name: Build test programs
+        run: |
+          cd eonix-core/deadlock
+          gcc -O2 -Wall -o tests/stress_test tests/stress_test.c
+          gcc -O2 -Wall -o tests/edge_cases tests/edge_cases.c
+          echo "Test programs compiled OK"
+
+      - name: Upload module and test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deadlock-module
+          path: |
+            eonix-core/deadlock/eonix_deadlock.ko
+            eonix-core/deadlock/results/
+
       - name: Build trigger test programs
         run: |
           cd eonix-core/deadlock

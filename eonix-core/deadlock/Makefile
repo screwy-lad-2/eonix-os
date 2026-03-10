@@ -1,5 +1,5 @@
 obj-m += eonix_deadlock.o
-eonix_deadlock-objs := rag_monitor.o
+eonix_deadlock-objs := rag_monitor.o checkpoint.o
 KBUILD_MODPOST_WARN := 1
 
 KDIR := /lib/modules/$(shell uname -r)/build
@@ -10,12 +10,18 @@ all:
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
-	rm -f tests/trigger_deadlock tests/trigger_deadlock_3way
+	rm -f tests/trigger_deadlock tests/trigger_deadlock_3way tests/stress_test tests/edge_cases
 
 tests/trigger_deadlock: tests/trigger_deadlock.c
 	gcc -O2 -Wall -pthread -o $@ $<
 
 tests/trigger_deadlock_3way: tests/trigger_deadlock_3way.c
+	gcc -O2 -Wall -pthread -o $@ $<
+
+tests/stress_test: tests/stress_test.c
+	gcc -O2 -Wall -pthread -o $@ $< -lm
+
+tests/edge_cases: tests/edge_cases.c
 	gcc -O2 -Wall -pthread -o $@ $<
 
 test: all

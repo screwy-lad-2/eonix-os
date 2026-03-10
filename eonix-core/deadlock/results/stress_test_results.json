@@ -1,0 +1,9 @@
+{
+  "total": 100,
+  "detected": 100,
+  "recovered": 100,
+  "avg_ms": 396,
+  "min_ms": 102,
+  "max_ms": 409,
+  "failed_iterations": []
+}

@@ -39,10 +39,12 @@
 #include <linux/string.h>
 #include <linux/delay.h>
 
+#include "checkpoint.h"
+
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("shahnoor-exe");
 MODULE_DESCRIPTION("Eonix OS Self-Healing Deadlock Manager");
-MODULE_VERSION("0.2.0");
+MODULE_VERSION("0.3.0");
 
 /* ---- Configuration ---- */
 #define MAX_PROCESSES           256
@@ -288,7 +290,14 @@ static int rag_detect_cycle(pid_t *victim_pid, pid_t *cycle_pids, int *cycle_len
 		if (resources[rid].held_by == 0)
 			continue;
 		holder_idx = find_process(resources[rid].held_by);
-		if (holder_idx >= 0 && holder_idx != i)
+		if (holder_idx >= 0 && holder_idx == i) {
+			/* Self-deadlock: process waits for resource it holds */
+			cycle_pids[0] = processes[i].pid;
+			*cycle_len = 1;
+			*victim_pid = processes[i].pid;
+			return 1;
+		}
+		if (holder_idx >= 0)
 			adj[i] = holder_idx;
 	}
 
@@ -365,6 +374,16 @@ static void rag_recover(pid_t victim_pid, pid_t *cycle_pids, int cycle_len)
 
 	start_time = ktime_to_ms(ktime_get_boottime());
 
+	/* Save checkpoint before recovery */
+	idx = find_process(victim_pid);
+	if (idx >= 0) {
+		eonix_checkpoint_save(victim_pid,
+				      processes[idx].held_resources,
+				      processes[idx].held_count,
+				      processes[idx].waiting_for);
+		pr_info("EONIX_RAG: Checkpoint saved before recovery\n");
+	}
+
 	for (i = 0; i < cycle_len && coff < 240; i++)
 		coff += scnprintf(cycle_str + coff, 256 - coff,
 				  "%s%d", i ? "," : "", cycle_pids[i]);
@@ -373,7 +392,7 @@ static void rag_recover(pid_t victim_pid, pid_t *cycle_pids, int cycle_len)
 	rag_log("DEADLOCK_DETECTED pids=[%s]", cycle_str);
 
 	/* Release victim's resources */
-	idx = find_process(victim_pid);
+	idx = find_process(victim_pid); /* re-lookup, idx may differ */
 	if (idx >= 0) {
 		pr_info("EONIX_RAG: Victim PID=%d (%s) prio=%d\n",
 			victim_pid, processes[idx].comm,
@@ -420,6 +439,16 @@ static void rag_recover(pid_t victim_pid, pid_t *cycle_pids, int cycle_len)
 
 	if (idx >= 0)
 		processes[idx].active = false;
+
+	/* Log checkpoint info for manual restart */
+	{
+		struct eonix_checkpoint *ck = eonix_checkpoint_get(victim_pid);
+		if (ck)
+			pr_info("EONIX_RAG: Victim checkpoint: name=%s exe=%s uid=%u\n",
+				ck->comm,
+				ck->exe_path[0] ? ck->exe_path : "(unknown)",
+				ck->uid);
+	}
 
 	end_time = ktime_to_ms(ktime_get_boottime());
 	pr_info("EONIX_RAG: Deadlock resolved — victim=%d latency=%llums\n",
@@ -650,6 +679,19 @@ static const struct proc_ops rag_inject_ops = {
 	.proc_release = single_release,
 };
 
+/* /proc/eonix/checkpoints */
+static int checkpoints_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, eonix_checkpoints_show, NULL);
+}
+
+static const struct proc_ops checkpoints_ops = {
+	.proc_open    = checkpoints_open,
+	.proc_read    = seq_read,
+	.proc_lseek   = seq_lseek,
+	.proc_release = single_release,
+};
+
 /* ===== PART 2 setup — kprobe registration ===== */
 
 static int register_kprobes_safe(void)
@@ -710,7 +752,10 @@ static int __init eonix_deadlock_init(void)
 {
 	int i;
 
-	pr_info("EONIX_RAG: Monitor v0.2.0 loading\n");
+	pr_info("EONIX_RAG: Monitor v0.3.0 loading\n");
+
+	/* Initialize checkpoint subsystem */
+	eonix_checkpoint_init();
 
 	/* Initialize data structures */
 	memset(processes, 0, sizeof(processes));
@@ -745,8 +790,9 @@ static int __init eonix_deadlock_init(void)
 	proc_create("deadlock_log", 0444, eonix_proc_dir, &deadlock_log_ops);
 	proc_create("rag_state", 0444, eonix_proc_dir, &rag_state_ops);
 	proc_create("rag_inject", 0666, eonix_proc_dir, &rag_inject_ops);
+	proc_create("checkpoints", 0444, eonix_proc_dir, &checkpoints_ops);
 
-	pr_info("EONIX_RAG: /proc/eonix/{deadlock_log,rag_state,rag_inject} created\n");
+	pr_info("EONIX_RAG: /proc/eonix/{deadlock_log,rag_state,rag_inject,checkpoints} created\n");
 	pr_info("EONIX_RAG: Monitor loaded — detection active\n");
 
 	return 0;
