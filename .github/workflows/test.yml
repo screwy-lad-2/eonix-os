@@ -285,3 +285,29 @@ jobs:
         run: |
           cd eonix-core/security
           python3 -m pytest anomaly_detector.py -v
+
+  test-security-pipeline:
+    name: Test Security — Pipeline & Fingerprinter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install scikit-learn pandas numpy joblib watchdog pytest
+
+      - name: Run behavioral fingerprinter tests
+        run: |
+          cd eonix-core/security
+          python3 -m pytest behavioral_fingerprint.py -v
+
+      - name: Run security pipeline tests
+        run: |
+          cd eonix-core/security
+          python3 -m pytest security_pipeline.py -v

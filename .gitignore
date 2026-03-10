@@ -71,6 +71,7 @@ modules.order
 
 # ADFA-LD dataset (large, download separately)
 datasets/security/ADFA-LD/
+datasets/security/adfa-ld/
 
 # Trained model pickles (regenerated via --train)
 eonix-core/security/models/

@@ -169,15 +169,25 @@ def load_adfa_ld(dataset_dir=None):
 
 
 def _features_from_trace_files(trace_files):
-    """Convert syscall trace files to feature vectors."""
+    """Convert syscall trace files to feature vectors.
+
+    Uses both mapped high-level syscall rates AND raw statistical
+    features (entropy, unique syscalls, bigram diversity) which are
+    essential for ADFA-LD where attacks use common syscalls.
+    """
     syscall_map = {
         # x86_64
         59: "execve", 257: "openat", 42: "connect", 9: "mmap",
         56: "clone", 101: "ptrace", 105: "setuid",
         # i386 (ADFA-LD was collected on 32-bit Linux)
-        11: "execve", 295: "openat", 102: "connect",
+        11: "execve", 295: "openat",
+        102: "connect", 362: "connect",
         90: "mmap", 192: "mmap",
         120: "clone", 26: "ptrace", 23: "setuid", 213: "setuid",
+        # Common i386 I/O syscalls (important for ADFA-LD discrimination)
+        3: "read", 4: "write", 5: "open", 6: "close",
+        146: "writev", 145: "readv",
+        54: "ioctl", 168: "poll",
     }
 
     rows = []
@@ -205,17 +215,33 @@ def _features_from_trace_files(trace_files):
                 counts[name] += 1
 
         duration = max(len(syscalls) / 100.0, 1.0)
+
+        # Statistical features from raw sequence
+        unique_syscalls = len(set(syscalls))
+        # Shannon entropy of syscall distribution
+        freq = np.array(list(defaultdict(int, {s: syscalls.count(s)
+                                                for s in set(syscalls)}).values()),
+                        dtype=float)
+        freq = freq / freq.sum()
+        entropy = -np.sum(freq * np.log2(freq + 1e-12))
+        # Bigram diversity
+        bigrams = set()
+        for i in range(len(syscalls) - 1):
+            bigrams.add((syscalls[i], syscalls[i + 1]))
+        bigram_ratio = len(bigrams) / max(len(syscalls) - 1, 1)
+
         rows.append({
             "execve_rate": counts["execve"] / duration,
-            "openat_rate": counts["openat"] / duration,
+            "openat_rate": (counts["openat"] + counts.get("open", 0)) / duration,
             "connect_rate": counts["connect"] / duration,
             "mmap_rate": counts["mmap"] / duration,
             "fork_rate": counts["clone"] / duration,
             "ptrace_ever": 1.0 if counts["ptrace"] > 0 else 0.0,
             "setuid_ever": 1.0 if counts["setuid"] > 0 else 0.0,
-            "unique_files": float(min(counts["openat"], 50)),
-            "unique_hosts": float(min(counts["connect"], 20)),
-            "session_duration": duration,
+            # Richer statistical features for ADFA-LD discrimination
+            "unique_files": float(unique_syscalls),
+            "unique_hosts": entropy,
+            "session_duration": bigram_ratio * 100.0,
         })
 
     if not rows:
@@ -249,14 +275,39 @@ def train_model(dataset_dir=None):
     """Train Isolation Forest on ADFA-LD or synthetic data."""
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
-    df = load_adfa_ld(dataset_dir)
-    if df is None or len(df) < 10:
-        print("ADFA-LD dataset not found or insufficient; using synthetic data.")
-        print("To use real data, download ADFA-LD:")
-        print("  git clone https://github.com/verazuo/"
-              "a-labelled-version-of-the-ADFA-LD-dataset.git "
-              "datasets/security/ADFA-LD")
-        df = generate_synthetic_training_data()
+    # Try organized adfa-ld/normal/ + adfa-ld/attack/ first
+    normal_df, attack_df = None, None
+    search = Path(dataset_dir) if dataset_dir else DATASET_DIR
+    normal_dir = None
+    attack_dir = None
+    for candidate in [search / "adfa-ld" / "normal", search / "ADFA-LD" / "data" / "ADFA-LD" / "Training_Data_Master"]:
+        if candidate.is_dir():
+            normal_dir = candidate
+            break
+    for candidate in [search / "adfa-ld" / "attack", search / "ADFA-LD" / "data" / "ADFA-LD" / "Attack_Data_Master"]:
+        if candidate.is_dir():
+            attack_dir = candidate
+            break
+
+    if normal_dir and list(normal_dir.rglob("*.txt")):
+        normal_files = list(normal_dir.rglob("*.txt"))
+        normal_df = _features_from_trace_files(normal_files)
+    if attack_dir and list(attack_dir.rglob("*.txt")):
+        attack_files = list(attack_dir.rglob("*.txt"))
+        attack_df = _features_from_trace_files(attack_files)
+
+    if normal_df is not None and len(normal_df) >= 10:
+        print("Training on REAL ADFA-LD data")
+        n_normal = len(normal_df)
+        n_attack = len(attack_df) if attack_df is not None else 0
+        print(f"Normal samples: {n_normal} | Attack samples: {n_attack}")
+        df = normal_df
+    else:
+        # Fallback to rglob search
+        df = load_adfa_ld(dataset_dir)
+        if df is None or len(df) < 10:
+            print("ADFA-LD dataset not found or insufficient; using synthetic data.")
+            df = generate_synthetic_training_data()
 
     X = df[FEATURE_NAMES].values
     print(f"Training samples: {len(X)}")
@@ -266,8 +317,9 @@ def train_model(dataset_dir=None):
     X_scaled = scaler.fit_transform(X)
 
     model = IsolationForest(
-        n_estimators=200,
-        contamination=0.05,
+        n_estimators=300,
+        contamination=0.20,
+        max_features=1.0,
         random_state=42,
     )
     model.fit(X_scaled)
@@ -278,6 +330,16 @@ def train_model(dataset_dir=None):
     scores = model.decision_function(X_scaled)
     print(f"Score range: [{scores.min():.3f}, {scores.max():.3f}]")
     print(f"Anomalies detected in training: {(scores < 0).sum()}/{len(scores)}")
+
+    # Validation accuracy if attack data is available
+    if attack_df is not None and len(attack_df) >= 5:
+        X_attack = scaler.transform(attack_df[FEATURE_NAMES].values)
+        attack_scores = model.decision_function(X_attack)
+        detected = (attack_scores < 0).sum()
+        acc = detected / len(attack_scores) * 100
+        print(f"Model accuracy on validation set: {acc:.0f}% "
+              f"({detected}/{len(attack_scores)} attacks detected)")
+
     print(f"Model saved to {MODEL_PATH}")
     print(f"Scaler saved to {SCALER_PATH}")
     return model, scaler
@@ -288,7 +350,7 @@ def train_model(dataset_dir=None):
 # =========================================================
 
 def detect_anomalies():
-    """Real-time anomaly detection loop."""
+    """Real-time anomaly detection loop with fingerprint integration."""
     if not MODEL_PATH.exists() or not SCALER_PATH.exists():
         print("ERROR: Model not trained. Run: python3 anomaly_detector.py --train")
         return 1
@@ -296,6 +358,15 @@ def detect_anomalies():
     model = joblib.load(MODEL_PATH)
     scaler = joblib.load(SCALER_PATH)
     EONIX_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Load behavioral fingerprinter if available
+    fingerprinter = None
+    try:
+        from behavioral_fingerprint import BehavioralFingerprinter
+        fingerprinter = BehavioralFingerprinter()
+        print("[Eonix] Behavioral fingerprinter loaded.")
+    except ImportError:
+        print("[Eonix] Behavioral fingerprinter not available; using ML only.")
 
     print("[Eonix Anomaly Detector] Running... (Ctrl+C to stop)")
 
@@ -319,8 +390,22 @@ def detect_anomalies():
         scores = model.decision_function(X_scaled)
 
         for i, (_, row) in enumerate(df.iterrows()):
-            score = scores[i]
+            ml_score = scores[i]
             pid = int(row["pid"])
+
+            # Combine with fingerprint score (60% ML + 40% fingerprint)
+            fp_score = 0.0
+            if fingerprinter is not None:
+                event = {f: float(row[f]) for f in FEATURE_NAMES}
+                event["comm"] = str(row.get("comm", "unknown"))
+                event["pid"] = pid
+                fp_score = fingerprinter.score(event)
+                fingerprinter.observe(event)
+
+            # Map IF decision_function to same scale: negative=bad
+            # Combined threshold uses original TIER_* on the IF score,
+            # but fingerprint can boost/dampen
+            score = ml_score - fp_score * 0.4
 
             # PART 4 — Tiered Response
             if score < TIER_KILL:
@@ -369,10 +454,12 @@ def main():
                         help="Run real-time anomaly detection")
     parser.add_argument("--status", action="store_true",
                         help="Show model info")
+    parser.add_argument("--data", type=str, default=None,
+                        help="Path to dataset directory for training")
     args = parser.parse_args()
 
     if args.train:
-        train_model()
+        train_model(dataset_dir=args.data)
     elif args.detect:
         return detect_anomalies()
     elif args.status:
