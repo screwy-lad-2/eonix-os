@@ -76,4 +76,12 @@ struct trace_event_raw_sys_exit {
 
 #define TASK_COMM_LEN 16
 
+/* Scheduler tracepoint contexts */
+struct trace_event_raw_sched_process_exit {
+	__u64 unused;
+	char  comm[TASK_COMM_LEN];
+	__s32 pid;
+	int   prio;
+};
+
 #endif /* __VMLINUX_H__ */

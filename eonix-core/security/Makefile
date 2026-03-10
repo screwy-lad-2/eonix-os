@@ -34,4 +34,4 @@ $(USER_BIN): $(USER_SRC) syscall_monitor.h
 	$(GCC) $(CFLAGS) -o $@ $< $(LDLIBS)
 
 clean:
-	rm -f $(BPF_OBJ) $(USER_BIN) $(VMLINUX)
+	rm -f $(BPF_OBJ) $(USER_BIN)

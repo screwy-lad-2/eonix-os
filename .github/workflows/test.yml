@@ -253,3 +253,35 @@ jobs:
           cd eonix-core/security
           gcc -O2 -Wall -Wextra -o syscall_monitor syscall_monitor.c -lbpf -lelf -lz
           test -f syscall_monitor && echo "Userspace loader built OK"
+
+      - name: Verify both binaries
+        run: |
+          ls -la eonix-core/security/syscall_monitor.bpf.o
+          ls -la eonix-core/security/syscall_monitor
+          echo "Both binaries verified OK"
+
+  test-security-python:
+    name: Test Security — Anomaly Detector
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install scikit-learn pandas numpy joblib pytest
+
+      - name: Train anomaly detection model
+        run: |
+          cd eonix-core/security
+          python3 anomaly_detector.py --train
+
+      - name: Run anomaly detector tests
+        run: |
+          cd eonix-core/security
+          python3 -m pytest anomaly_detector.py -v
