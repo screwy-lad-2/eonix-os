@@ -8,6 +8,7 @@ import os
 import shlex
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import urllib.error
@@ -27,6 +28,7 @@ from prompt_toolkit.history import InMemoryHistory
 HOME = Path.home()
 EONIX_DIR = HOME / ".eonix"
 HISTORY_PATH = EONIX_DIR / "shell_history.txt"
+SHELL_CONFIG_PATH = EONIX_DIR / "shell_config.json"
 MODEL_METADATA_PATH = EONIX_DIR / "model_metadata.json"
 MIND_MEMORY_DB = EONIX_DIR / "mind_memory" / "memory_fallback.db"
 
@@ -55,6 +57,24 @@ try:
         EonixMemory = None
 except Exception:
     EonixMemory = None
+
+try:
+    from nl_interpreter import NLInterpreter, NLResult, INTENT_QUERY
+except Exception:
+    import importlib.util
+
+    _NLI_PATH = Path(__file__).resolve().parent / "nl_interpreter.py"
+    _NLI_SPEC = importlib.util.spec_from_file_location("eonix_nl_interpreter", str(_NLI_PATH))
+    if _NLI_SPEC is not None and _NLI_SPEC.loader is not None:
+        _NLI_MOD = importlib.util.module_from_spec(_NLI_SPEC)
+        _NLI_SPEC.loader.exec_module(_NLI_MOD)
+        NLInterpreter = _NLI_MOD.NLInterpreter
+        NLResult = _NLI_MOD.NLResult
+        INTENT_QUERY = _NLI_MOD.INTENT_QUERY
+    else:
+        NLInterpreter = None
+        NLResult = None
+        INTENT_QUERY = "INTENT_QUERY"
 
 
 def _utc_now() -> str:
@@ -90,6 +110,9 @@ class PromptState:
     ram_gb: float = 0.0
     ram_percent: float = 0.0
     model_version: str = "v?"
+    nl_enabled: bool = True
+    nl_flash: bool = False
+    voice_state: str = ""
 
 
 class EonixCompleter(Completer):
@@ -107,6 +130,11 @@ class EonixCompleter(Completer):
                 "eon sync",
                 "eon hub",
                 "eon history",
+                "eon nl",
+                "eon nl on",
+                "eon nl off",
+                "eon listen",
+                "eon listen --continuous",
                 "eon help",
             ],
             ignore_case=True,
@@ -140,10 +168,13 @@ class EonixShell:
 
     def __init__(self):
         EONIX_DIR.mkdir(parents=True, exist_ok=True)
-        self.state = PromptState()
+        self.config = self._load_config()
+        self.state = PromptState(nl_enabled=bool(self.config.get("nl_enabled", True)))
         self._lock = threading.Lock()
         self._running = True
         self._cmd_count = 0
+        self._nl_flash_until = 0.0
+        self._voice_state = ""
 
         self.history_lines: List[str] = self._load_history_lines(limit=1000)
         self.history = InMemoryHistory()
@@ -153,10 +184,27 @@ class EonixShell:
                 self.history.append_string(cmd)
 
         self.memory = EonixMemory() if EonixMemory is not None else None
+        self.nl_interpreter = NLInterpreter(memory=self.memory) if NLInterpreter is not None else None
 
         self._refresh_thread = threading.Thread(target=self._refresh_loop, daemon=True)
         self._refresh_thread.start()
         self.session: Optional[PromptSession] = None
+
+    @staticmethod
+    def _load_config() -> Dict:
+        if not SHELL_CONFIG_PATH.exists():
+            return {"nl_enabled": True}
+        try:
+            data = json.loads(SHELL_CONFIG_PATH.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return {"nl_enabled": bool(data.get("nl_enabled", True))}
+        except Exception:
+            pass
+        return {"nl_enabled": True}
+
+    def _save_config(self) -> None:
+        payload = {"nl_enabled": bool(self.state.nl_enabled)}
+        SHELL_CONFIG_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     def _load_history_lines(self, limit: int = 1000) -> List[str]:
         if not HISTORY_PATH.exists():
@@ -212,6 +260,9 @@ class EonixShell:
                 ram_gb=float(vm.used / 1e9),
                 ram_percent=float(vm.percent),
                 model_version=model_version,
+                nl_enabled=bool(self.state.nl_enabled),
+                nl_flash=time.time() < float(self._nl_flash_until),
+                voice_state=str(self._voice_state),
             )
 
     def _refresh_loop(self) -> None:
@@ -245,6 +296,12 @@ class EonixShell:
 
     def build_prompt(self) -> ANSI:
         st = self._state_snapshot()
+
+        if st.voice_state == "listening":
+            return ANSI("<style fg='#00FF88'>🎤 EONIX [listening...]</style> <style fg='ansigreen'>❯</style> ")
+        if st.voice_state == "thinking":
+            return ANSI("<style fg='#00FF88'>⚙ EONIX [thinking...]</style> <style fg='ansigreen'>❯</style> ")
+
         goal = self._goal_short(st.goal_name)
 
         progress_color = "ansiyellow" if st.progress_pct < 50 else "ansigreen"
@@ -259,6 +316,7 @@ class EonixShell:
         )
         line2 = (
             f"<style fg='ansiblue'>eonix {self._cwd_short()}</style> "
+            f"<style fg='ansimagenta'>{'[NL] ' if st.nl_flash else ''}</style>"
             f"<style fg='ansigreen'>❯</style> "
         )
         return ANSI(line1 + "\n" + line2)
@@ -305,6 +363,7 @@ class EonixShell:
             "║  ⚡ EONIX SHELL v0.6.0              ║",
             f"║  Goal: {self._goal_short(st.goal_name, 20):<20} ({st.progress_pct:>3}%) ║",
             f"║  Model: {st.model_version:<5} | {top3:>6.2f}% Top-3      ║",
+            f"║  NL Mode: {'ON (LLaMA 3B)' if st.nl_enabled else 'OFF':<24}║",
             f"║  RAM: {free_gb:>4.1f}GB free | {self._memory_count():>4} memories  ║",
             "║  Type 'eon help' for Eonix commands ║",
             "╚══════════════════════════════════════╝",
@@ -403,6 +462,139 @@ class EonixShell:
         for row in rows:
             print(row)
 
+    def _flash_nl(self, seconds: float = 4.0) -> None:
+        self._nl_flash_until = time.time() + float(seconds)
+
+    def _set_voice_state(self, state: str) -> None:
+        self._voice_state = state
+        self._refresh_prompt_data()
+
+    @staticmethod
+    def _speak(text: str) -> None:
+        try:
+            import pyttsx3  # type: ignore
+
+            engine = pyttsx3.init()
+            engine.say(text)
+            engine.runAndWait()
+        except Exception:
+            return
+
+    def _capture_audio_to_wav(self, seconds: float = 7.0) -> Optional[Path]:
+        try:
+            import pyaudio  # type: ignore
+            import wave
+        except Exception:
+            return None
+
+        rate = 16000
+        chunk = 1024
+        channels = 1
+        max_frames = int(rate / chunk * max(2.0, seconds))
+        silence_limit = int(rate / chunk * 2.0)
+        silence_count = 0
+
+        audio = pyaudio.PyAudio()
+        stream = audio.open(
+            format=pyaudio.paInt16,
+            channels=channels,
+            rate=rate,
+            input=True,
+            frames_per_buffer=chunk,
+        )
+
+        frames = []
+        try:
+            for _ in range(max_frames):
+                data = stream.read(chunk, exception_on_overflow=False)
+                frames.append(data)
+                # Basic silence check from max amplitude.
+                mx = max(data[i + 1] << 8 | data[i] for i in range(0, len(data) - 1, 2)) if data else 0
+                if mx < 1200:
+                    silence_count += 1
+                else:
+                    silence_count = 0
+                if silence_count >= silence_limit:
+                    break
+        finally:
+            stream.stop_stream()
+            stream.close()
+            audio.terminate()
+
+        if not frames:
+            return None
+
+        path = Path(tempfile.gettempdir()) / f"eonix_voice_{int(time.time() * 1000)}.wav"
+        wf = wave.open(str(path), "wb")
+        try:
+            wf.setnchannels(channels)
+            wf.setsampwidth(2)
+            wf.setframerate(rate)
+            wf.writeframes(b"".join(frames))
+        finally:
+            wf.close()
+        return path
+
+    def _transcribe_once(self) -> str:
+        wav_path = self._capture_audio_to_wav(seconds=8.0)
+        if wav_path is None:
+            return ""
+        try:
+            from faster_whisper import WhisperModel  # type: ignore
+
+            model = WhisperModel("base.en", device="cpu", compute_type="int8")
+            segments, _info = model.transcribe(str(wav_path), vad_filter=True)
+            text = " ".join(seg.text.strip() for seg in segments if seg.text.strip())
+            return text.strip()
+        except Exception:
+            return ""
+        finally:
+            try:
+                wav_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+    def _process_nl_text(self, text: str, from_voice: bool = False) -> str:
+        if self.nl_interpreter is None:
+            return "NL interpreter unavailable"
+
+        result = self.nl_interpreter.handle(text)
+        output = result.output or ""
+        self._flash_nl()
+        if from_voice and bool(getattr(result, "should_speak", False)):
+            self._speak(output)
+        return output
+
+    def _listen_once(self) -> str:
+        self._set_voice_state("listening")
+        text = self._transcribe_once()
+        if not text:
+            self._set_voice_state("")
+            return "No speech detected"
+
+        print(f"[voice] {text}")
+        self._set_voice_state("thinking")
+        out = self._process_nl_text(text, from_voice=True)
+        self._set_voice_state("")
+        return out
+
+    def _listen_continuous(self) -> str:
+        print("Voice mode active. Say 'exit voice' to stop.")
+        while True:
+            self._set_voice_state("listening")
+            text = self._transcribe_once()
+            if not text:
+                print("No speech detected")
+                continue
+            print(f"[voice] {text}")
+            if text.strip().lower() == "exit voice":
+                self._set_voice_state("")
+                return "Voice mode stopped"
+            self._set_voice_state("thinking")
+            out = self._process_nl_text(text, from_voice=True)
+            if out:
+                print(out)
+
     @staticmethod
     def _help_cmd() -> None:
         print("Available eon commands:")
@@ -415,6 +607,9 @@ class EonixShell:
         print("  eon sync             Push sync state to peers")
         print("  eon hub              Open Eonix Hub in browser")
         print("  eon history          Show last 20 commands")
+        print("  eon nl [on/off]      Toggle natural-language mode")
+        print("  eon listen           Voice command (single utterance)")
+        print("  eon listen --continuous  Continuous voice mode")
         print("  eon help             Show this help")
 
     def handle_eon_command(self, command: str) -> bool:
@@ -471,6 +666,27 @@ class EonixShell:
             self._history_cmd()
             return True
 
+        if parts[1] == "nl":
+            if len(parts) == 2:
+                print(f"NL mode is {'ON' if self.state.nl_enabled else 'OFF'}")
+                return True
+            if len(parts) >= 3 and parts[2].lower() in {"on", "off"}:
+                enabled = parts[2].lower() == "on"
+                with self._lock:
+                    self.state.nl_enabled = enabled
+                self._save_config()
+                print(f"NL mode {'ON' if enabled else 'OFF'}")
+                return True
+            print("Usage: eon nl [on/off]")
+            return True
+
+        if parts[1] == "listen":
+            if len(parts) >= 3 and parts[2] == "--continuous":
+                print(self._listen_continuous())
+                return True
+            print(self._listen_once())
+            return True
+
         if parts[1] == "help":
             self._help_cmd()
             return True
@@ -514,6 +730,13 @@ class EonixShell:
 
             if self.handle_eon_command(cmd):
                 continue
+
+            if self.state.nl_enabled and self.nl_interpreter is not None:
+                if not self.nl_interpreter.is_shell_command(cmd):
+                    out = self._process_nl_text(cmd)
+                    if out:
+                        print(out)
+                    continue
 
             self.run_os_command(cmd)
 
@@ -625,3 +848,25 @@ def test_non_eon_command_passed_to_bash(monkeypatch):
     shell.shutdown()
     assert called["v"] is True
     assert rc == 0
+
+
+def test_voice_mode_toggles_prompt_indicator(monkeypatch):
+    shell = EonixShell()
+    monkeypatch.setattr(shell, "_transcribe_once", lambda: "show me all python files")
+    monkeypatch.setattr(shell, "_process_nl_text", lambda _txt, from_voice=False: "Running: find . -name '*.py'")
+    out = shell._listen_once()
+    prompt = str(shell.build_prompt())
+    shell.shutdown()
+    assert "Running:" in out
+    assert "listening" not in prompt
+    assert "thinking" not in prompt
+
+
+def test_listen_command_registered_in_eon_commands(monkeypatch, capsys):
+    shell = EonixShell()
+    monkeypatch.setattr(shell, "_listen_once", lambda: "heard")
+    handled = shell.handle_eon_command("eon listen")
+    out = capsys.readouterr().out
+    shell.shutdown()
+    assert handled is True
+    assert "heard" in out

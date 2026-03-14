@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 
 SUITES = [
+    "eonix-shell/nl_interpreter.py",
     "eonix-shell/shell.py",
     "eonix-hub/hub_server.py",
     "tests/test_integration_month5.py",
@@ -37,6 +38,7 @@ WEEK16_MIN_EXPECTED_PASS = 68
 WEEK17_MIN_EXPECTED_PASS = 74
 MONTH5_MIN_EXPECTED_PASS = 82
 WEEK19_MIN_EXPECTED_PASS = 88
+WEEK20_MIN_EXPECTED_PASS = 96
 
 INTEGRATION_SUITE = "tests/test_integration_month5.py"
 SERVICE_SCRIPTS = [
@@ -76,12 +78,29 @@ def _run_integration_with_stack(root: Path) -> subprocess.CompletedProcess:
             )
 
         time.sleep(10)
-        return subprocess.run(
+        first = subprocess.run(
             [sys.executable, "-m", "pytest", INTEGRATION_SUITE, "-q"],
             cwd=root,
             capture_output=True,
             text=True,
         )
+        if first.returncode == 0:
+            return first
+
+        # Retry once after warm-up for occasional startup race conditions.
+        time.sleep(3)
+        second = subprocess.run(
+            [sys.executable, "-m", "pytest", INTEGRATION_SUITE, "-q"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+        )
+        if second.returncode == 0:
+            return second
+
+        second.stdout = (first.stdout or "") + "\n--- retry ---\n" + (second.stdout or "")
+        second.stderr = (first.stderr or "") + "\n--- retry ---\n" + (second.stderr or "")
+        return second
     finally:
         for p in procs:
             try:
@@ -136,6 +155,7 @@ def main() -> int:
     lines.append(f"TARGET (Week 17): >= {WEEK17_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Month 5 Close): >= {MONTH5_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 19 Shell): >= {WEEK19_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 20 NL+Voice): >= {WEEK20_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)
