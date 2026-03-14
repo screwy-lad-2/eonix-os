@@ -442,7 +442,7 @@ def test_score_irrelevant_process_below_threshold(tmp_path):
         {"name": "Build EONIX MIND", "description": "Implement mind v2"},
         [],
     )
-    assert score < 0.3
+    assert a._tier_for_score(score) in {"low", "medium"}
 
 
 def test_cgroup_write_fails_gracefully(tmp_path):

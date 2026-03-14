@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import tempfile
+from dataclasses import asdict
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -20,24 +21,42 @@ class TestGoalEngine:
     def test_goal_creation(self):
         """Test that a Goal object can be created."""
         from eonix_cortex_goal_engine import Goal
-        goal = Goal("Test Goal")
-        assert goal.title == "Test Goal"
+        goal = Goal(
+            id="g-1",
+            name="Test Goal",
+            description="",
+            created_at="2026-01-01T00:00:00+00:00",
+            status="active",
+            progress=0.0,
+            tags=[],
+            workspace={},
+            embedding=[],
+        )
+        assert goal.name == "Test Goal"
         assert goal.status == "active"
-        assert goal.progress_score == 0.0
+        assert goal.progress == 0.0
 
     def test_goal_serialization(self):
-        """Test Goal to_dict and from_dict round-trip."""
+        """Test Goal dataclass serialization round-trip."""
         from eonix_cortex_goal_engine import Goal
-        goal = Goal("Build Scheduler")
-        goal.progress_score = 0.5
-        goal.related_files = ["scheduler.c", "test.c"]
+        goal = Goal(
+            id="g-2",
+            name="Build Scheduler",
+            description="Implement scheduler logic",
+            created_at="2026-01-01T00:00:00+00:00",
+            status="active",
+            progress=0.5,
+            tags=["scheduler", "core"],
+            workspace={"files": ["scheduler.c", "test.c"]},
+            embedding=[],
+        )
 
-        data = goal.to_dict()
-        restored = Goal.from_dict(data)
+        data = asdict(goal)
+        restored = Goal(**data)
 
-        assert restored.title == "Build Scheduler"
-        assert restored.progress_score == 0.5
-        assert "scheduler.c" in restored.related_files
+        assert restored.name == "Build Scheduler"
+        assert restored.progress == 0.5
+        assert "scheduler.c" in restored.workspace.get("files", [])
 
 
 class TestResourceScoring:
