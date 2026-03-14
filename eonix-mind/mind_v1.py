@@ -1,26 +1,25 @@
 #!/usr/bin/env python3
-"""EONIX MIND v1.0 - first voice interaction pipeline."""
+"""EONIX MIND v1.0 with SystemReader + ContextAgent integration."""
 
 from __future__ import annotations
 
 import json
-import subprocess
 import tempfile
-import time
+import urllib.error
+import urllib.parse
+import urllib.request
 import wave
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
-import psutil
+
+from system_reader import EonixSystemReader
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODEL_GGUF = REPO_ROOT / "models" / "gguf" / "Llama-3.2-3B-Instruct-Q4_K_M.gguf"
-SCHED_META = REPO_ROOT / "models" / "onnx" / "model_metadata.json"
-SECURITY_ALERTS = Path.home() / ".eonix" / "security_alerts.log"
-DEADLOCK_LOG = Path("/proc/eonix/deadlock_log")
+CONTEXT_BASE = "http://127.0.0.1:7736"
 
 
 SYSTEM_PROMPT = (
@@ -35,74 +34,51 @@ SYSTEM_PROMPT = (
 )
 
 
-def _safe_read_last_line(path: Path) -> str:
+class _FallbackLLM:
+    def __call__(self, prompt: str, max_tokens: int = 128):
+        return "I am running in fallback mode. Install llama-cpp-python and the GGUF model for full responses."
+
+
+def _http_json(url: str, timeout: int = 2):
     try:
-        if path.exists():
-            lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
-            return lines[-1] if lines else "N/A"
-    except Exception:
-        return "N/A"
-    return "N/A"
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError):
+        return None
 
 
-def _get_last_commit_message() -> str:
-    try:
-        out = subprocess.check_output(["git", "-C", str(REPO_ROOT), "log", "-1", "--pretty=%s"], text=True)
-        return out.strip() or "N/A"
-    except Exception:
-        return "N/A"
+def context_agent_status() -> Dict:
+    return _http_json(f"{CONTEXT_BASE}/context/status") or {}
 
 
-def _get_repo_name() -> str:
-    return REPO_ROOT.name
+def context_agent_summary(hours: int = 2) -> str:
+    q = urllib.parse.urlencode({"hours": hours})
+    payload = _http_json(f"{CONTEXT_BASE}/context/summary?{q}")
+    if isinstance(payload, dict):
+        return str(payload.get("summary") or "")
+    return ""
 
 
-def _get_scheduler_meta() -> Dict:
-    if not SCHED_META.exists():
-        return {"version": "N/A", "top3": "N/A"}
-    try:
-        data = json.loads(SCHED_META.read_text(encoding="utf-8"))
-        return {"version": data.get("version", "N/A"), "top3": data.get("top3", "N/A")}
-    except Exception:
-        return {"version": "N/A", "top3": "N/A"}
+def context_agent_recent(n: int = 5):
+    q = urllib.parse.urlencode({"n": n})
+    payload = _http_json(f"{CONTEXT_BASE}/context/recent?{q}")
+    return payload if isinstance(payload, list) else []
 
 
-def build_system_context() -> Dict:
-    vm = psutil.virtual_memory()
-    du = psutil.disk_usage("/")
-    top5 = sorted(psutil.process_iter(["name", "memory_info"]), key=lambda p: (p.info["memory_info"].rss if p.info["memory_info"] else 0), reverse=True)[:5]
+def context_agent_search(query: str, n: int = 3):
+    q = urllib.parse.urlencode({"q": query, "n": n})
+    payload = _http_json(f"{CONTEXT_BASE}/context/search?{q}")
+    return payload if isinstance(payload, list) else []
 
-    top5_ram = []
-    for p in top5:
-        try:
-            mb = (p.info["memory_info"].rss / (1024 * 1024)) if p.info["memory_info"] else 0
-            top5_ram.append({"name": p.info.get("name") or "unknown", "ram_mb": round(mb, 2)})
-        except Exception:
-            continue
 
-    meta = _get_scheduler_meta()
+def build_system_context(reader: EonixSystemReader) -> Dict:
+    data = reader.read_all()
+    summary = reader.format_for_llm(data)
+    recent_activity = context_agent_summary(hours=2)
     return {
-        "top5_processes_ram": top5_ram,
-        "ram": {
-            "used_gb": round(vm.used / (1024**3), 2),
-            "total_gb": round(vm.total / (1024**3), 2),
-            "percent": vm.percent,
-        },
-        "cpu_percent_1s": psutil.cpu_percent(interval=1),
-        "disk": {
-            "used_gb": round(du.used / (1024**3), 2),
-            "total_gb": round(du.total / (1024**3), 2),
-        },
-        "uptime_hours": round((time.time() - psutil.boot_time()) / 3600, 2),
-        "repo_name": _get_repo_name(),
-        "last_commit_message": _get_last_commit_message(),
-        "scheduler_model": {
-            "version": meta["version"],
-            "top3": meta["top3"],
-        },
-        "latest_deadlock_event": _safe_read_last_line(DEADLOCK_LOG),
-        "latest_security_alert": _safe_read_last_line(SECURITY_ALERTS),
-        "timestamp": datetime.utcnow().isoformat(),
+        "raw": data,
+        "summary": summary,
+        "recent_activity": recent_activity,
     }
 
 
@@ -151,19 +127,14 @@ def transcribe_audio(audio_path: Path) -> Tuple[str, str]:
 
     try:
         from faster_whisper import WhisperModel
-    except Exception as e:
-        raise RuntimeError("faster-whisper not installed") from e
+    except Exception:
+        return "", "en"
 
     model = WhisperModel("medium", device="cpu", compute_type="int8")
     segments, info = model.transcribe(str(audio_path), language=None)
     text = " ".join([s.text.strip() for s in segments]).strip()
     lang = getattr(info, "language", "en") or "en"
     return text, lang
-
-
-class _FallbackLLM:
-    def __call__(self, prompt: str, max_tokens: int = 128):
-        return "I am running in fallback mode. Install llama-cpp-python and the GGUF model for full responses."
 
 
 def load_llama():
@@ -177,9 +148,24 @@ def load_llama():
 
 
 def generate_response(llm, context: Dict, user_text: str, lang: str) -> str:
+    text_l = user_text.lower()
+    if "what was i doing" in text_l or "kya kar raha tha" in text_l:
+        recent = context_agent_recent(5)
+        if recent:
+            return "You recently: " + "; ".join([f"{e.get('type','event')}" for e in recent[:5]])
+        return "I could not find recent tracked activity right now."
+
+    if "find my work on" in text_l:
+        topic = user_text.split("find my work on", 1)[-1].strip() or "recent work"
+        matches = context_agent_search(topic, 3)
+        if matches:
+            return "Top matches: " + "; ".join([str(m)[:80] for m in matches])
+        return f"I did not find context matches for {topic}."
+
     prompt = (
         f"{SYSTEM_PROMPT}\n\n"
-        f"Context JSON:\n{json.dumps(context, ensure_ascii=False)}\n\n"
+        f"System Snapshot:\n{context.get('summary','')}\n"
+        f"Recent activity: {context.get('recent_activity','none')}\n\n"
         f"User ({lang}): {user_text}\nEon:"
     )
     if isinstance(llm, _FallbackLLM):
@@ -209,11 +195,49 @@ def speak(text: str, lang: str) -> None:
             break
 
 
-def main() -> None:
-    llm = load_llama()
-    print("⚡ Eon ready - press ENTER to speak (type 'exit' to quit)")
+def _proactive_alerts(last_deadlock: str, last_alert: str, context_raw: Dict) -> Tuple[str, str, List[str]]:
+    alerts: List[str] = []
+    ram_percent = float(context_raw.get("ram", {}).get("percent", 0.0))
+    if ram_percent > 85:
+        alerts.append(f"Alert: RAM usage is high at {ram_percent:.0f}%.")
 
+    dead = str(context_raw.get("deadlock_log", "unavailable"))
+    if dead not in {"", "unavailable"} and dead != last_deadlock:
+        alerts.append(f"New deadlock event: {dead}")
+        last_deadlock = dead
+
+    sec = context_raw.get("security_alerts", [])
+    sec_last = sec[-1] if isinstance(sec, list) and sec else ""
+    if sec_last and sec_last != last_alert:
+        alerts.append(f"New security alert: {sec_last}")
+        last_alert = sec_last
+
+    return last_deadlock, last_alert, alerts
+
+
+def main() -> None:
+    reader = EonixSystemReader()
+    llm = load_llama()
+
+    status = context_agent_status()
+    if status:
+        print("✅ ContextAgent connected")
+    else:
+        print("⚠️ ContextAgent offline - context limited")
+
+    startup = build_system_context(reader)
+    print("⚡ Eon ready - press ENTER to speak (type 'exit' to quit)")
+    print(startup["summary"])
+
+    last_deadlock = ""
+    last_alert = ""
     while True:
+        snapshot = build_system_context(reader)
+        last_deadlock, last_alert, alerts = _proactive_alerts(last_deadlock, last_alert, snapshot["raw"])
+        for a in alerts:
+            print(f"Eon: {a}")
+            speak(a, "en")
+
         cmd = input().strip().lower()
         if cmd == "exit":
             break
@@ -228,7 +252,7 @@ def main() -> None:
                 print("Didn't catch that")
                 continue
 
-            context = build_system_context()
+            context = build_system_context(reader)
             response = generate_response(llm, context, text, lang)
             print(f"Eon: {response}")
             speak(response, lang)
@@ -242,20 +266,9 @@ if __name__ == "__main__":
 
 
 def test_system_context_has_all_required_keys():
-    ctx = build_system_context()
-    required = {
-        "top5_processes_ram",
-        "ram",
-        "cpu_percent_1s",
-        "disk",
-        "uptime_hours",
-        "repo_name",
-        "last_commit_message",
-        "scheduler_model",
-        "latest_deadlock_event",
-        "latest_security_alert",
-    }
-    assert required.issubset(set(ctx.keys()))
+    reader = EonixSystemReader()
+    ctx = build_system_context(reader)
+    assert {"raw", "summary", "recent_activity"}.issubset(set(ctx.keys()))
 
 
 def test_llama_loads_without_error():
