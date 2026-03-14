@@ -188,13 +188,22 @@ class HubState:
             "git": "🔧",
             "browser": "🌐",
             "app": "⌨️",
+            "shell": "⌨️",
         }
 
         for row in events[-50:]:
             if not isinstance(row, dict):
                 continue
             ts = str(row.get("timestamp") or row.get("time") or "")
-            desc = str(row.get("description") or row.get("text") or row.get("event") or "")
+            desc = str(
+                row.get("description")
+                or row.get("text")
+                or row.get("event")
+                or row.get("command")
+                or row.get("cmd")
+                or row.get("path")
+                or ""
+            )
             kind = str(row.get("type") or row.get("category") or "app").lower().strip()
 
             if not desc:

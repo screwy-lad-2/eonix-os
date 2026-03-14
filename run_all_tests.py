@@ -4,12 +4,15 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 SUITES = [
+    "eonix-shell/shell.py",
     "eonix-hub/hub_server.py",
     "tests/test_integration_month5.py",
     "eonix-core/scheduler/train_scheduler.py",
@@ -33,6 +36,16 @@ SUITES = [
 WEEK16_MIN_EXPECTED_PASS = 68
 WEEK17_MIN_EXPECTED_PASS = 74
 MONTH5_MIN_EXPECTED_PASS = 82
+WEEK19_MIN_EXPECTED_PASS = 88
+
+INTEGRATION_SUITE = "tests/test_integration_month5.py"
+SERVICE_SCRIPTS = [
+    ("eonix-cortex/goal-engine/engine.py", ["--start"]),
+    ("eonix-cortex/context-agent/agent.py", ["--start"]),
+    ("eonix-cortex/resource-agent/agent.py", ["--start"]),
+    ("eonix-sync/sync_daemon.py", ["--start", "--port", "7740"]),
+    ("eonix-hub/hub_server.py", []),
+]
 
 
 def parse_counts(output: str) -> tuple[int, int]:
@@ -45,6 +58,43 @@ def parse_counts(output: str) -> tuple[int, int]:
     if m_fail:
         failed = int(m_fail.group(1))
     return passed, failed
+
+
+def _run_integration_with_stack(root: Path) -> subprocess.CompletedProcess:
+    procs: list[subprocess.Popen] = []
+    try:
+        for rel, args in SERVICE_SCRIPTS:
+            script = root / rel
+            cmd = [sys.executable, str(script), *args]
+            procs.append(
+                subprocess.Popen(
+                    cmd,
+                    cwd=root,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            )
+
+        time.sleep(10)
+        return subprocess.run(
+            [sys.executable, "-m", "pytest", INTEGRATION_SUITE, "-q"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+        )
+    finally:
+        for p in procs:
+            try:
+                p.terminate()
+            except Exception:
+                pass
+        time.sleep(1)
+        for p in procs:
+            try:
+                if p.poll() is None:
+                    p.kill()
+            except Exception:
+                pass
 
 
 def main() -> int:
@@ -64,8 +114,11 @@ def main() -> int:
             lines.append(f"  {suite}: skipped (missing)")
             continue
 
-        cmd = [sys.executable, "-m", "pytest", suite, "-q"]
-        proc = subprocess.run(cmd, cwd=root, capture_output=True, text=True)
+        if suite == INTEGRATION_SUITE:
+            proc = _run_integration_with_stack(root)
+        else:
+            cmd = [sys.executable, "-m", "pytest", suite, "-q"]
+            proc = subprocess.run(cmd, cwd=root, capture_output=True, text=True)
         combined = (proc.stdout or "") + "\n" + (proc.stderr or "")
         passed, failed = parse_counts(combined)
 
@@ -82,6 +135,7 @@ def main() -> int:
     lines.append(f"TARGET (Week 16): >= {WEEK16_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 17): >= {WEEK17_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Month 5 Close): >= {MONTH5_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 19 Shell): >= {WEEK19_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)

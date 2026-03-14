@@ -391,6 +391,14 @@ def create_app(agent: ContextAgent):
     def status():
         return JSONResponse(agent.status())
 
+    @app.post("/context/event")
+    def event(payload: Dict):
+        event_type = str(payload.get("type", "event") or "event")
+        body = dict(payload)
+        body.pop("type", None)
+        agent.store_event(event_type, body)
+        return JSONResponse({"ok": True})
+
     return app
 
 
@@ -468,6 +476,31 @@ def test_fastapi_recent_endpoint_returns_list(tmp_path):
     r = client.get("/context/recent?n=5")
     assert r.status_code == 200
     assert isinstance(r.json(), list)
+
+
+def test_fastapi_event_endpoint_stores_shell_event(tmp_path):
+    if FastAPI is None:
+        return
+    from fastapi.testclient import TestClient
+
+    agent = ContextAgent(sqlite_path=tmp_path / "events.db")
+    app = create_app(agent)
+    client = TestClient(app)
+
+    payload = {
+        "type": "shell",
+        "command": "git status",
+        "cwd": "/tmp/project",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    res = client.post("/context/event", json=payload)
+    assert res.status_code == 200
+    assert res.json().get("ok") is True
+
+    recent = client.get("/context/recent?n=3")
+    rows = recent.json()
+    assert isinstance(rows, list)
+    assert any(r.get("type") == "shell" and r.get("command") == "git status" for r in rows)
 
 
 def test_sqlite_mirror_matches_chromadb_count(tmp_path):
