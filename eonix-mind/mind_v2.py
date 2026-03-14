@@ -336,7 +336,15 @@ class EonixMindV2:
             model = self.reader.read_all().get("model_version", {})
             return f"Scheduler model is {model.get('version', 'unknown')} with {(float(model.get('top3') or 0.0) * 100):.2f}% Top-3."
 
-        if "what devices are connected" in t or "kaun se device" in t:
+        device_phrases = [
+            "what devices are connected",
+            "what devices",
+            "which devices",
+            "connected devices",
+            "kaun se device",
+            "devices connected",
+        ]
+        if any(phrase in t for phrase in device_phrases):
             peers = _sync_peers()
             names = [str(p.get("device_id", "")).strip() for p in peers if isinstance(p, dict)]
             names = [n for n in names if n]

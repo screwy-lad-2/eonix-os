@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 import socket
@@ -14,7 +15,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -32,6 +33,11 @@ try:
     import uvicorn
 except Exception:
     uvicorn = None
+
+try:
+    import aiohttp
+except Exception:
+    aiohttp = None  # type: ignore
 
 try:
     from zeroconf import IPVersion, ServiceBrowser, ServiceInfo, Zeroconf
@@ -63,22 +69,22 @@ RESOURCE_BASE = "http://127.0.0.1:7737"
 class BrainState:
     device_id: str
     timestamp: str
-    active_goal: Dict
-    memory_summary: List[Dict]
-    context_summary: str
-    scheduler_info: Dict
-    system_snapshot: Dict
+    active_goal: Optional[Dict] = None
+    memory_summary: List[Dict] = field(default_factory=list)
+    context_summary: str = ""
+    scheduler_info: Optional[Dict] = None
+    system_snapshot: Optional[Dict] = None
 
     @classmethod
     def from_dict(cls, payload: Dict) -> "BrainState":
         return cls(
             device_id=str(payload.get("device_id", "")),
             timestamp=str(payload.get("timestamp", "")),
-            active_goal=payload.get("active_goal") if isinstance(payload.get("active_goal"), dict) else {},
+            active_goal=payload.get("active_goal") if isinstance(payload.get("active_goal"), dict) else None,
             memory_summary=payload.get("memory_summary") if isinstance(payload.get("memory_summary"), list) else [],
             context_summary=str(payload.get("context_summary", "")),
-            scheduler_info=payload.get("scheduler_info") if isinstance(payload.get("scheduler_info"), dict) else {},
-            system_snapshot=payload.get("system_snapshot") if isinstance(payload.get("system_snapshot"), dict) else {},
+            scheduler_info=payload.get("scheduler_info") if isinstance(payload.get("scheduler_info"), dict) else None,
+            system_snapshot=payload.get("system_snapshot") if isinstance(payload.get("system_snapshot"), dict) else None,
         )
 
 
@@ -262,7 +268,7 @@ class SyncDaemon:
 
         # Immediate exchange on discovery.
         state = self.get_brain_state()
-        self.push_to_peer(ip=ip, port=port, state=state)
+        self.push_to_peer(peer_ip=ip, port=port, state=state)
         pulled = _http_json(f"http://{ip}:{port}/sync/state", timeout=2.0)
         if isinstance(pulled, dict):
             self.receive_from_peer(BrainState.from_dict(pulled))
@@ -337,7 +343,30 @@ class SyncDaemon:
     def push_to_peer(self, peer_ip: str, port: int, state: BrainState) -> bool:
         payload = asdict(state)
         payload["_source_port"] = int(self.port)
-        response = _http_post_json(f"http://{peer_ip}:{port}/sync/receive", payload=payload, timeout=3.0)
+
+        if aiohttp is None:
+            response = _http_post_json(f"http://{peer_ip}:{port}/sync/receive", payload=payload, timeout=5.0)
+            ok = isinstance(response, dict) and bool(response.get("ok", False))
+            status = "ok" if ok else "failed"
+            print(f"Sync push to {peer_ip}:{port}: {status}")
+            return ok
+
+        async def _post() -> Optional[Dict]:
+            timeout = aiohttp.ClientTimeout(total=5.0)
+            try:
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.post(f"http://{peer_ip}:{port}/sync/receive", json=payload) as resp:
+                        try:
+                            return await resp.json()
+                        except Exception:
+                            return {"ok": False, "status": int(resp.status)}
+            except (ConnectionRefusedError, OSError, aiohttp.ClientConnectorError):
+                print(f"Peer {peer_ip} unreachable — skipping")
+                return None
+            except Exception:
+                return None
+
+        response = asyncio.run(_post())
         ok = isinstance(response, dict) and bool(response.get("ok", False))
         status = "ok" if ok else "failed"
         print(f"Sync push to {peer_ip}:{port}: {status}")
@@ -512,13 +541,16 @@ def create_app(daemon: SyncDaemon):
 
     @app.post("/sync/receive")
     def sync_receive(payload: Dict):
-        peer_id = str(payload.get("device_id", "")).strip()
-        peer_port = int(payload.get("_source_port", 7740) or 7740)
-        if peer_id:
-            daemon.register_peer(peer_id=peer_id, ip="127.0.0.1", port=peer_port)
-        state = BrainState.from_dict(payload)
-        daemon.receive_from_peer(state)
-        return {"ok": True}
+        try:
+            peer_id = str(payload.get("device_id", "")).strip()
+            peer_port = int(payload.get("_source_port", 7740) or 7740)
+            if peer_id:
+                daemon.register_peer(peer_id=peer_id, ip="127.0.0.1", port=peer_port)
+            state = BrainState.from_dict(payload)
+            daemon.receive_from_peer(state)
+            return {"ok": True}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
 
     @app.post("/sync/push")
     def sync_push():
@@ -541,10 +573,11 @@ def main() -> None:
     parser.add_argument("--status", action="store_true")
     parser.add_argument("--peers", action="store_true")
     parser.add_argument("--push", action="store_true")
+    parser.add_argument("--device-id", type=str, default="")
     parser.add_argument("--port", type=int, default=int(os.environ.get("EONIX_SYNC_PORT", "7740")))
     args = parser.parse_args()
 
-    daemon = SyncDaemon(port=args.port)
+    daemon = SyncDaemon(port=args.port, device_id=args.device_id or None)
     base = f"http://127.0.0.1:{daemon.port}"
 
     if args.start:
@@ -706,3 +739,24 @@ def test_status_endpoint_returns_correct_keys(tmp_path, monkeypatch):
     payload = res.json()
     for key in ["device_id", "peers_found", "last_sync", "brain_state_age"]:
         assert key in payload
+
+
+def test_receive_partial_brainstate_returns_200(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    daemon = _new_daemon(tmp_path, monkeypatch)
+    monkeypatch.setattr(daemon, "get_brain_state", lambda: BrainState(daemon.device_id, _utc_now(), {}, [], "local", {}, {}))
+
+    app = create_app(daemon)
+    client = TestClient(app)
+
+    payload = {
+        "device_id": "device-partial",
+        "timestamp": "2026-03-21T10:00:00+00:00",
+        # active_goal intentionally omitted
+        "memory_summary": [{"text": "partial memory", "importance": 1}],
+    }
+    res = client.post("/sync/receive", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data.get("ok") is True
