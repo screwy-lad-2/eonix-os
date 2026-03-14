@@ -37,6 +37,7 @@ CONTEXT_BASE = "http://127.0.0.1:7736"
 GOAL_BASE = "http://127.0.0.1:7735"
 RESOURCE_BASE = "http://127.0.0.1:7737"
 SYNC_BASE = "http://127.0.0.1:7740"
+HUB_BASE = "http://127.0.0.1:7750"
 
 
 class _FallbackLLM:
@@ -110,6 +111,11 @@ def _sync_state() -> Dict:
 
 def _sync_push() -> Dict:
     payload = _http_post_json(f"{SYNC_BASE}/sync/push", payload={})
+    return payload if isinstance(payload, dict) else {}
+
+
+def _hub_status() -> Dict:
+    payload = _http_json(f"{HUB_BASE}/hub/status", timeout=1)
     return payload if isinstance(payload, dict) else {}
 
 
@@ -234,6 +240,10 @@ class EonixMindV2:
         sync_id = str(sync.get("device_id") or "").strip()
         sync_peers = int(sync.get("peers_found", 0) or 0)
         sync_text = f"Sync: {sync_id} ({sync_peers} peers)" if sync_id else "Sync: standalone mode"
+        hub = _hub_status()
+        hub_text = ""
+        if isinstance(hub, dict) and hub:
+            hub_text = "Hub: http://localhost:7750 (open in browser)\n"
         return (
             "═══════════════════════════════\n"
             "⚡ EONIX MIND v2.0 - ONLINE\n"
@@ -244,6 +254,7 @@ class EonixMindV2:
             f"Memory: {s.get('memory_count', 0)} memories\n"
             f"Resources: {resource_scored} processes scored\n"
             f"{sync_text}\n"
+            f"{hub_text}"
             f"Proactive: {s.get('proactive_rules', 7)} rules active\n"
             "───────────────────────────────\n"
             "Say 'Hey Eon' or press ENTER"

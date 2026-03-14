@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eonix Hub</title>
+  <style>
+    :root {
+      --bg: #0A0A0F;
+      --panel: #12121A;
+      --panel-2: #171722;
+      --accent: #00FF88;
+      --muted: #A6A8B3;
+      --text: #F2F4F8;
+      --warn: #F8D66D;
+      --danger: #F0626E;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(circle at 20% 0%, #151525 0%, var(--bg) 45%);
+      color: var(--text);
+    }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(10,10,15,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid #232336;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+
+    .status-pill {
+      background: #171D19;
+      border: 1px solid #264B33;
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: #A7FFC8;
+      font-size: 12px;
+    }
+
+    .conn-live { color: #7BFFB2; }
+    .conn-down { color: #FF8F97; }
+
+    .wrap {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 14px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid #232336;
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .goal-name {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.2;
+      color: var(--accent);
+    }
+
+    .goal-sub {
+      margin: 8px 0;
+      color: var(--muted);
+    }
+
+    .bar {
+      height: 10px;
+      background: #232336;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00C96B, #00FF88);
+      transition: width 450ms ease;
+    }
+
+    .vitals div { margin-bottom: 8px; }
+    .meter {
+      display: inline-block;
+      min-width: 88px;
+      letter-spacing: 1px;
+    }
+
+    .device-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 10px;
+    }
+
+    .device-card {
+      border: 1px solid #2A2A3C;
+      border-radius: 10px;
+      padding: 10px;
+      background: #141421;
+      font-size: 13px;
+    }
+
+    .timeline {
+      max-height: 290px;
+      overflow: auto;
+      border: 1px solid #24243A;
+      border-radius: 10px;
+      padding: 8px;
+      background: #0F0F18;
+    }
+
+    .timeline-item {
+      font-size: 13px;
+      margin: 6px 0;
+      color: #CDD1DB;
+    }
+
+    .process-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .process-table th,
+    .process-table td {
+      border-bottom: 1px solid #26263D;
+      padding: 6px;
+      text-align: left;
+    }
+
+    tr.high { background: rgba(0, 255, 136, 0.08); }
+    tr.medium { background: rgba(248, 214, 109, 0.08); }
+    tr.low { background: rgba(255, 255, 255, 0.03); }
+
+    .memory-strip {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .memory-chip {
+      white-space: nowrap;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid #2B2B40;
+      background: #181828;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .command-shell {
+      position: sticky;
+      bottom: 0;
+      background: rgba(10,10,15,0.96);
+      border-top: 1px solid #232336;
+      padding: 10px;
+    }
+
+    .cmd-row { display: flex; gap: 8px; }
+    .cmd-row input {
+      flex: 1;
+      background: #10101A;
+      border: 1px solid #2A2A3D;
+      color: var(--text);
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .cmd-row button,
+    .goal-actions button {
+      background: #11472D;
+      color: #D2FFE8;
+      border: 1px solid #1D7E4A;
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+
+    .cmd-history {
+      margin: 8px 0;
+      font-size: 12px;
+      color: #BAC0CB;
+      min-height: 18px;
+    }
+
+    .mobile-hide { display: block; }
+
+    @media (max-width: 900px) {
+      .wrap { grid-template-columns: 1fr; }
+      .mobile-hide { display: none; }
+      .goal-name { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="title">⚡ EONIX HUB</div>
+    <div class="mono" id="deviceId">device: --</div>
+    <div class="status-pill"><span id="wsDot" class="conn-down">🔴 reconnecting</span></div>
+    <div class="mono" id="liveStats">0 agents live</div>
+    <div class="mono" id="lastUpdated">updated --</div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel" style="grid-column: span 2;">
+      <h3>Active Goal</h3>
+      <h1 class="goal-name" id="goalName">No active goal</h1>
+      <div class="goal-sub" id="goalPct">0% complete</div>
+      <div class="bar"><span id="goalBar"></span></div>
+      <div class="goal-sub mono" id="goalCreated">Created: --</div>
+      <div class="goal-actions"><button id="markCompleteBtn">Mark Complete</button></div>
+    </section>
+
+    <section class="panel">
+      <h3>System Vitals</h3>
+      <div class="vitals mono" id="vitals">
+        <div>RAM: <span class="meter">--------</span> 0%</div>
+        <div>CPU: <span class="meter">--------</span> 0%</div>
+        <div>Disk: <span class="meter">--------</span> 0%</div>
+        <div>Model: --</div>
+        <div>Retrain ETA: --</div>
+      </div>
+    </section>
+
+    <section class="panel" style="grid-column: span 3;">
+      <h3>Device Map</h3>
+      <div id="deviceMap" class="device-grid"></div>
+    </section>
+
+    <section class="panel">
+      <h3>Live Event Timeline</h3>
+      <div id="timeline" class="timeline"></div>
+    </section>
+
+    <section class="panel mobile-hide" style="grid-column: span 2;">
+      <h3>Process Scores</h3>
+      <table class="process-table">
+        <thead>
+          <tr><th>PID</th><th>Name</th><th>Score</th><th>Tier</th><th>CPU%</th></tr>
+        </thead>
+        <tbody id="procBody"></tbody>
+      </table>
+    </section>
+
+    <section class="panel" style="grid-column: span 3;">
+      <h3>Memory</h3>
+      <div class="memory-strip" id="memoryStrip"></div>
+    </section>
+  </main>
+
+  <footer class="command-shell">
+    <div id="cmdHistory" class="cmd-history"></div>
+    <div class="cmd-row">
+      <input id="cmdInput" type="text" placeholder="Type a command for Eonix" />
+      <button id="cmdSend">Send</button>
+    </div>
+  </footer>
+
+  <script>
+    const state = {
+      snapshot: {},
+      cmdHistory: [],
+      ws: null,
+      retries: 0,
+      lastUpdatedEpoch: 0,
+    };
+
+    const iconForCategory = {
+      work: '💼',
+      personal: '🧠',
+      security: '🛡️',
+      general: '📌',
+    };
+
+    function pctBar(pct) {
+      const full = Math.round(Math.max(0, Math.min(100, pct)) / 12.5);
+      return '█'.repeat(full) + '░'.repeat(8 - full);
+    }
+
+    function setWsIndicator(live) {
+      const el = document.getElementById('wsDot');
+      if (live) {
+        el.textContent = '🟢 live';
+        el.className = 'conn-live';
+      } else {
+        el.textContent = '🔴 reconnecting';
+        el.className = 'conn-down';
+      }
+    }
+
+    function updateTopBar(snapshot) {
+      const sync = snapshot.sync_status || {};
+      const stale = snapshot.stale_agents || [];
+      const liveCount = 4 - stale.filter(x => ['goal','context','resource','sync'].includes(x)).length;
+      document.getElementById('deviceId').textContent = `device: ${sync.device_id || '--'}`;
+      document.getElementById('liveStats').textContent = `${liveCount} agents live`;
+      state.lastUpdatedEpoch = Date.now();
+    }
+
+    function updateGoal(snapshot) {
+      const goal = snapshot.goal || {};
+      const name = goal.name || 'No active goal';
+      const progress = Math.round((Number(goal.progress || 0)) * 100);
+      document.getElementById('goalName').textContent = name;
+      document.getElementById('goalPct').textContent = `${progress}% complete`;
+      document.getElementById('goalBar').style.width = `${progress}%`;
+      document.getElementById('goalCreated').textContent = `Created: ${goal.created_at || '--'}`;
+    }
+
+    function updateVitals(snapshot) {
+      const sys = snapshot.system_snapshot || {};
+      const model = snapshot.model_info || {};
+      const ram = Math.round(Number(sys.ram_percent || 0));
+      const cpu = Math.round(Number(sys.cpu_percent || 0));
+      const disk = Math.round(Number(sys.disk_percent || 0));
+      document.getElementById('vitals').innerHTML = `
+        <div>RAM: <span class="meter">${pctBar(ram)}</span> ${ram}%</div>
+        <div>CPU: <span class="meter">${pctBar(cpu)}</span> ${cpu}%</div>
+        <div>Disk: <span class="meter">${pctBar(disk)}</span> ${disk}%</div>
+        <div>Model: ${model.model_version || '--'} | ${(Number(model.top3 || 0) * 100).toFixed(2)}% Top-3</div>
+        <div>Retrain ETA: ${model.eta_days != null ? `~${model.eta_days} days` : '--'}</div>
+      `;
+    }
+
+    function updateDeviceMap(snapshot) {
+      const peers = Array.isArray(snapshot.peers) ? snapshot.peers : [];
+      const map = document.getElementById('deviceMap');
+      if (!peers.length) {
+        map.innerHTML = '<div class="device-card">No other Eonix devices on LAN</div>';
+        return;
+      }
+      map.innerHTML = peers.map(p => `
+        <div class="device-card mono">
+          <div><strong>${p.device_id || 'unknown'}</strong> ${p.online ? '🟢' : '🔴'}</div>
+          <div>IP: ${p.ip || '--'}</div>
+          <div>Last sync: ${p.last_seen || '--'}</div>
+        </div>
+      `).join('');
+    }
+
+    function updateTimeline(snapshot) {
+      const timeline = Array.isArray(snapshot.timeline) ? snapshot.timeline.slice(-50) : [];
+      const el = document.getElementById('timeline');
+      const shouldAutoScroll = (el.scrollTop + el.clientHeight + 30) >= el.scrollHeight;
+      el.innerHTML = timeline.map(row =>
+        `<div class="timeline-item mono">[${row.time || '--:--'}] ${row.icon || '⌨️'} ${row.description || ''}</div>`
+      ).join('');
+      if (shouldAutoScroll) {
+        el.scrollTop = el.scrollHeight;
+      }
+    }
+
+    function updateProcesses(snapshot) {
+      const rows = Array.isArray(snapshot.process_scores) ? snapshot.process_scores.slice(0, 20) : [];
+      const body = document.getElementById('procBody');
+      body.innerHTML = rows.map(r => `
+        <tr class="${(r.tier || 'low').toLowerCase()}">
+          <td class="mono">${r.pid || '-'}</td>
+          <td>${r.name || '-'}</td>
+          <td class="mono">${Number(r.score || 0).toFixed(2)}</td>
+          <td>${r.tier || '-'}</td>
+          <td class="mono">${Math.round(Number(r.cpu_percent || 0))}</td>
+        </tr>
+      `).join('');
+    }
+
+    function updateMemory(snapshot) {
+      const memories = (snapshot.sync_status && snapshot.sync_status.memory_summary) || snapshot.memory_summary || [];
+      const strip = document.getElementById('memoryStrip');
+      const items = Array.isArray(memories) ? memories.slice(0, 5) : [];
+      if (!items.length) {
+        strip.innerHTML = '<div class="memory-chip">No memories yet</div>';
+        return;
+      }
+      strip.innerHTML = items.map((m, idx) => {
+        const cat = m.category || 'general';
+        const icon = iconForCategory[cat] || '📌';
+        const text = String(m.text || '').slice(0, 40);
+        return `<button class="memory-chip" data-idx="${idx}">${icon} ${text}</button>`;
+      }).join('');
+      [...strip.querySelectorAll('.memory-chip')].forEach(btn => {
+        btn.addEventListener('click', () => {
+          const item = items[Number(btn.dataset.idx || '0')] || {};
+          alert(`${item.category || 'general'}\n\n${item.text || ''}\n\n${item.timestamp || ''}`);
+        });
+      });
+    }
+
+    function render(snapshot) {
+      state.snapshot = { ...state.snapshot, ...snapshot };
+      updateTopBar(state.snapshot);
+      updateGoal(state.snapshot);
+      updateVitals(state.snapshot);
+      updateDeviceMap(state.snapshot);
+      updateTimeline(state.snapshot);
+      updateProcesses(state.snapshot);
+      updateMemory(state.snapshot);
+    }
+
+    async function sendCommand(command) {
+      const res = await fetch('/hub/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command }),
+      });
+      const out = await res.json();
+      const line = `> ${command} | ${out.reply || 'No reply'}`;
+      state.cmdHistory.unshift(line);
+      state.cmdHistory = state.cmdHistory.slice(0, 5);
+      document.getElementById('cmdHistory').textContent = state.cmdHistory.join('   ||   ');
+    }
+
+    function connectWs() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(`${proto}://${location.host}/hub/live`);
+      state.ws = ws;
+
+      ws.onopen = () => {
+        state.retries = 0;
+        setWsIndicator(true);
+      };
+
+      ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          if (msg.type === 'snapshot' && msg.values) {
+            render(msg.values);
+          } else if (msg.type === 'delta' && msg.values) {
+            render(msg.values);
+          }
+        } catch (_) {}
+      };
+
+      ws.onclose = () => {
+        setWsIndicator(false);
+        const wait = Math.min(30000, 1000 * (2 ** state.retries));
+        state.retries += 1;
+        setTimeout(connectWs, wait);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+
+    document.getElementById('cmdSend').addEventListener('click', async () => {
+      const input = document.getElementById('cmdInput');
+      const cmd = input.value.trim();
+      if (!cmd) return;
+      input.value = '';
+      await sendCommand(cmd);
+    });
+
+    document.getElementById('markCompleteBtn').addEventListener('click', async () => {
+      await sendCommand('mark goal complete');
+    });
+
+    setInterval(async () => {
+      const sec = Math.max(0, Math.floor((Date.now() - state.lastUpdatedEpoch) / 1000));
+      document.getElementById('lastUpdated').textContent = `updated ${sec}s ago`;
+      try {
+        const res = await fetch('/hub/snapshot');
+        if (res.ok) {
+          const snapshot = await res.json();
+          render(snapshot);
+        }
+      } catch (_) {}
+    }, 30000);
+
+    connectWs();
+  </script>
+</body>
+</html>

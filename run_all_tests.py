@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 SUITES = [
+    "eonix-hub/hub_server.py",
     "eonix-core/scheduler/train_scheduler.py",
     "eonix-core/scheduler/auto_retrain.py",
     "eonix-core/scheduler/build_features.py",
@@ -29,6 +30,7 @@ SUITES = [
 ]
 
 WEEK16_MIN_EXPECTED_PASS = 68
+WEEK17_MIN_EXPECTED_PASS = 74
 
 
 def parse_counts(output: str) -> tuple[int, int]:
@@ -76,6 +78,7 @@ def main() -> int:
     lines.append("")
     lines.append(f"TOTAL: {total_pass} passed | {total_fail} failed")
     lines.append(f"TARGET (Week 16): >= {WEEK16_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 17): >= {WEEK17_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)
