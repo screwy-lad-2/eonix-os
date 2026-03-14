@@ -36,6 +36,7 @@ except Exception:
 CONTEXT_BASE = "http://127.0.0.1:7736"
 GOAL_BASE = "http://127.0.0.1:7735"
 RESOURCE_BASE = "http://127.0.0.1:7737"
+SYNC_BASE = "http://127.0.0.1:7740"
 
 
 class _FallbackLLM:
@@ -89,6 +90,26 @@ def _goal_progress(goal_id: str) -> float:
 
 def _resource_status() -> Dict:
     payload = _http_json(f"{RESOURCE_BASE}/resource/status")
+    return payload if isinstance(payload, dict) else {}
+
+
+def _sync_status() -> Dict:
+    payload = _http_json(f"{SYNC_BASE}/sync/status")
+    return payload if isinstance(payload, dict) else {}
+
+
+def _sync_peers() -> list:
+    payload = _http_json(f"{SYNC_BASE}/sync/peers")
+    return payload if isinstance(payload, list) else []
+
+
+def _sync_state() -> Dict:
+    payload = _http_json(f"{SYNC_BASE}/sync/state")
+    return payload if isinstance(payload, dict) else {}
+
+
+def _sync_push() -> Dict:
+    payload = _http_post_json(f"{SYNC_BASE}/sync/push", payload={})
     return payload if isinstance(payload, dict) else {}
 
 
@@ -186,6 +207,7 @@ class EonixMindV2:
                 memory_count = 0
 
         resource = _resource_status()
+        sync = _sync_status()
         return {
             "ram": system.get("ram", {}),
             "cpu": system.get("cpu", {}),
@@ -194,6 +216,7 @@ class EonixMindV2:
             "model": model,
             "memory_count": memory_count,
             "resource": resource,
+            "sync": sync,
             "proactive_rules": 7,
         }
 
@@ -207,6 +230,10 @@ class EonixMindV2:
         goal_pct = int(float(s.get("goal_progress", 0.0)) * 100)
         top3 = float(model.get("top3") or 0.0) * 100.0
         resource_scored = int(s.get("resource", {}).get("processes_scored", 0)) if isinstance(s.get("resource"), dict) else 0
+        sync = s.get("sync", {}) if isinstance(s.get("sync"), dict) else {}
+        sync_id = str(sync.get("device_id") or "").strip()
+        sync_peers = int(sync.get("peers_found", 0) or 0)
+        sync_text = f"Sync: {sync_id} ({sync_peers} peers)" if sync_id else "Sync: standalone mode"
         return (
             "═══════════════════════════════\n"
             "⚡ EONIX MIND v2.0 - ONLINE\n"
@@ -216,6 +243,7 @@ class EonixMindV2:
             f"Model: {model.get('version', 'n/a')} ({top3:.2f}% Top-3)\n"
             f"Memory: {s.get('memory_count', 0)} memories\n"
             f"Resources: {resource_scored} processes scored\n"
+            f"{sync_text}\n"
             f"Proactive: {s.get('proactive_rules', 7)} rules active\n"
             "───────────────────────────────\n"
             "Say 'Hey Eon' or press ENTER"
@@ -236,12 +264,33 @@ class EonixMindV2:
         progress = _goal_progress(gid) if gid else 0.0
         goal_text = _trim_tokens(f"Goal: {goal.get('name', 'none')} ({int(progress * 100)}%)", 50)
 
-        combined = "\n".join([x for x in [system_text, memory_text, context_text, goal_text] if x.strip()])
+        sync_status = _sync_status()
+        sync_peers_text = ""
+        cross_goal_text = ""
+        if isinstance(sync_status, dict) and int(sync_status.get("peers_found", 0) or 0) > 0:
+            peers = _sync_peers()
+            peer_names = [str(p.get("device_id", "")).strip() for p in peers if isinstance(p, dict)]
+            peer_names = [p for p in peer_names if p]
+            if peer_names:
+                sync_peers_text = _trim_tokens(f"Synced with: {', '.join(peer_names[:6])}", 50)
+
+            s = _sync_state()
+            if isinstance(s, dict):
+                cross_goal = s.get("active_goal") if isinstance(s.get("active_goal"), dict) else {}
+                cross_name = str(cross_goal.get("name") or "").strip()
+                if cross_name:
+                    cross_goal_text = _trim_tokens(f"Cross-device goal: {cross_name}", 30)
+
+        combined = "\n".join(
+            [x for x in [system_text, memory_text, context_text, goal_text, sync_peers_text, cross_goal_text] if x.strip()]
+        )
         return {
             "system": system_text,
             "memory": memory_text,
             "context": context_text,
             "goal": goal_text,
+            "sync": sync_peers_text,
+            "cross_goal": cross_goal_text,
             "combined": combined,
             "tokens": _token_count(combined),
         }
@@ -287,6 +336,37 @@ class EonixMindV2:
             model = self.reader.read_all().get("model_version", {})
             return f"Scheduler model is {model.get('version', 'unknown')} with {(float(model.get('top3') or 0.0) * 100):.2f}% Top-3."
 
+        if "what devices are connected" in t or "kaun se device" in t:
+            peers = _sync_peers()
+            names = [str(p.get("device_id", "")).strip() for p in peers if isinstance(p, dict)]
+            names = [n for n in names if n]
+            if not names:
+                return "No other Eonix devices are currently connected."
+            return f"Found {len(names)} Eonix devices: {', '.join(names[:6])}."
+
+        if "sync now" in t or "abhi sync karo" in t:
+            out = _sync_push()
+            pushed = int(out.get("pushed", 0) or 0) if isinstance(out, dict) else 0
+            return f"Syncing brain state to all devices now. Pushed to {pushed} peers."
+
+        if "what did i do on my other device" in t:
+            payload = _sync_state()
+            history = payload.get("sync_history", []) if isinstance(payload, dict) else []
+            if not isinstance(history, list) or not history:
+                return "No cross-device sync history available yet."
+            recent = history[-3:]
+            parts = []
+            for item in recent:
+                if not isinstance(item, dict):
+                    continue
+                src = str(item.get("from_device") or "unknown device")
+                fields = item.get("fields_updated", [])
+                if isinstance(fields, list) and fields:
+                    parts.append(f"{src} updated {', '.join([str(f) for f in fields[:3]])}")
+                else:
+                    parts.append(f"{src} synced state")
+            return "Recent cross-device activity: " + "; ".join(parts) + "."
+
         ctx = self.build_context_injection(user_text)
         prompt = (
             "You are Eon, concise and direct.\n"
@@ -302,6 +382,14 @@ class EonixMindV2:
             return "I could not answer that right now."
 
     def start(self) -> None:
+        sync = _sync_status()
+        if isinstance(sync, dict) and sync.get("device_id"):
+            print(
+                f"🔗 Sync: {sync.get('device_id')} | {int(sync.get('peers_found', 0) or 0)} peers | "
+                f"last sync: {sync.get('last_sync', '') or 'n/a'}"
+            )
+        else:
+            print("🔗 Sync: standalone mode")
         print(self.startup_banner())
         self.monitor.start()
 

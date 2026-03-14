@@ -19,6 +19,8 @@ SUITES = [
     "eonix-cortex/context-agent/agent.py",
     "eonix-cortex/goal-engine/engine.py",
     "eonix-cortex/resource-agent/agent.py",
+    "eonix-sync/sync_daemon.py",
+    "eonix-sync/state_store.py",
     "eonix-mind/memory.py",
     "eonix-mind/proactive_monitor.py",
     "eonix-mind/system_reader.py",
