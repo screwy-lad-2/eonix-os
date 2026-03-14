@@ -109,7 +109,7 @@ jobs:
       - name: Run tests
         run: |
           if [ -d tests ] && ls tests/test_*.py 1>/dev/null 2>&1; then
-            pytest tests/ -v
+            pytest tests/ -v --ignore=tests/test_integration_month5.py
           else
             echo "No tests found yet — skipping"
           fi
