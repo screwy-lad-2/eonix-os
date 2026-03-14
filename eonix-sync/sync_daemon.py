@@ -555,7 +555,9 @@ def create_app(daemon: SyncDaemon):
 
     @app.get("/sync/state")
     def sync_state():
-        return asdict(daemon.get_brain_state())
+        current = asdict(daemon.get_brain_state())
+        daemon.store.write(current, source_device=daemon.device_id)
+        return daemon.store.read()
 
     @app.post("/sync/receive")
     def sync_receive(payload: Dict):

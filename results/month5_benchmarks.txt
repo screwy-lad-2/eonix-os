@@ -1,0 +1,44 @@
+=== Eonix OS Month 5 Benchmarks ===
+Date: 2026-03-14T15:30:17.783214Z
+
+SCHEDULER MODEL:
+  Version:          v1.1
+  Top-3 accuracy:   61.61%
+  Training rows:    36,981
+  ONNX latency:     2.38ms per inference
+
+SYNC DAEMON:
+  Device discovery: 0.00s (mDNS)
+  Brain state push: 1997.48ms (LAN)
+  State file write: 1855.02ms (atomic)
+
+CONTEXT AGENT:
+  Events total:     5,802
+  Search latency:   1981.91ms
+  Summary latency:  40.54ms
+
+GOAL ENGINE:
+  Create goal:      476.57ms
+  Progress update:  509.18ms
+  Semantic search:  240.87ms
+
+RESOURCE AGENT:
+  Processes scored: 278
+  Scoring time:     18.61ms per cycle
+
+EONIX HUB:
+  Snapshot latency: 83.08ms (all agents)
+  WS first message: 7.51ms
+  Timeline build:   14.01ms
+
+ANDROID APP:
+  Discovery time:   0.00s (mDNS)
+  Goal card load:   83.08ms
+  Voice round-trip: 0.53s (phone->desktop->reply)
+
+MIND v2.0:
+  Startup time:     4.58s (all agents)
+  Whisper latency:  0.00ms
+  LLaMA latency:    0.00ms (first token)
+  TTS latency:      0.00ms
+  Full pipeline:    0.53s voice-to-voice

@@ -229,11 +229,13 @@ class HubState:
         recent_events = self._cache_get("recent_events", [])
         if not isinstance(recent_events, list):
             recent_events = []
+        goal = self._cache_get("goal", {})
 
         stale = self._stale_agents()
 
         return {
-            "goal": self._cache_get("goal", {}),
+            "goal": goal,
+            "active_goal": goal,
             "all_goals": self._cache_get("all_goals", []),
             "context_summary": self._cache_get("context_summary", {}),
             "recent_events": recent_events,

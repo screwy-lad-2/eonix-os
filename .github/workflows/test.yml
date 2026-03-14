@@ -462,3 +462,27 @@ jobs:
 
       - name: Run hub tests
         run: python3 -m pytest eonix-hub/hub_server.py -v
+
+  test-integration-month5:
+    name: Test Integration Month 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi uvicorn aiohttp websockets pytest pytest-asyncio httpx psutil
+
+      - name: Start full stack (services only)
+        run: |
+          EONIX_START_NO_MIND=1 bash start_eonix.sh
+          sleep 5
+
+      - name: Run integration tests
+        run: python3 -m pytest tests/test_integration_month5.py -v

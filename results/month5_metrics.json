@@ -1,0 +1,47 @@
+{
+  "date": "2026-03-14T15:30:17.783214Z",
+  "scheduler": {
+    "version": "v1.1",
+    "top3_pct": 61.61,
+    "rows": 36981,
+    "onnx_latency_ms": 2.382800001214491,
+    "eta_days": 16.6
+  },
+  "sync": {
+    "device_discovery_ms": 4.554200000711717,
+    "brain_push_ms": 1997.4841000002925,
+    "state_write_ms": 1855.0219999997353
+  },
+  "context": {
+    "events_total": 5802,
+    "search_ms": 1981.9139000028372,
+    "summary_ms": 40.53580000254442
+  },
+  "goal": {
+    "create_ms": 476.5670999986469,
+    "progress_ms": 509.1777000016009,
+    "semantic_ms": 240.8744000022125,
+    "create_error": ""
+  },
+  "resource": {
+    "processes_scored": 278,
+    "scoring_ms": 18.6083000007784
+  },
+  "hub": {
+    "snapshot_ms": 83.08210000177496,
+    "ws_first_ms": 7.508899998356355,
+    "timeline_ms": 14.010700000653742
+  },
+  "android": {
+    "discovery_s": 0.004554200000711717,
+    "goal_card_ms": 83.08210000177496,
+    "voice_rt_s": 0.5312344000012672
+  },
+  "mind": {
+    "startup_s": 4.583371900000202,
+    "whisper_ms": 0.0,
+    "llama_ms": 0.0,
+    "tts_ms": 0.0,
+    "pipeline_s": 0.5312344000012672
+  }
+}
