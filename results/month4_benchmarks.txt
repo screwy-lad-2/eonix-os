@@ -1,0 +1,29 @@
+=== Eonix OS Month 4 Benchmarks ===
+Date: 2026-03-14
+
+SCHEDULER:
+  Model version:    v1.1
+  Top-3 accuracy:   61.61%
+  Training data:    34,382 rows
+  ONNX latency:     N/A (not measured in this run)
+  Next retrain:     ~17.12 days to v1.2 (120,000 threshold)
+
+EONIX MIND v2.0:
+  Whisper latency:  N/A (voice stack not benchmarked in this run)
+  LLaMA latency:    N/A (local runtime benchmark not captured)
+  TTS latency:      N/A (voice stack not benchmarked in this run)
+  Total pipeline:   N/A (voice-to-voice not benchmarked in this run)
+
+GOAL ENGINE:
+  Goals created:    1
+  Progress API:     unavailable (local endpoint intermittently refused)
+  Active API:       14.08ms (GET /goal/active)
+
+CONTEXT AGENT:
+  Events today:     1,481
+  Search latency:   timed out at 25s in this run (endpoint responsive but heavy)
+
+RESOURCE AGENT:
+  Processes scored: 297
+  Scoring interval: 30s (configured; smoke ran at 5s interval)
+  CPU overhead:     N/A (not profiled in this run)

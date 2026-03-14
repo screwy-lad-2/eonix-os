@@ -69,6 +69,16 @@ Module.symvers
 modules.order
 .tmp_versions/
 
+# Gradle generated artifacts
+.gradle/
+build/
+**/.gradle/
+**/build/
+
+# Kotlin DSL cache
+.kotlin/
+**/.kotlin/
+
 # ADFA-LD dataset (large, download separately)
 datasets/security/ADFA-LD/
 datasets/security/adfa-ld/

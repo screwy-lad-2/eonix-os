@@ -7,8 +7,11 @@
   eonix-core/security/security_pipeline.py: 4 passed
   eonix-cortex/context-agent/agent.py: 5 passed
   eonix-cortex/goal-engine/engine.py: 6 passed
+  eonix-cortex/resource-agent/agent.py: 5 passed
   eonix-mind/memory.py: 5 passed
+  eonix-mind/proactive_monitor.py: 4 passed
   eonix-mind/system_reader.py: 5 passed
   eonix-mind/mind_v1.py: 3 passed
+  eonix-mind/mind_v2.py: 3 passed
 
-TOTAL: 45 passed | 0 failed
+TOTAL: 57 passed | 0 failed

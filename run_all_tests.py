@@ -17,8 +17,13 @@ SUITES = [
     "eonix-core/security/behavioral_fingerprint.py",
     "eonix-core/security/security_pipeline.py",
     "eonix-cortex/context-agent/agent.py",
+    "eonix-cortex/goal-engine/engine.py",
+    "eonix-cortex/resource-agent/agent.py",
+    "eonix-mind/memory.py",
+    "eonix-mind/proactive_monitor.py",
     "eonix-mind/system_reader.py",
     "eonix-mind/mind_v1.py",
+    "eonix-mind/mind_v2.py",
 ]
 
 

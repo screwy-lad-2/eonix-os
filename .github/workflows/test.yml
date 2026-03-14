@@ -358,3 +358,66 @@ jobs:
 
       - name: Run system reader tests
         run: python3 -m pytest eonix-mind/system_reader.py -v
+
+  test-goal-engine:
+    name: Test GoalEngine + Mind Memory
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install chromadb sentence-transformers fastapi uvicorn pytest httpx
+
+      - name: Run GoalEngine tests
+        run: python3 -m pytest eonix-cortex/goal-engine/engine.py -v
+
+      - name: Run MIND memory tests
+        run: python3 -m pytest eonix-mind/memory.py -v
+
+  test-resource-agent:
+    name: Test ResourceAgent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install psutil sentence-transformers chromadb fastapi uvicorn pytest httpx
+
+      - name: Run ResourceAgent tests
+        run: python3 -m pytest eonix-cortex/resource-agent/agent.py -v
+
+  test-mind-v2:
+    name: Test MIND v2 + Proactive
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install faster-whisper llama-cpp-python kokoro chromadb psutil pytest httpx
+
+      - name: Run ProactiveMonitor tests
+        run: python3 -m pytest eonix-mind/proactive_monitor.py -v
+
+      - name: Run MIND v2 tests
+        run: python3 -m pytest eonix-mind/mind_v2.py -v
