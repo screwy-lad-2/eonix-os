@@ -1,0 +1,37 @@
+{
+  "version": "v1.1",
+  "top1": 0.42900670322973794,
+  "top3": 0.6160877513711152,
+  "n_samples": 16475,
+  "n_classes": 119,
+  "best_params": {
+    "num_leaves": 80,
+    "learning_rate": 0.010908615091625669,
+    "n_estimators": 381,
+    "subsample": 0.7966606847686438,
+    "colsample_bytree": 0.8398412795951522
+  },
+  "trained_date": "2026-03-14T08:29:54.880034+00:00",
+  "auto_retrain_at": 60000,
+  "feature_columns": [
+    "hour_of_day",
+    "day_of_week",
+    "is_weekend",
+    "cpu_pressure",
+    "ram_pressure",
+    "ppid",
+    "pid_mod_10",
+    "launch_burst_5m",
+    "prev_1",
+    "prev_2",
+    "prev_3",
+    "prev_4",
+    "prev_5",
+    "prev_6",
+    "prev_7",
+    "prev_8",
+    "prev_9",
+    "prev_10"
+  ],
+  "onnx_verified": true
+}

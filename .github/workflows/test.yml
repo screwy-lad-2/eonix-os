@@ -311,3 +311,28 @@ jobs:
         run: |
           cd eonix-core/security
           python3 -m pytest security_pipeline.py -v
+
+  test-scheduler-ml:
+    name: Test Scheduler ML + Mind
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install lightgbm optuna onnxmltools onnxruntime skl2onnx pandas pyarrow numpy psutil pytest
+
+      - name: Run scheduler trainer tests
+        run: python3 -m pytest eonix-core/scheduler/train_scheduler.py -v
+
+      - name: Run auto-retrainer tests
+        run: python3 -m pytest eonix-core/scheduler/auto_retrain.py -v
+
+      - name: Run EONIX mind tests
+        run: python3 -m pytest eonix-mind/mind_v1.py -v

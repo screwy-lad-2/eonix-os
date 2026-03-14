@@ -1,2 +1,18 @@
 # Eonix OS — Python dependencies
 psutil>=5.9.0
+pandas>=2.2.0
+numpy>=1.26.0
+pyarrow>=15.0.0
+scikit-learn>=1.5.0
+lightgbm>=4.3.0
+optuna>=3.6.0
+onnxmltools>=1.12.0
+onnxruntime>=1.17.0
+skl2onnx>=1.16.0
+faster-whisper>=1.0.3
+llama-cpp-python>=0.2.90
+kokoro>=0.9.4
+chromadb>=0.5.0
+sentence-transformers>=3.0.0
+pyaudio>=0.2.14
+pytest>=8.0.0

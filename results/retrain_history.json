@@ -1,0 +1,11 @@
+[
+  {
+    "timestamp": "2026-03-14T08:30:07.050994+00:00",
+    "version": "v1.1",
+    "data_rows": 32654,
+    "old_top3": 0.6021780909673287,
+    "new_top3": 0.6160877513711152,
+    "improved": true,
+    "deployed": true
+  }
+]
