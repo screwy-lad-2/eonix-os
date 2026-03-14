@@ -87,6 +87,14 @@ class ContextAgent:
         self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_sqlite()
 
+        # Keep production defaults stable, but isolate test/dev instances.
+        if self.sqlite_path.resolve() == SQLITE_DB.resolve():
+            chroma_dir = EONIX_DIR / "chroma"
+            collection_name = "eonix_context"
+        else:
+            chroma_dir = self.sqlite_path.parent / "chroma"
+            collection_name = f"eonix_context_{self.sqlite_path.stem}"
+
         self.running = False
         self._threads: List[threading.Thread] = []
         self._observer = None
@@ -104,8 +112,8 @@ class ContextAgent:
 
         if chromadb:
             try:
-                self.chroma = chromadb.PersistentClient(path=str(EONIX_DIR / "chroma"))
-                self.collection = self.chroma.get_or_create_collection("eonix_context")
+                self.chroma = chromadb.PersistentClient(path=str(chroma_dir))
+                self.collection = self.chroma.get_or_create_collection(collection_name)
             except Exception:
                 self.collection = None
 
