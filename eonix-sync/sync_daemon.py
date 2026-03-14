@@ -58,6 +58,7 @@ EONIX_DIR = Path.home() / ".eonix"
 DEVICE_ID_PATH = EONIX_DIR / "device_id.txt"
 KNOWN_DEVICES_PATH = EONIX_DIR / "known_devices.json"
 SYNC_STATE_PATH = EONIX_DIR / "sync_state.json"
+ANDROID_COMMANDS_PATH = EONIX_DIR / "android_commands.txt"
 SERVICE_TYPE = "_eonix._tcp.local."
 
 GOAL_BASE = "http://127.0.0.1:7735"
@@ -142,6 +143,23 @@ def _write_json(path: Path, payload) -> None:
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(path)
+
+
+def _append_line(path: Path, line: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(line + "\n")
+
+
+def _forward_voice_to_local_mind(command: str) -> bool:
+    # Optional forward path for a local MIND TCP socket listener.
+    port = int(os.environ.get("EONIX_MIND_SOCKET_PORT", "7758"))
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.5) as sock:
+            sock.sendall((command.strip() + "\n").encode("utf-8"))
+        return True
+    except Exception:
+        return False
 
 
 class _PeerListener:
@@ -556,6 +574,20 @@ def create_app(daemon: SyncDaemon):
     def sync_push():
         return daemon.push_all()
 
+    @app.post("/sync/voice")
+    def sync_voice(payload: Dict):
+        command = str(payload.get("command", "")).strip()
+        source = str(payload.get("source", "unknown")).strip() or "unknown"
+        if not command:
+            return {"ok": False, "reply": "Missing command"}
+
+        ts = _utc_now()
+        print(f"Voice command from {source}: {command}")
+        _append_line(ANDROID_COMMANDS_PATH, f"{ts} [{source}] {command}")
+        _forward_voice_to_local_mind(command)
+
+        return {"ok": True, "reply": "Command received by Eonix"}
+
     return app
 
 
@@ -760,3 +792,27 @@ def test_receive_partial_brainstate_returns_200(tmp_path, monkeypatch):
     assert res.status_code == 200
     data = res.json()
     assert data.get("ok") is True
+
+
+def test_voice_endpoint_accepts_command_and_returns_reply(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    daemon = _new_daemon(tmp_path, monkeypatch)
+    app = create_app(daemon)
+    client = TestClient(app)
+
+    cmd_log = tmp_path / "android_commands.txt"
+    monkeypatch.setattr("sync_daemon.ANDROID_COMMANDS_PATH", cmd_log)
+    monkeypatch.setattr("sync_daemon._forward_voice_to_local_mind", lambda _cmd: False)
+
+    res = client.post(
+        "/sync/voice",
+        json={"command": "what is my active goal", "source": "android"},
+    )
+    assert res.status_code == 200
+    payload = res.json()
+    assert payload.get("ok") is True
+    assert payload.get("reply") == "Command received by Eonix"
+
+    text = cmd_log.read_text(encoding="utf-8")
+    assert "[android] what is my active goal" in text

@@ -423,7 +423,7 @@ jobs:
         run: python3 -m pytest eonix-mind/mind_v2.py -v
 
   test-sync-daemon:
-    name: Test SyncDaemon + StateStore
+    name: Test SyncDaemon + StateStore + Voice
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
@@ -438,7 +438,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install zeroconf aiohttp fastapi uvicorn pytest pytest-asyncio httpx psutil
 
-      - name: Run SyncDaemon tests
+      - name: Run SyncDaemon tests (includes /sync/voice)
         run: python3 -m pytest eonix-sync/sync_daemon.py -v
 
       - name: Run StateStore tests

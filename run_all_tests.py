@@ -28,6 +28,8 @@ SUITES = [
     "eonix-mind/mind_v2.py",
 ]
 
+WEEK16_MIN_EXPECTED_PASS = 68
+
 
 def parse_counts(output: str) -> tuple[int, int]:
     passed = 0
@@ -73,6 +75,7 @@ def main() -> int:
 
     lines.append("")
     lines.append(f"TOTAL: {total_pass} passed | {total_fail} failed")
+    lines.append(f"TARGET (Week 16): >= {WEEK16_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)
