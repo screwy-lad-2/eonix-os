@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""Eonix OS cumulative test runner with deterministic totals."""
+
+from __future__ import annotations
+
+import argparse
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+SUITES = [
+    "eonix-core/scheduler/train_scheduler.py",
+    "eonix-core/scheduler/auto_retrain.py",
+    "eonix-core/scheduler/build_features.py",
+    "eonix-core/security/anomaly_detector.py",
+    "eonix-core/security/behavioral_fingerprint.py",
+    "eonix-core/security/security_pipeline.py",
+    "eonix-cortex/context-agent/agent.py",
+    "eonix-mind/system_reader.py",
+    "eonix-mind/mind_v1.py",
+]
+
+
+def parse_counts(output: str) -> tuple[int, int]:
+    passed = 0
+    failed = 0
+    m_pass = re.search(r"(\d+)\s+passed", output)
+    if m_pass:
+        passed = int(m_pass.group(1))
+    m_fail = re.search(r"(\d+)\s+failed", output)
+    if m_fail:
+        failed = int(m_fail.group(1))
+    return passed, failed
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Run cumulative Eonix test suites")
+    parser.add_argument("--output", default="", help="Optional file path to write the summary report")
+    args = parser.parse_args()
+
+    root = Path(__file__).resolve().parent
+    lines = ["=== Eonix OS - Full Test Suite ==="]
+
+    total_pass = 0
+    total_fail = 0
+
+    for suite in SUITES:
+        suite_path = root / suite
+        if not suite_path.exists():
+            lines.append(f"  {suite}: skipped (missing)")
+            continue
+
+        cmd = [sys.executable, "-m", "pytest", suite, "-q"]
+        proc = subprocess.run(cmd, cwd=root, capture_output=True, text=True)
+        combined = (proc.stdout or "") + "\n" + (proc.stderr or "")
+        passed, failed = parse_counts(combined)
+
+        total_pass += passed
+        total_fail += failed
+
+        if failed > 0:
+            lines.append(f"  {suite}: {passed} passed, {failed} failed")
+        else:
+            lines.append(f"  {suite}: {passed} passed")
+
+    lines.append("")
+    lines.append(f"TOTAL: {total_pass} passed | {total_fail} failed")
+
+    text = "\n".join(lines)
+    print(text)
+
+    if args.output:
+        out_path = Path(args.output)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text + "\n", encoding="utf-8")
+
+    if total_fail > 0:
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

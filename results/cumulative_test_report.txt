@@ -1,0 +1,12 @@
+=== Eonix OS - Full Test Suite ===
+  eonix-core/scheduler/train_scheduler.py: 4 passed
+  eonix-core/scheduler/auto_retrain.py: 3 passed
+  eonix-core/scheduler/build_features.py: 0 passed
+  eonix-core/security/anomaly_detector.py: 5 passed
+  eonix-core/security/behavioral_fingerprint.py: 5 passed
+  eonix-core/security/security_pipeline.py: 4 passed
+  eonix-cortex/context-agent/agent.py: 5 passed
+  eonix-mind/system_reader.py: 5 passed
+  eonix-mind/mind_v1.py: 3 passed
+
+TOTAL: 34 passed | 0 failed

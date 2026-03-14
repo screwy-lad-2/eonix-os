@@ -358,8 +358,12 @@ class ContextAgent:
         cnt = conn.execute("SELECT COUNT(*) FROM events WHERE timestamp LIKE ?", (f"{today}%",)).fetchone()[0]
         conn.close()
         size_mb = round(self.sqlite_path.stat().st_size / (1024 * 1024), 3) if self.sqlite_path.exists() else 0.0
+        chroma_active = self.collection is not None
+        embedding_active = self.embedding_model is not None
         return {
             "running": self.running,
+            "chroma_active": chroma_active,
+            "embedding_active": embedding_active,
             "events_today": int(cnt),
             "db_size_mb": size_mb,
         }
