@@ -180,8 +180,10 @@ def test_full_shell_to_context_pipeline():
         r = httpx.post(f"{BASE['context']}/context/event", json=event, timeout=5.0)
         assert r.status_code == 200
 
+        # Hub refreshes its context cache on a 10s loop; allow enough time for
+        # at least two refresh cycles under CI load.
         found = False
-        for _ in range(12):
+        for _ in range(30):
             t = httpx.get(f"{BASE['hub']}/hub/timeline", timeout=5.0)
             assert t.status_code == 200
             rows = t.json()
@@ -195,7 +197,7 @@ def test_full_shell_to_context_pipeline():
                     break
             if found:
                 break
-            time.sleep(0.5)
+            time.sleep(1.0)
 
         assert found, "shell event did not appear in hub timeline"
     finally:
