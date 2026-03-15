@@ -608,7 +608,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pycairo PyGObject pytest httpx psutil
+          pip install pytest httpx psutil
 
       - name: Run desktop tests (headless)
         run: |
