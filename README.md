@@ -3,8 +3,8 @@
 > Your OS knows what you are building.
 
 [![CI](https://github.com/shahnoor-exe/eonix-os/actions/workflows/test.yml/badge.svg)](https://github.com/shahnoor-exe/eonix-os/actions/workflows/test.yml)
-[![Tests](https://img.shields.io/badge/tests-146%2B_passing-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
-[![Version](https://img.shields.io/badge/version-v0.7.0-blue)](https://github.com/shahnoor-exe/eonix-os/tags)
+[![Tests](https://img.shields.io/badge/tests-154%2B_target-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
+[![Version](https://img.shields.io/badge/version-v0.8.0--alpha-blue)](https://github.com/shahnoor-exe/eonix-os/tags)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
@@ -73,7 +73,18 @@ python3 eonix-shell/shell.py
 
 ## Test Coverage
 
-146+ tests | 26 CI jobs | 0 failures
+154+ target tests | 27 CI jobs | 0 failures target
+
+## Week 27 ISO Build (Codespaces)
+
+Week 27 requires Linux tooling for debootstrap/live ISO preparation. Use GitHub Codespaces for the full pipeline:
+
+```bash
+bash iso/codespaces_build.sh
+RUN_FULL_BUILD=1 bash iso/codespaces_build.sh
+```
+
+Detailed instructions are in docs/week27_codespaces.md.
 
 ## Roadmap
 

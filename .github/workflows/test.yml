@@ -644,3 +644,21 @@ jobs:
             eonix-desktop/memory_widget.py \
             eonix-desktop/window_manager.py \
             eonix-desktop/session_manager.py -v
+
+  test-iso-scripts:
+    name: Test ISO Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Shell syntax check
+        run: |
+          bash -n iso/build_base.sh
+          bash -n iso/chroot_setup.sh
+          bash -n iso/grub_config.sh
+
+      - name: Run ISO unit tests
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          python -m pytest iso/test_iso_build.py -v

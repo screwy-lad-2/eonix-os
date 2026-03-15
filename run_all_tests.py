@@ -40,6 +40,7 @@ SUITES = [
     "eonix-desktop/window_manager.py",
     "eonix-desktop/session_manager.py",
     "tests/test_integration_month7.py",
+    "iso/test_iso_build.py",
 ]
 
 WEEK16_MIN_EXPECTED_PASS = 68
@@ -53,6 +54,7 @@ WEEK23_MIN_EXPECTED_PASS = 116
 WEEK24_MIN_EXPECTED_PASS = 124
 WEEK25_MIN_EXPECTED_PASS = 138
 MONTH7_MIN_EXPECTED_PASS = 146
+WEEK27_MIN_EXPECTED_PASS = 154
 
 INTEGRATION_SUITES = {"tests/test_integration_month5.py", "tests/test_integration_month6.py", "tests/test_integration_month7.py"}
 SERVICE_SCRIPTS = [
@@ -206,6 +208,7 @@ def main() -> int:
     lines.append(f"TARGET (Week 24 Memory+Launcher): >= {WEEK24_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 25 WM+Sessions): >= {WEEK25_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Month 7 Desktop GUI): >= {MONTH7_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 27 ISO Bootstrap): >= {WEEK27_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)
