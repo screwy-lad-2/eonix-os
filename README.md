@@ -3,8 +3,8 @@
 > Your OS knows what you are building.
 
 [![CI](https://github.com/shahnoor-exe/eonix-os/actions/workflows/test.yml/badge.svg)](https://github.com/shahnoor-exe/eonix-os/actions/workflows/test.yml)
-[![Tests](https://img.shields.io/badge/tests-154%2B_target-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
-[![Version](https://img.shields.io/badge/version-v0.8.0--alpha-blue)](https://github.com/shahnoor-exe/eonix-os/tags)
+[![Tests](https://img.shields.io/badge/tests-158%2B_target-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
+[![Version](https://img.shields.io/badge/version-v0.8.0--beta-blue)](https://github.com/shahnoor-exe/eonix-os/tags)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
@@ -73,7 +73,7 @@ python3 eonix-shell/shell.py
 
 ## Test Coverage
 
-154+ target tests | 27 CI jobs | 0 failures target
+158+ target tests | 28 CI jobs | 0 failures target
 
 ## Week 27 ISO Build (Codespaces)
 

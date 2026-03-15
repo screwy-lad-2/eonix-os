@@ -43,6 +43,7 @@ fi
 # shellcheck disable=SC1090
 source "$VENV_PATH/bin/activate"
 python -m pip install --upgrade pip pytest
+python -m pip install numpy scikit-learn lightgbm onnxruntime sentence-transformers chromadb faster-whisper psutil prompt_toolkit pytest-asyncio || true
 
 echo "[Week27] Unit tests"
 python -m pytest iso/test_iso_build.py -v

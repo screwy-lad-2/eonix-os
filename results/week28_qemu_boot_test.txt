@@ -1,0 +1,15 @@
+QEMU Boot Test Results
+Date: [date]
+ISO: ~/eonix-os-0.8.0.iso
+Size: [X] GB
+SHA256: [checksum]
+
+GRUB menu appeared:      YES/NO
+Boot completed:          YES/NO
+Desktop loaded:          YES/NO
+GoalPanel visible:       YES/NO
+TopBar visible:          YES/NO
+Agents started:          YES/NO
+Boot time:               [X] seconds
+
+Notes: [any issues observed]
