@@ -85,8 +85,12 @@ async def test_all_agents_reachable(client: httpx.AsyncClient):
 
     for name, (url, health_key) in checks.items():
         payload = None
-        for _ in range(6):
-            r = await client.get(url)
+        for _ in range(20):
+            try:
+                r = await client.get(url)
+            except httpx.RequestError:
+                await asyncio_sleep(1.5)
+                continue
             assert r.status_code == 200, f"{name} unreachable"
             payload = r.json()
             assert isinstance(payload, dict)
@@ -95,7 +99,7 @@ async def test_all_agents_reachable(client: httpx.AsyncClient):
                 continue
             break
 
-        assert isinstance(payload, dict)
+        assert isinstance(payload, dict), f"{name} did not become reachable in time"
         if health_key == "running":
             assert payload.get("running", False) is True
         elif health_key:

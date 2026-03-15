@@ -76,6 +76,12 @@ except Exception:
         NLResult = None
         INTENT_QUERY = "INTENT_QUERY"
 
+try:
+    from branding import format_banner as branding_format_banner, print_boot_art as branding_print_boot_art
+except Exception:
+    branding_format_banner = None
+    branding_print_boot_art = None
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -357,6 +363,16 @@ class EonixShell:
         top3 = float(model_info.get("top3", 0.0) or 0.0) * 100.0
         vm = psutil.virtual_memory()
         free_gb = vm.available / 1e9
+
+        if branding_format_banner is not None:
+            return branding_format_banner(
+                goal=self._goal_short(st.goal_name, 40),
+                progress=max(0.0, min(1.0, st.progress_pct / 100.0)),
+                ram=f"{free_gb:.1f}GB free",
+                model=f"{st.model_version} | {top3:.2f}% Top-3",
+                memories=self._memory_count(),
+                peers=len((model_status.get("peers", []) if isinstance(model_status, dict) else []) or []),
+            )
 
         lines = [
             "╔══════════════════════════════════════╗",
@@ -706,6 +722,10 @@ class EonixShell:
         if self.session is None:
             self.session = PromptSession(history=self.history, completer=EonixCompleter(self))
 
+        if branding_print_boot_art is not None:
+            sync_state = _http_json(f"{SYNC_BASE}/sync/status") or {}
+            device_id = str(sync_state.get("device_id") or "local") if isinstance(sync_state, dict) else "local"
+            branding_print_boot_art(self._state_snapshot().model_version, device_id)
         print(self.startup_banner())
         while True:
             try:

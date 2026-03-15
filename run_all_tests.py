@@ -14,6 +14,7 @@ from pathlib import Path
 SUITES = [
     "eonix-shell/nl_interpreter.py",
     "eonix-shell/shell.py",
+    "eonix-shell/branding.py",
     "eonix-hub/hub_server.py",
     "tests/test_integration_month5.py",
     "eonix-core/scheduler/train_scheduler.py",
@@ -39,6 +40,7 @@ WEEK17_MIN_EXPECTED_PASS = 74
 MONTH5_MIN_EXPECTED_PASS = 82
 WEEK19_MIN_EXPECTED_PASS = 88
 WEEK20_MIN_EXPECTED_PASS = 96
+WEEK21_MIN_EXPECTED_PASS = 100
 
 INTEGRATION_SUITE = "tests/test_integration_month5.py"
 SERVICE_SCRIPTS = [
@@ -156,6 +158,7 @@ def main() -> int:
     lines.append(f"TARGET (Month 5 Close): >= {MONTH5_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 19 Shell): >= {WEEK19_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 20 NL+Voice): >= {WEEK20_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 21 Install+Brand): >= {WEEK21_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)

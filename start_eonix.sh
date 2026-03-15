@@ -1,5 +1,6 @@
 #!/bin/bash
-set -euo pipefail
+set -eu
+set -o pipefail 2>/dev/null || true
 
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 NO_MIND="${EONIX_START_NO_MIND:-0}"

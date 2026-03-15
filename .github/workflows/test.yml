@@ -133,6 +133,46 @@ jobs:
       - name: Run page replacement tests
         run: pytest eonix-core/memory/page_replacement.py -v
 
+  test-branding:
+    name: Test Branding
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Run branding tests
+        run: python3 -m pytest eonix-shell/branding.py -v
+
+  test-installer:
+    name: Test Installer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Validate installer syntax
+        run: bash -n install/eonix-install.sh
+
+      - name: Run installer dry mode (isolated)
+        run: bash install/eonix-install.sh --dev
+        env:
+          HOME: /tmp/eonix-test-home
+          CI: true
+
+      - name: Idempotence check
+        run: bash install/eonix-install.sh --dev
+        env:
+          HOME: /tmp/eonix-test-home
+          CI: true
+
   build-scheduler-sim:
     name: Build & Run Scheduler Simulator
     runs-on: ubuntu-latest
