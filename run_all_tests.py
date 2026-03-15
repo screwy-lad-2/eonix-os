@@ -34,6 +34,8 @@ SUITES = [
     "eonix-mind/system_reader.py",
     "eonix-mind/mind_v1.py",
     "eonix-mind/mind_v2.py",
+    "eonix-desktop/desktop.py",
+    "eonix-desktop/settings.py",
 ]
 
 WEEK16_MIN_EXPECTED_PASS = 68
@@ -43,6 +45,7 @@ WEEK19_MIN_EXPECTED_PASS = 88
 WEEK20_MIN_EXPECTED_PASS = 96
 WEEK21_MIN_EXPECTED_PASS = 100
 WEEK22_MIN_EXPECTED_PASS = 108
+WEEK23_MIN_EXPECTED_PASS = 116
 
 INTEGRATION_SUITES = {"tests/test_integration_month5.py", "tests/test_integration_month6.py"}
 SERVICE_SCRIPTS = [
@@ -162,6 +165,7 @@ def main() -> int:
     lines.append(f"TARGET (Week 20 NL+Voice): >= {WEEK20_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 21 Install+Brand): >= {WEEK21_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 22 Month6): >= {WEEK22_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 23 Desktop): >= {WEEK23_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)

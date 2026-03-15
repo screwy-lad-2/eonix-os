@@ -26,3 +26,11 @@ bash start_eonix.sh
 ```bash
 bash install/eonix-install.sh --uninstall
 ```
+
+## Install as Desktop Session (Linux)
+
+```bash
+sudo cp eonix-desktop/session/eonix.desktop \
+	/usr/share/xsessions/eonix.desktop
+# Log out → select EONIX OS from display manager
+```
