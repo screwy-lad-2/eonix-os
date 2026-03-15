@@ -37,6 +37,8 @@ SUITES = [
     "eonix-desktop/desktop.py",
     "eonix-desktop/settings.py",
     "eonix-desktop/memory_widget.py",
+    "eonix-desktop/window_manager.py",
+    "eonix-desktop/session_manager.py",
 ]
 
 WEEK16_MIN_EXPECTED_PASS = 68
@@ -48,6 +50,7 @@ WEEK21_MIN_EXPECTED_PASS = 100
 WEEK22_MIN_EXPECTED_PASS = 108
 WEEK23_MIN_EXPECTED_PASS = 116
 WEEK24_MIN_EXPECTED_PASS = 124
+WEEK25_MIN_EXPECTED_PASS = 138
 
 INTEGRATION_SUITES = {"tests/test_integration_month5.py", "tests/test_integration_month6.py"}
 SERVICE_SCRIPTS = [
@@ -169,6 +172,7 @@ def main() -> int:
     lines.append(f"TARGET (Week 22 Month6): >= {WEEK22_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 23 Desktop): >= {WEEK23_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 24 Memory+Launcher): >= {WEEK24_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 25 WM+Sessions): >= {WEEK25_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)

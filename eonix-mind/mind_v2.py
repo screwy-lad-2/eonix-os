@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import tempfile
 import urllib.error
@@ -10,7 +11,7 @@ import urllib.parse
 import urllib.request
 import wave
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import numpy as np
 
@@ -38,6 +39,25 @@ GOAL_BASE = "http://127.0.0.1:7735"
 RESOURCE_BASE = "http://127.0.0.1:7737"
 SYNC_BASE = "http://127.0.0.1:7740"
 HUB_BASE = "http://127.0.0.1:7750"
+ACTIVE_GOAL_FILE = Path.home() / ".eonix" / "active_goal.txt"
+
+
+def _desktop_window_count() -> int:
+    p = Path.home() / ".eonix" / "sessions"
+    active_goal = ""
+    if ACTIVE_GOAL_FILE.exists():
+        active_goal = ACTIVE_GOAL_FILE.read_text(encoding="utf-8", errors="ignore").strip()
+    if not active_goal:
+        return 0
+    # Best-effort count by scanning latest session file matching goal text.
+    for file in sorted(p.glob("*.json"), reverse=True):
+        try:
+            payload = json.loads(file.read_text(encoding="utf-8"))
+            if str(payload.get("goal_name", "")).strip() == active_goal:
+                return len(payload.get("windows", []))
+        except Exception:
+            continue
+    return 0
 
 
 class _FallbackLLM:
@@ -182,7 +202,7 @@ def speak(text: str, lang: str = "en") -> None:
 class EonixMindV2:
     def __init__(
         self,
-        reader: Optional[EonixSystemReader] = None,
+        reader: Optional[Any] = None,
         memory: Optional[object] = None,
         llm: Optional[object] = None,
         speaker: Optional[Callable[[str, str], None]] = None,
@@ -244,6 +264,8 @@ class EonixMindV2:
         hub_text = ""
         if isinstance(hub, dict) and hub:
             hub_text = "Hub: http://localhost:7750 (open in browser)\n"
+        desktop_windows = _desktop_window_count()
+        session_goal = str(goal_name)
         return (
             "═══════════════════════════════\n"
             "⚡ EONIX MIND v2.0 - ONLINE\n"
@@ -253,6 +275,7 @@ class EonixMindV2:
             f"Model: {model.get('version', 'n/a')} ({top3:.2f}% Top-3)\n"
             f"Memory: {s.get('memory_count', 0)} memories\n"
             f"Resources: {resource_scored} processes scored\n"
+            f"Desktop: {desktop_windows} windows | session: {session_goal}\n"
             f"{sync_text}\n"
             f"{hub_text}"
             f"Proactive: {s.get('proactive_rules', 7)} rules active\n"
@@ -413,8 +436,18 @@ class EonixMindV2:
         self.monitor.start()
 
 
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Eonix MIND v2")
+    p.add_argument("--banner-only", action="store_true")
+    return p.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
     mind = EonixMindV2()
+    if args.banner_only:
+        print(mind.startup_banner())
+        return
     mind.start()
 
     while True:

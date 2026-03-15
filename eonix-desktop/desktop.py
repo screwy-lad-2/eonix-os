@@ -20,6 +20,16 @@ try:
 except Exception:  # pragma: no cover - script import fallback
     MemoryWidget = None  # type: ignore
 
+try:
+    from session_manager import SessionManager
+except Exception:  # pragma: no cover - script import fallback
+    SessionManager = None  # type: ignore
+
+try:
+    from window_manager import EonixTaskbar, EonixWindowManager
+except Exception:  # pragma: no cover - script import fallback
+    EonixTaskbar = EonixWindowManager = None  # type: ignore
+
 GTK_AVAILABLE = False
 try:  # pragma: no cover - exercised in CI with GTK installed
     import gi  # type: ignore
@@ -34,9 +44,18 @@ except Exception:  # pragma: no cover - headless fallback
 
 
 HEADLESS_DEFAULT = not GTK_AVAILABLE or os.environ.get("EONIX_HEADLESS", "0") == "1" or not os.environ.get("DISPLAY")
-EONIX_DIR = Path.home() / ".eonix"
-APPS_FILE = EONIX_DIR / "apps.json"
-RECENT_APPS_FILE = EONIX_DIR / "recent_apps.json"
+
+
+def _eonix_dir() -> Path:
+    return Path.home() / ".eonix"
+
+
+def _apps_file() -> Path:
+    return _eonix_dir() / "apps.json"
+
+
+def _recent_apps_file() -> Path:
+    return _eonix_dir() / "recent_apps.json"
 
 
 @dataclass
@@ -47,6 +66,7 @@ class SystemMetrics:
 
 @dataclass
 class GoalSnapshot:
+    goal_id: str = ""
     name: str = "No active goal"
     progress: float = 0.0
     recent_memories: list[dict[str, Any]] = field(default_factory=list)
@@ -75,6 +95,7 @@ class DataFetcher:
         self.sync_url = "http://127.0.0.1:7740/sync/status"
 
     def fetch_once(self) -> GoalSnapshot:
+        goal_id = ""
         goal_name = "No active goal"
         progress = 0.0
         memories: list[dict[str, Any]] = []
@@ -84,6 +105,7 @@ class DataFetcher:
             g = self.session.get(self.goal_url)
             if g.status_code == 200:
                 payload = g.json()
+                goal_id = str(payload.get("id") or "")
                 goal_name = str(payload.get("name") or goal_name)
                 progress = float(payload.get("progress") or 0.0)
         except Exception:
@@ -97,7 +119,14 @@ class DataFetcher:
                 memories = payload.get("recent_memories") or []
         except Exception:
             pass
-        return GoalSnapshot(name=goal_name, progress=progress, recent_memories=memories, context_events=context_events, last_event=last_event)
+        return GoalSnapshot(
+            goal_id=goal_id,
+            name=goal_name,
+            progress=progress,
+            recent_memories=memories,
+            context_events=context_events,
+            last_event=last_event,
+        )
 
     def fetch_metrics(self) -> SystemMetrics:
         return _safe_psutil_percent()
@@ -185,6 +214,7 @@ class EonixTopBar:
 class EonixGoalPanel:
     def __init__(self, headless: bool = HEADLESS_DEFAULT):
         self.headless = headless
+        self.active_goal_id = ""
         self.active_goal_text = "No active goal"
         self.progress = 0.0
         self.memories: list[dict[str, Any]] = []
@@ -195,6 +225,7 @@ class EonixGoalPanel:
         self.memory_expanded = True
         self.memory_count = 0
         self.standalone_requested = False
+        self.session_manager = None
         if GTK_AVAILABLE and not headless:
             self._build_ui()
 
@@ -209,9 +240,12 @@ class EonixGoalPanel:
         self._memory_header = Gtk.Label(label="🧠 Memories (0)")  # type: ignore
         self._expand_button = Gtk.Button(label="↗ Expand")  # type: ignore
         self._expand_button.connect("clicked", lambda _: self.open_memory_standalone())  # type: ignore
+        self._open_workspace_button = Gtk.Button(label="▶ Open Workspace")  # type: ignore
+        self._open_workspace_button.connect("clicked", lambda _: self.open_workspace())  # type: ignore
         memory_header_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)  # type: ignore
         memory_header_row.append(self._memory_header)  # type: ignore
         memory_header_row.append(self._expand_button)  # type: ignore
+        memory_header_row.append(self._open_workspace_button)  # type: ignore
         box.append(self._goal_label)  # type: ignore
         box.append(self._progress_label)  # type: ignore
         box.append(self._context_label)  # type: ignore
@@ -221,6 +255,7 @@ class EonixGoalPanel:
         self.window.set_child(box)
 
     def render_goal(self, goal: GoalSnapshot) -> None:
+        self.active_goal_id = goal.goal_id
         self.active_goal_text = goal.name
         self.progress = goal.progress
         self.memories = goal.recent_memories
@@ -245,6 +280,16 @@ class EonixGoalPanel:
             self.memory_widget.open_standalone()
         elif not self.headless:
             subprocess.Popen("python3 eonix-desktop/memory_widget.py", shell=True)
+
+    def set_session_manager(self, manager: Any) -> None:
+        self.session_manager = manager
+
+    def open_workspace(self) -> dict[str, Any]:
+        if self.session_manager is None:
+            return {"ok": False, "error": "session manager missing"}
+        if not self.active_goal_id:
+            return {"ok": False, "error": "no active goal"}
+        return self.session_manager.restore_session(self.active_goal_id)
 
 
 class EonixWallpaper:
@@ -295,13 +340,15 @@ class EonixLauncher:
         ]
 
     def _load_apps(self) -> list[LauncherApp]:
-        EONIX_DIR.mkdir(parents=True, exist_ok=True)
-        if not APPS_FILE.exists():
+        eonix_dir = _eonix_dir()
+        apps_file = _apps_file()
+        eonix_dir.mkdir(parents=True, exist_ok=True)
+        if not apps_file.exists():
             defaults = [a.__dict__ for a in self._default_apps()]
-            APPS_FILE.write_text(json.dumps(defaults, indent=2), encoding="utf-8")
+            apps_file.write_text(json.dumps(defaults, indent=2), encoding="utf-8")
             return self._default_apps()
         try:
-            payload = json.loads(APPS_FILE.read_text(encoding="utf-8"))
+            payload = json.loads(apps_file.read_text(encoding="utf-8"))
             out: list[LauncherApp] = []
             for item in payload:
                 out.append(
@@ -317,10 +364,11 @@ class EonixLauncher:
             return self._default_apps()
 
     def _load_recent_apps(self) -> list[str]:
-        if not RECENT_APPS_FILE.exists():
+        recent_file = _recent_apps_file()
+        if not recent_file.exists():
             return []
         try:
-            data = json.loads(RECENT_APPS_FILE.read_text(encoding="utf-8"))
+            data = json.loads(recent_file.read_text(encoding="utf-8"))
             if isinstance(data, list):
                 return [str(x) for x in data[:5]]
         except Exception:
@@ -328,7 +376,9 @@ class EonixLauncher:
         return []
 
     def _save_recent_apps(self) -> None:
-        RECENT_APPS_FILE.write_text(json.dumps(self.recent_apps[:5], indent=2), encoding="utf-8")
+        recent_file = _recent_apps_file()
+        recent_file.parent.mkdir(parents=True, exist_ok=True)
+        recent_file.write_text(json.dumps(self.recent_apps[:5], indent=2), encoding="utf-8")
 
     def record_recent(self, app_name: str) -> None:
         names = [x for x in self.recent_apps if x != app_name]
@@ -421,16 +471,28 @@ class EonixDesktop:
     def __init__(self, headless: bool = HEADLESS_DEFAULT, panel_only: bool = False):
         self.headless = headless
         self.panel_only = panel_only
+        self.current_goal_id = ""
+        self.current_goal_name = ""
         self.top_bar = EonixTopBar(headless=headless)
         self.goal_panel = EonixGoalPanel(headless=headless)
         self.wallpaper = EonixWallpaper(headless=headless)
         self.launcher = EonixLauncher(headless=headless)
         self.tray = EonixTray()
+        self.window_manager = EonixWindowManager() if EonixWindowManager else None
+        self.taskbar = EonixTaskbar(self.window_manager, headless=headless) if (EonixTaskbar and self.window_manager) else _StubWindow("Taskbar")
+        self.session_manager = SessionManager(wm=self.window_manager) if (SessionManager and self.window_manager) else None
+        self.goal_panel.set_session_manager(self.session_manager)
         self.fetcher = DataFetcher()
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._bg_thread: Optional[threading.Thread] = None
+        self._wm_loop_thread: Optional[threading.Thread] = None
+        self._autosave_loop_thread: Optional[threading.Thread] = None
+        self._running_loops = False
+        self.loop_registry: list[str] = []
 
     def _apply_goal_snapshot(self, snapshot: GoalSnapshot) -> None:
+        self.current_goal_id = snapshot.goal_id
+        self.current_goal_name = snapshot.name
         self.top_bar.update_goal(snapshot.name)
         self.goal_panel.render_goal(snapshot)
         self.wallpaper.set_watermark(snapshot.name)
@@ -453,12 +515,47 @@ class EonixDesktop:
         self._bg_thread = threading.Thread(target=spin, daemon=True)
         self._bg_thread.start()
 
+    def _wm_scan_loop(self) -> None:
+        while self._running_loops:
+            if self.window_manager:
+                self.window_manager.scan_windows()
+            if hasattr(self.taskbar, "refresh"):
+                self.taskbar.refresh()  # type: ignore[attr-defined]
+            time.sleep(2)
+
+    def _session_autosave_loop(self) -> None:
+        while self._running_loops:
+            if self.session_manager and self.current_goal_id:
+                self.session_manager.save_session(self.current_goal_id, self.current_goal_name)
+            time.sleep(300)
+
+    def start_runtime_loops(self) -> None:
+        self._running_loops = True
+        self.loop_registry.append("wm_scan_2s")
+        self.loop_registry.append("session_autosave_5min")
+        if self.headless:
+            return
+        self._wm_loop_thread = threading.Thread(target=self._wm_scan_loop, daemon=True)
+        self._autosave_loop_thread = threading.Thread(target=self._session_autosave_loop, daemon=True)
+        self._wm_loop_thread.start()
+        self._autosave_loop_thread.start()
+
+    def restore_active_goal_workspace(self) -> dict[str, Any]:
+        snapshot = self.fetcher.fetch_once()
+        self._apply_goal_snapshot(snapshot)
+        if not self.session_manager or not snapshot.goal_id:
+            return {"ok": False, "error": "no active goal"}
+        return self.session_manager.restore_session(snapshot.goal_id)
+
     def stop(self) -> None:
+        self._running_loops = False
         self.fetcher.stop()
         if self._loop and self._loop.is_running():
             self._loop.call_soon_threadsafe(self._loop.stop)
 
     def run(self) -> None:
+        self.restore_active_goal_workspace()
+        self.start_runtime_loops()
         if self.panel_only:
             self.goal_panel.window.present()
             return
@@ -466,6 +563,8 @@ class EonixDesktop:
         self.top_bar.tick_clock()
         self.top_bar.window.present()
         self.goal_panel.window.present()
+        if hasattr(self.taskbar, "window"):
+            self.taskbar.window.present()  # type: ignore[attr-defined]
         self.start_background_refresh()
         if GTK_AVAILABLE and not self.headless:
             Gtk.main()  # type: ignore
@@ -527,8 +626,8 @@ def test_desktop_starts_in_panel_only_mode():
     assert desktop.goal_panel.window.visible is True
 
 
-def test_launcher_filters_apps_on_search(tmp_path):
-    os.environ["HOME"] = str(tmp_path)
+def test_launcher_filters_apps_on_search(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
     launcher = EonixLauncher(headless=True)
     results = launcher.filter_apps("memory")
     assert results
@@ -555,3 +654,15 @@ def test_launcher_creates_goal_for_unknown_input():
     assert ok is True
     assert client.payload["url"].endswith("/goal/create")
     assert client.payload["json"]["name"] == "something very unique"
+
+
+def test_window_manager_initialises_in_desktop():
+    desktop = EonixDesktop(headless=True)
+    assert desktop.window_manager is not None
+
+
+def test_session_auto_save_registered_in_loop():
+    desktop = EonixDesktop(headless=True)
+    desktop.start_runtime_loops()
+    assert "session_autosave_5min" in desktop.loop_registry
+    desktop.stop()

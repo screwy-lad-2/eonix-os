@@ -2,7 +2,11 @@
 set -eu
 set -o pipefail 2>/dev/null || true
 
-PYTHON_BIN="${PYTHON_BIN:-python3}"
+DEFAULT_PY="python3"
+if [[ -x "$HOME/.eonix/venv/bin/python3" ]]; then
+	DEFAULT_PY="$HOME/.eonix/venv/bin/python3"
+fi
+PYTHON_BIN="${PYTHON_BIN:-$DEFAULT_PY}"
 NO_MIND="${EONIX_START_NO_MIND:-0}"
 NO_MIND="${NO_MIND//$'\r'/}"
 

@@ -617,4 +617,6 @@ jobs:
           DISPLAY=:99 python3 -m pytest \
             eonix-desktop/desktop.py \
             eonix-desktop/settings.py \
-            eonix-desktop/memory_widget.py -v
+            eonix-desktop/memory_widget.py \
+            eonix-desktop/window_manager.py \
+            eonix-desktop/session_manager.py -v
