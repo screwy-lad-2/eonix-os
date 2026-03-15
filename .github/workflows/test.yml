@@ -616,4 +616,5 @@ jobs:
           sleep 2
           DISPLAY=:99 python3 -m pytest \
             eonix-desktop/desktop.py \
-            eonix-desktop/settings.py -v
+            eonix-desktop/settings.py \
+            eonix-desktop/memory_widget.py -v

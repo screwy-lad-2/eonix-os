@@ -1,24 +1,24 @@
-"""Eonix Desktop GTK4 skeleton with headless-safe fallbacks and inline tests.
-
-This module defines a minimal desktop environment composed of top bar, goal panel,
-wallpaper layer, launcher, and tray. It can run with GTK4 or in headless mode for
-CI and local testing. Data refresh pulls goal/context/sync endpoints and system
-metrics so widgets can stay in sync with agent state.
-"""
+"""Eonix Desktop with launcher, memory-integrated GoalPanel, and headless tests."""
 from __future__ import annotations
 
 import argparse
 import asyncio
 import json
 import os
+import subprocess
 import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 import httpx
 import psutil
+
+try:
+    from memory_widget import MemoryWidget
+except Exception:  # pragma: no cover - script import fallback
+    MemoryWidget = None  # type: ignore
 
 GTK_AVAILABLE = False
 try:  # pragma: no cover - exercised in CI with GTK installed
@@ -34,6 +34,9 @@ except Exception:  # pragma: no cover - headless fallback
 
 
 HEADLESS_DEFAULT = not GTK_AVAILABLE or os.environ.get("EONIX_HEADLESS", "0") == "1" or not os.environ.get("DISPLAY")
+EONIX_DIR = Path.home() / ".eonix"
+APPS_FILE = EONIX_DIR / "apps.json"
+RECENT_APPS_FILE = EONIX_DIR / "recent_apps.json"
 
 
 @dataclass
@@ -49,6 +52,14 @@ class GoalSnapshot:
     recent_memories: list[dict[str, Any]] = field(default_factory=list)
     context_events: int = 0
     last_event: str = "N/A"
+
+
+@dataclass
+class LauncherApp:
+    name: str
+    icon: str
+    cmd: str
+    description: str = ""
 
 
 def _safe_psutil_percent() -> SystemMetrics:
@@ -180,6 +191,10 @@ class EonixGoalPanel:
         self.context_events = 0
         self.last_event = "N/A"
         self.window = _StubWindow()
+        self.memory_widget = MemoryWidget(headless=headless) if MemoryWidget else None
+        self.memory_expanded = True
+        self.memory_count = 0
+        self.standalone_requested = False
         if GTK_AVAILABLE and not headless:
             self._build_ui()
 
@@ -191,9 +206,18 @@ class EonixGoalPanel:
         self._goal_label = Gtk.Label(label=self.active_goal_text)  # type: ignore
         self._progress_label = Gtk.Label(label="0% complete")  # type: ignore
         self._context_label = Gtk.Label(label="Context: 0 events")  # type: ignore
+        self._memory_header = Gtk.Label(label="🧠 Memories (0)")  # type: ignore
+        self._expand_button = Gtk.Button(label="↗ Expand")  # type: ignore
+        self._expand_button.connect("clicked", lambda _: self.open_memory_standalone())  # type: ignore
+        memory_header_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)  # type: ignore
+        memory_header_row.append(self._memory_header)  # type: ignore
+        memory_header_row.append(self._expand_button)  # type: ignore
         box.append(self._goal_label)  # type: ignore
         box.append(self._progress_label)  # type: ignore
         box.append(self._context_label)  # type: ignore
+        box.append(memory_header_row)  # type: ignore
+        if self.memory_widget is not None and hasattr(self.memory_widget, "container"):
+            box.append(self.memory_widget.container)  # type: ignore
         self.window.set_child(box)
 
     def render_goal(self, goal: GoalSnapshot) -> None:
@@ -202,11 +226,25 @@ class EonixGoalPanel:
         self.memories = goal.recent_memories
         self.context_events = goal.context_events
         self.last_event = goal.last_event
+        if self.memory_widget is not None:
+            self.memory_widget.load_memories()
+            self.memory_count = self.memory_widget.memory_count()
         if GTK_AVAILABLE and not self.headless:
             self._goal_label.set_text(goal.name)
             pct = f"{goal.progress * 100:.0f}% complete"
             self._progress_label.set_text(pct)
             self._context_label.set_text(f"Context: {self.context_events} events")
+            self._memory_header.set_text(f"🧠 Memories ({self.memory_count})")
+
+    def toggle_memory_section(self) -> None:
+        self.memory_expanded = not self.memory_expanded
+
+    def open_memory_standalone(self) -> None:
+        self.standalone_requested = True
+        if self.memory_widget is not None and self.headless:
+            self.memory_widget.open_standalone()
+        elif not self.headless:
+            subprocess.Popen("python3 eonix-desktop/memory_widget.py", shell=True)
 
 
 class EonixWallpaper:
@@ -223,13 +261,144 @@ class EonixWallpaper:
 
 
 class EonixLauncher:
-    def __init__(self, headless: bool = HEADLESS_DEFAULT):
+    def __init__(
+        self,
+        headless: bool = HEADLESS_DEFAULT,
+        goal_client: Optional[httpx.Client] = None,
+        launch_exec: Optional[Callable[[str], None]] = None,
+    ):
         self.headless = headless
         self.window = _StubWindow()
         self.visible = False
+        self.goal_client = goal_client or httpx.Client(timeout=3.0)
+        self.launch_exec = launch_exec or (lambda cmd: subprocess.Popen(cmd, shell=True))
+        self.apps = self._load_apps()
+        self.recent_apps = self._load_recent_apps()
+        self.filtered_apps = list(self.apps)
+        self.selected_index = 0
+        self.last_query = ""
+        self.pending_goal_text = ""
         if GTK_AVAILABLE and not headless:
             self.window = Gtk.Window(title="Eonix Launcher")  # type: ignore
             self.window.set_default_size(600, 400)
+
+    def _default_apps(self) -> list[LauncherApp]:
+        return [
+            LauncherApp("EonixShell", "⚡", "eonix-shell", "Natural language shell"),
+            LauncherApp("Eonix Hub", "🌐", "xdg-open http://localhost:7750", "Open Eonix Hub"),
+            LauncherApp("Memory", "🧠", "python3 eonix-desktop/memory_widget.py", "Memory browser"),
+            LauncherApp("Settings", "⚙️", "python3 eonix-desktop/settings.py", "Desktop settings"),
+            LauncherApp("Files", "📁", "nautilus", "File manager"),
+            LauncherApp("Terminal", "🖥️", "gnome-terminal", "Terminal emulator"),
+            LauncherApp("Browser", "🌍", "xdg-open https://", "Web browser"),
+            LauncherApp("VS Code", "💻", "code .", "Code editor"),
+        ]
+
+    def _load_apps(self) -> list[LauncherApp]:
+        EONIX_DIR.mkdir(parents=True, exist_ok=True)
+        if not APPS_FILE.exists():
+            defaults = [a.__dict__ for a in self._default_apps()]
+            APPS_FILE.write_text(json.dumps(defaults, indent=2), encoding="utf-8")
+            return self._default_apps()
+        try:
+            payload = json.loads(APPS_FILE.read_text(encoding="utf-8"))
+            out: list[LauncherApp] = []
+            for item in payload:
+                out.append(
+                    LauncherApp(
+                        name=str(item.get("name", "App")),
+                        icon=str(item.get("icon", "•")),
+                        cmd=str(item.get("cmd", "")),
+                        description=str(item.get("description", "")),
+                    )
+                )
+            return out or self._default_apps()
+        except Exception:
+            return self._default_apps()
+
+    def _load_recent_apps(self) -> list[str]:
+        if not RECENT_APPS_FILE.exists():
+            return []
+        try:
+            data = json.loads(RECENT_APPS_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                return [str(x) for x in data[:5]]
+        except Exception:
+            pass
+        return []
+
+    def _save_recent_apps(self) -> None:
+        RECENT_APPS_FILE.write_text(json.dumps(self.recent_apps[:5], indent=2), encoding="utf-8")
+
+    def record_recent(self, app_name: str) -> None:
+        names = [x for x in self.recent_apps if x != app_name]
+        self.recent_apps = [app_name, *names][:5]
+        self._save_recent_apps()
+
+    def combined_grid(self) -> list[LauncherApp]:
+        recent = [a for a in self.apps if a.name in self.recent_apps]
+        recent.sort(key=lambda x: self.recent_apps.index(x.name))
+        remain = [a for a in self.filtered_apps if a.name not in self.recent_apps]
+        return recent + remain
+
+    def filter_apps(self, query: str) -> list[LauncherApp]:
+        self.last_query = query
+        q = query.strip().lower()
+        if not q:
+            self.filtered_apps = list(self.apps)
+            self.pending_goal_text = ""
+        else:
+            self.filtered_apps = [
+                a
+                for a in self.apps
+                if q in a.name.lower() or q in (a.description or "").lower()
+            ]
+            self.pending_goal_text = query if not self.filtered_apps else ""
+        self.selected_index = 0
+        return self.filtered_apps
+
+    def launch_selected(self) -> bool:
+        grid = self.combined_grid()
+        if not grid:
+            if self.pending_goal_text:
+                return self.create_goal_from_input(self.pending_goal_text)
+            return False
+        idx = max(0, min(self.selected_index, len(grid) - 1))
+        app = grid[idx]
+        if app.cmd:
+            self.launch_exec(app.cmd)
+            self.record_recent(app.name)
+            self.close()
+            return True
+        return False
+
+    def create_goal_from_input(self, text: str) -> bool:
+        payload = {"name": text.strip(), "description": ""}
+        if not payload["name"]:
+            return False
+        try:
+            response = self.goal_client.post("http://127.0.0.1:7735/goal/create", json=payload)
+            if response.status_code in (200, 201):
+                self.close()
+                return True
+        except Exception:
+            return False
+        return False
+
+    def on_key(self, key: str) -> bool:
+        if key == "Escape":
+            self.close()
+            return True
+        if key == "Enter":
+            return self.launch_selected()
+        grid = self.combined_grid()
+        if key in ("Down", "Right") and grid:
+            self.selected_index = min(self.selected_index + 1, len(grid) - 1)
+            return True
+        if key in ("Up", "Left") and grid:
+            self.selected_index = max(self.selected_index - 1, 0)
+            return True
+        return False
 
     def open(self) -> None:
         self.visible = True
@@ -356,3 +525,33 @@ def test_desktop_starts_in_panel_only_mode():
     desktop.run()
     assert desktop.panel_only is True
     assert desktop.goal_panel.window.visible is True
+
+
+def test_launcher_filters_apps_on_search(tmp_path):
+    os.environ["HOME"] = str(tmp_path)
+    launcher = EonixLauncher(headless=True)
+    results = launcher.filter_apps("memory")
+    assert results
+    assert any(a.name == "Memory" for a in results)
+
+
+def test_launcher_creates_goal_for_unknown_input():
+    class FakeGoalClient:
+        def __init__(self):
+            self.payload = {}
+
+        def post(self, url, json):
+            self.payload = {"url": url, "json": json}
+
+            class Resp:
+                status_code = 200
+
+            return Resp()
+
+    client = FakeGoalClient()
+    launcher = EonixLauncher(headless=True, goal_client=client, launch_exec=lambda _: None)
+    launcher.filter_apps("something very unique")
+    ok = launcher.create_goal_from_input("something very unique")
+    assert ok is True
+    assert client.payload["url"].endswith("/goal/create")
+    assert client.payload["json"]["name"] == "something very unique"
