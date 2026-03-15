@@ -1,15 +1,15 @@
 QEMU Boot Test Results
-Date: [date]
+Date: 2026-03-15
 ISO: ~/eonix-os-0.8.0.iso
-Size: [X] GB
-SHA256: [checksum]
+Size: 5.1G
+SHA256: 0dfc1ed9ef3449191645190f23acd47e3118667878715f5904d09b9d75fe2384
 
-GRUB menu appeared:      YES/NO
-Boot completed:          YES/NO
-Desktop loaded:          YES/NO
-GoalPanel visible:       YES/NO
-TopBar visible:          YES/NO
-Agents started:          YES/NO
-Boot time:               [X] seconds
+GRUB menu appeared:      YES
+Boot completed:          PARTIAL (menu reached, 120s smoke run)
+Desktop loaded:          NO (not validated in this text-mode run)
+GoalPanel visible:       NO (not validated in text-mode)
+TopBar visible:          NO (not validated in text-mode)
+Agents started:          NO (hub endpoint was unreachable after startup)
+Boot time:               N/A (timeout-controlled smoke test)
 
-Notes: [any issues observed]
+Notes: ISO booted to GRUB menu in QEMU using `-nographic`. Graphical desktop verification requires a GUI-capable Linux host and a full graphical QEMU run.

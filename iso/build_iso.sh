@@ -37,6 +37,52 @@ require() {
 require sudo
 require xorriso
 
+ensure_bios_image() {
+  local bios_img="$IMAGE/boot/grub/bios.img"
+  if [[ -s "$bios_img" ]]; then
+    return
+  fi
+  if ! command -v grub-mkimage >/dev/null 2>&1; then
+    echo "Missing required tool: grub-mkimage (for bios.img)" >&2
+    exit 1
+  fi
+  echo "[iso] Creating BIOS boot image"
+  sudo grub-mkimage \
+    -O i386-pc-eltorito \
+    -o "$bios_img" \
+    -p /boot/grub \
+    biosdisk iso9660 normal linux configfile search part_msdos part_gpt ext2 fat
+}
+
+ensure_efi_image() {
+  local efi_img="$IMAGE/EFI/efiboot.img"
+  if [[ -s "$efi_img" ]]; then
+    return
+  fi
+  if ! command -v grub-mkstandalone >/dev/null 2>&1; then
+    echo "Missing required tool: grub-mkstandalone (for EFI image)" >&2
+    exit 1
+  fi
+  require mkfs.vfat
+  require mmd
+  require mcopy
+
+  echo "[iso] Creating EFI boot image"
+  local tmp_dir
+  tmp_dir=$(mktemp -d)
+  trap 'rm -rf "$tmp_dir"' RETURN
+
+  sudo grub-mkstandalone \
+    -O x86_64-efi \
+    -o "$tmp_dir/BOOTX64.EFI" \
+    "boot/grub/grub.cfg=$IMAGE/boot/grub/grub.cfg"
+
+  sudo dd if=/dev/zero of="$efi_img" bs=1M count=20 status=none
+  sudo mkfs.vfat "$efi_img" >/dev/null
+  sudo mmd -i "$efi_img" ::/EFI ::/EFI/BOOT
+  sudo mcopy -i "$efi_img" "$tmp_dir/BOOTX64.EFI" ::/EFI/BOOT/
+}
+
 # Ensure grub artifacts are staged
 bash "$SCRIPT_DIR/grub_config.sh"
 
@@ -47,6 +93,11 @@ for f in "$IMAGE/live/vmlinuz" "$IMAGE/live/initrd.img" "$IMAGE/live/filesystem.
     exit 1
   fi
 done
+
+ensure_bios_image
+if [[ $TEST_MODE -eq 0 ]]; then
+  ensure_efi_image
+fi
 
 OUTPUT_DIR=$(dirname "$ISO_PATH")
 mkdir -p "$OUTPUT_DIR"
@@ -64,7 +115,7 @@ XORRISO_CMD=(sudo xorriso -as mkisofs \
   --grub2-mbr /usr/lib/grub/i386-pc/boot_hybrid.img)
 
 if [[ $TEST_MODE -eq 0 ]]; then
-  XORRISO_CMD+=( -eltorito-alt-boot -e EFI/efiboot.img -no-emul-boot -append_partition 2 0xef EFI/efiboot.img )
+  XORRISO_CMD+=( -eltorito-alt-boot -e EFI/efiboot.img -no-emul-boot -append_partition 2 0xef "$IMAGE/EFI/efiboot.img" )
 fi
 
 XORRISO_CMD+=( -output "$ISO_PATH" "$IMAGE" )
