@@ -221,6 +221,14 @@ async def test_start_script_idempotent(client: httpx.AsyncClient):
         py_bin = f"/mnt/{drive}{rest}"
     cmd = ["bash", "-lc", f"cd '{root_bash}' && EONIX_START_NO_MIND=1 PYTHON_BIN='{py_bin}' bash start_eonix.sh"]
 
+    baseline_zombies = set()
+    for p in psutil.process_iter(["pid", "status", "name"]):
+        try:
+            if str(p.info.get("status", "")).lower() == "zombie":
+                baseline_zombies.add(int(p.info.get("pid")))
+        except Exception:
+            continue
+
     proc = subprocess.run(cmd, cwd=root, env=env, capture_output=True, timeout=35)
     err = (proc.stderr or b"").decode("utf-8", errors="ignore")
     assert proc.returncode == 0, err
@@ -235,7 +243,7 @@ async def test_start_script_idempotent(client: httpx.AsyncClient):
         r = await client.get(url)
         assert r.status_code == 200
 
-    # Sanity check: ensure no zombie process remains.
+    # Sanity check: idempotent startup must not introduce new zombies.
     zombies = []
     for p in psutil.process_iter(["pid", "status", "name"]):
         try:
@@ -243,7 +251,8 @@ async def test_start_script_idempotent(client: httpx.AsyncClient):
                 zombies.append(p.info)
         except Exception:
             continue
-    assert len(zombies) == 0
+    new_zombies = [z for z in zombies if int(z.get("pid", -1)) not in baseline_zombies]
+    assert len(new_zombies) == 0
 
 
 def asyncio_sleep(seconds: float):

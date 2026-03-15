@@ -108,3 +108,55 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def test_build_feature_matrix_v2_rejects_empty_input():
+    df = pd.DataFrame()
+    try:
+        build_feature_matrix_v2(df)
+        assert False, "expected ValueError for empty launch events"
+    except ValueError as exc:
+        assert "No LAUNCH events" in str(exc)
+
+
+def test_build_feature_matrix_v2_derives_expected_columns():
+    df = pd.DataFrame(
+        [
+            {
+                "timestamp": 1000,
+                "name": "code",
+                "session_hour": 10,
+                "session_dow": 1,
+                "cpu_percent": 12.0,
+                "memory_percent": 45.0,
+                "parent_pid": 10,
+                "pid": 101,
+            },
+            {
+                "timestamp": 1100,
+                "name": "python",
+                "session_hour": 10,
+                "session_dow": 1,
+                "cpu_percent": 22.0,
+                "memory_percent": 50.0,
+                "parent_pid": 10,
+                "pid": 102,
+            },
+            {
+                "timestamp": 1180,
+                "name": "code",
+                "session_hour": 10,
+                "session_dow": 1,
+                "cpu_percent": 30.0,
+                "memory_percent": 60.0,
+                "parent_pid": 10,
+                "pid": 103,
+            },
+        ]
+    )
+
+    out = build_feature_matrix_v2(df)
+    assert len(out) == 2
+    assert "next_process_name" in out.columns
+    assert "launch_burst_5m" in out.columns
+    assert int(out["launch_burst_5m"].min()) >= 0

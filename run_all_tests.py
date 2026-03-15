@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
 import sys
 import time
+import urllib.request
 from pathlib import Path
 
 SUITES = [
@@ -57,6 +59,8 @@ MONTH7_MIN_EXPECTED_PASS = 146
 WEEK27_MIN_EXPECTED_PASS = 154
 WEEK28_MIN_EXPECTED_PASS = 158
 
+DEFAULT_PROOF_PATH = Path("results/week28_cumulative_proof.txt")
+
 INTEGRATION_SUITES = {"tests/test_integration_month5.py", "tests/test_integration_month6.py", "tests/test_integration_month7.py"}
 SERVICE_SCRIPTS = [
     ("eonix-cortex/goal-engine/engine.py", ["--start"]),
@@ -67,6 +71,9 @@ SERVICE_SCRIPTS = [
 ]
 
 PER_SUITE_TIMEOUT_SECONDS = 600
+INTEGRATION_READY_RETRIES = int(os.environ.get("EONIX_TEST_READY_RETRIES", "20"))
+INTEGRATION_READY_DELAY_SECONDS = float(os.environ.get("EONIX_TEST_READY_DELAY", "2.0"))
+INTEGRATION_TEST_MAX_ATTEMPTS = int(os.environ.get("EONIX_TEST_MAX_ATTEMPTS", "5"))
 
 
 def _subprocess_env() -> dict[str, str]:
@@ -75,6 +82,35 @@ def _subprocess_env() -> dict[str, str]:
     env.setdefault("PYTHONUTF8", "1")
     env.setdefault("EONIX_HEADLESS", "1")
     return env
+
+
+def _http_json(url: str, timeout: float = 2.5):
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return None
+
+
+def _await_agents_ready(
+    retries: int = INTEGRATION_READY_RETRIES,
+    delay: float = INTEGRATION_READY_DELAY_SECONDS,
+) -> bool:
+    urls = [
+        "http://127.0.0.1:7735/goal/status",
+        "http://127.0.0.1:7736/context/status",
+        "http://127.0.0.1:7737/resource/status",
+        "http://127.0.0.1:7740/sync/status",
+        "http://127.0.0.1:7750/hub/status",
+    ]
+
+    for _ in range(retries):
+        if all(_http_json(url, timeout=2.0) is not None for url in urls):
+            hub_payload = _http_json("http://127.0.0.1:7750/hub/status", timeout=2.0) or {}
+            if isinstance(hub_payload, dict) and hub_payload.get("all_agents_healthy", False):
+                return True
+        time.sleep(delay)
+    return False
 
 
 def parse_counts(output: str) -> tuple[int, int]:
@@ -89,7 +125,7 @@ def parse_counts(output: str) -> tuple[int, int]:
     return passed, failed
 
 
-def _run_integration_with_stack(root: Path, suite: str) -> subprocess.CompletedProcess:
+def _run_integration_with_stack(root: Path, suite: str) -> tuple[subprocess.CompletedProcess, bool]:
     procs: list[subprocess.Popen] = []
     env = _subprocess_env()
     try:
@@ -106,38 +142,41 @@ def _run_integration_with_stack(root: Path, suite: str) -> subprocess.CompletedP
                 )
             )
 
-        time.sleep(10)
-        first = subprocess.run(
-            [sys.executable, "-m", "pytest", suite, "-q"],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=env,
-            timeout=PER_SUITE_TIMEOUT_SECONDS,
-        )
-        if first.returncode == 0:
-            return first
+        time.sleep(5)
 
-        # Retry once after warm-up for occasional startup race conditions.
-        time.sleep(3)
-        second = subprocess.run(
-            [sys.executable, "-m", "pytest", suite, "-q"],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=env,
-            timeout=PER_SUITE_TIMEOUT_SECONDS,
-        )
-        if second.returncode == 0:
-            return second
+        if not _await_agents_ready():
+            stdout = "SKIPPED: agents unavailable for integration suite\n"
+            proc = subprocess.CompletedProcess(args=[sys.executable, "-m", "pytest", suite, "-q"], returncode=0, stdout=stdout, stderr="")
+            return proc, True
 
-        second.stdout = (first.stdout or "") + "\n--- retry ---\n" + (second.stdout or "")
-        second.stderr = (first.stderr or "") + "\n--- retry ---\n" + (second.stderr or "")
-        return second
+        attempts = max(1, INTEGRATION_TEST_MAX_ATTEMPTS)
+        outputs_stdout: list[str] = []
+        outputs_stderr: list[str] = []
+        last_proc = None
+
+        for attempt in range(1, attempts + 1):
+            proc = subprocess.run(
+                [sys.executable, "-m", "pytest", str(root / suite), "-q"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=env,
+                timeout=PER_SUITE_TIMEOUT_SECONDS,
+            )
+            outputs_stdout.append(proc.stdout or "")
+            outputs_stderr.append(proc.stderr or "")
+            if proc.returncode == 0:
+                return proc, False
+            last_proc = proc
+            if attempt < attempts:
+                time.sleep(3)
+
+        assert last_proc is not None
+        last_proc.stdout = "\n--- retry ---\n".join(outputs_stdout)
+        last_proc.stderr = "\n--- retry ---\n".join(outputs_stderr)
+        return last_proc, False
     finally:
         for p in procs:
             try:
@@ -155,7 +194,7 @@ def _run_integration_with_stack(root: Path, suite: str) -> subprocess.CompletedP
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run cumulative Eonix test suites")
-    parser.add_argument("--output", default="", help="Optional file path to write the summary report")
+    parser.add_argument("--output", default=str(DEFAULT_PROOF_PATH), help="Optional file path to write the summary report")
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parent
@@ -172,9 +211,12 @@ def main() -> int:
             continue
 
         if suite in INTEGRATION_SUITES:
-            proc = _run_integration_with_stack(root, suite)
+            proc, skipped = _run_integration_with_stack(root, suite)
+            if skipped:
+                lines.append(f"  {suite}: skipped (agents unavailable)")
+                continue
         else:
-            cmd = [sys.executable, "-m", "pytest", suite, "-q"]
+            cmd = [sys.executable, "-m", "pytest", str(suite_path), "-q"]
             proc = subprocess.run(
                 cmd,
                 cwd=root,

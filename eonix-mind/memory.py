@@ -192,11 +192,12 @@ class EonixMemory:
             return self._fallback_recall(query, n)
 
         try:
-            emb = self._embed(query)
+            q = (query or "").strip()
+            emb = self._embed(q) if q else []
             if emb:
                 res = self.collection.query(query_embeddings=[emb], n_results=n)
             else:
-                res = self.collection.query(query_texts=[query], n_results=n)
+                res = self.collection.query(query_texts=[q], n_results=n)
         except Exception:
             return []
 
