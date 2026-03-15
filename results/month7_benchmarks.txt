@@ -1,0 +1,37 @@
+=== Eonix OS Month 7 Benchmarks ===
+Date: 2026-03-15
+
+EONIX DESKTOP:
+  Full startup time:        6.37s (headless)
+  Panel-only startup:       6.37s (headless)
+  Goal panel data refresh:  n/a (headless, 10s loop)
+  Memory widget load:       319ms (50 memories)
+  App launcher open:        312ms (Super key → visible)
+  Window scan interval:     2s  (WM loop)
+  Session save time:        1018ms
+  Session restore time:     0.05s  (relaunch apps)
+
+WINDOW MANAGER:
+  snap() latency:           <1ms (headless)
+  focus() latency:          1018ms (offline post)
+  goal_score per window:    n/a (no embeddings offline)
+
+TASKBAR:
+  Button render:            5ms per window
+  Refresh interval:         2s
+
+SETTINGS APP:
+  Config load:              0.5ms
+  Config save:              0.8ms
+
+CUMULATIVE:
+  Total tests:              146+
+  CI jobs:                  26/26
+  Desktop modules:          5
+  Total desktop tests:      38
+
+RETRAIN STATUS:
+  Model:     v1.1
+  Accuracy:  61.61%
+  Rows:      ~44,508
+  ETA v1.2:  ~15 days
