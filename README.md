@@ -3,8 +3,8 @@
 > Your OS knows what you are building.
 
 [![CI](https://github.com/shahnoor-exe/eonix-os/actions/workflows/test.yml/badge.svg)](https://github.com/shahnoor-exe/eonix-os/actions/workflows/test.yml)
-[![Tests](https://img.shields.io/badge/tests-108%2B_passing-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
-[![Version](https://img.shields.io/badge/version-v0.6.0-blue)](https://github.com/shahnoor-exe/eonix-os/tags)
+[![Tests](https://img.shields.io/badge/tests-146%2B_passing-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
+[![Version](https://img.shields.io/badge/version-v0.7.0-blue)](https://github.com/shahnoor-exe/eonix-os/tags)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
@@ -13,13 +13,13 @@
 
 EONIX OS is an AI-first operating layer on Linux that combines a goal-aware shell, autonomous agents, and a self-improving scheduler into one cohesive developer environment. It is designed so the system understands intent, keeps context over time, and helps execute workflows across local and networked nodes.
 
-Today, EONIX ships as a full stack with EonixShell, MIND v2, GoalEngine, ContextAgent, ResourceAgent, SyncDaemon, Android companion app, and the web-based Eonix Hub. The next milestones are Eonix Desktop GUI in Month 7 and a bootable ISO in Month 8.
+Today, EONIX ships as a full stack with EonixShell, MIND v2, GoalEngine, ContextAgent, ResourceAgent, SyncDaemon, Android companion app, and the web-based Eonix Hub. The next milestone is a bootable ISO in Month 8.
 
 ## Architecture Diagram (ASCII)
 
 ```text
 ┌─────────────────────────────────────────┐
-│           EONIX OS v0.6.0               │
+│           EONIX OS v0.7.0               │
 ├──────────┬──────────┬────────┬──────────┤
 │  Shell   │  MIND    │  Hub   │ Android  │
 │ (v0.6)   │  v2.0    │ :7750  │   App    │
@@ -68,16 +68,16 @@ python3 eonix-shell/shell.py
 | EonixShell           | ✅ Live | Month 6 |
 | NL Interpreter       | ✅ Live | Month 6 |
 | Installer            | ✅ Live | Month 6 |
-| Desktop GUI          | 🔨 Month 7 | Planned |
-| Bootable ISO         | 📅 Month 8 | Planned |
+| Desktop GUI          | ✅ Live | Month 7 |
+| Bootable ISO         | 🔨 Month 8 (next) | Planned |
 
 ## Test Coverage
 
-108+ tests | 24 CI jobs | 0 failures
+146+ tests | 26 CI jobs | 0 failures
 
 ## Roadmap
 
-Month 7 → Eonix Desktop (GTK GUI)
+Month 7 → Eonix Desktop (GTK GUI, shipped v0.7.0)
 Month 8 → Bootable ISO
 Month 9 → Hardware testing
 Month 10 → Public release

@@ -148,6 +148,19 @@ def save_config(cfg: Dict[str, Any], path: Path = CONFIG_PATH) -> None:
     path.write_text(json.dumps(cfg_copy, indent=2), encoding="utf-8")
 
 
+class EonixSettings:
+    """Thin wrapper to load/save settings for integration tests and app code."""
+
+    def __init__(self, config_path: Path | str = CONFIG_PATH):
+        self.config_path = Path(config_path)
+
+    def load(self) -> Dict[str, Any]:
+        return load_config(self.config_path)
+
+    def save(self, cfg: Dict[str, Any]) -> None:
+        save_config(cfg, self.config_path)
+
+
 class _StubApp:
     def run(self, argv: list[str] | None = None) -> int:
         return 0

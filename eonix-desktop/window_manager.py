@@ -51,12 +51,14 @@ class EonixWindowManager:
         self,
         screen_size: tuple[int, int] = (1920, 1080),
         top_offset: int = 40,
+        bottom_offset: int = 40,
         window_source: Optional[Callable[[], list[EonixWindow]]] = None,
         goal_client: Optional[httpx.Client] = None,
         context_client: Optional[httpx.Client] = None,
     ):
         self.screen_size = screen_size
         self.top_offset = top_offset
+        self.bottom_offset = bottom_offset
         self.window_source = window_source
         self.goal_client = goal_client or httpx.Client(timeout=1.0)
         self.context_client = context_client or httpx.Client(timeout=1.0)
@@ -180,10 +182,14 @@ class EonixWindowManager:
         x, y, _, _ = self.registry[xid].position
         self.registry[xid].position = (int(x), int(y), int(w), int(h))
 
-    def _snap_coords(self, zone: str) -> tuple[int, int, int, int]:
-        sw, sh = self.screen_size
-        top = self.top_offset
-        usable_h = max(1, sh - top)
+    def _calculate_snap_coords(
+        self, zone: str, screen_width: Optional[int] = None, screen_height: Optional[int] = None
+    ) -> tuple[int, int, int, int]:
+        sw = int(screen_width or self.screen_size[0])
+        sh = int(screen_height or self.screen_size[1])
+        top = int(self.top_offset)
+        bottom = max(0, int(self.bottom_offset))
+        usable_h = max(1, sh - top - bottom)
         half_w = sw // 2
         half_h = usable_h // 2
 
@@ -198,6 +204,9 @@ class EonixWindowManager:
             "bottomright": (half_w, top + half_h, sw - half_w, usable_h - half_h),
         }
         return mapping.get(zone, (0, top, sw, usable_h))
+
+    def _snap_coords(self, zone: str) -> tuple[int, int, int, int]:
+        return self._calculate_snap_coords(zone)
 
     def snap(self, xid: int, zone: str) -> None:
         if xid not in self.registry:
@@ -280,17 +289,17 @@ def test_scan_windows_returns_list():
 
 
 def test_snap_left_calculates_correct_coords():
-    wm = EonixWindowManager(screen_size=(1920, 1080), top_offset=40)
+    wm = EonixWindowManager(screen_size=(1920, 1080), top_offset=40, bottom_offset=40)
     xid = wm.register_virtual_window("Editor")
     wm.snap(xid, "left")
-    assert wm.registry[xid].position == (0, 40, 960, 1040)
+    assert wm.registry[xid].position == (0, 40, 960, 1000)
 
 
 def test_snap_right_calculates_correct_coords():
-    wm = EonixWindowManager(screen_size=(1920, 1080), top_offset=40)
+    wm = EonixWindowManager(screen_size=(1920, 1080), top_offset=40, bottom_offset=40)
     xid = wm.register_virtual_window("Editor")
     wm.snap(xid, "right")
-    assert wm.registry[xid].position == (960, 40, 960, 1040)
+    assert wm.registry[xid].position == (960, 40, 960, 1000)
 
 
 def test_goal_score_sorts_windows_correctly():

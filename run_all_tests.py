@@ -39,6 +39,7 @@ SUITES = [
     "eonix-desktop/memory_widget.py",
     "eonix-desktop/window_manager.py",
     "eonix-desktop/session_manager.py",
+    "tests/test_integration_month7.py",
 ]
 
 WEEK16_MIN_EXPECTED_PASS = 68
@@ -51,8 +52,9 @@ WEEK22_MIN_EXPECTED_PASS = 108
 WEEK23_MIN_EXPECTED_PASS = 116
 WEEK24_MIN_EXPECTED_PASS = 124
 WEEK25_MIN_EXPECTED_PASS = 138
+MONTH7_MIN_EXPECTED_PASS = 146
 
-INTEGRATION_SUITES = {"tests/test_integration_month5.py", "tests/test_integration_month6.py"}
+INTEGRATION_SUITES = {"tests/test_integration_month5.py", "tests/test_integration_month6.py", "tests/test_integration_month7.py"}
 SERVICE_SCRIPTS = [
     ("eonix-cortex/goal-engine/engine.py", ["--start"]),
     ("eonix-cortex/context-agent/agent.py", ["--start"]),
@@ -60,6 +62,16 @@ SERVICE_SCRIPTS = [
     ("eonix-sync/sync_daemon.py", ["--start", "--port", "7740"]),
     ("eonix-hub/hub_server.py", []),
 ]
+
+PER_SUITE_TIMEOUT_SECONDS = 600
+
+
+def _subprocess_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    env.setdefault("PYTHONUTF8", "1")
+    env.setdefault("EONIX_HEADLESS", "1")
+    return env
 
 
 def parse_counts(output: str) -> tuple[int, int]:
@@ -76,6 +88,7 @@ def parse_counts(output: str) -> tuple[int, int]:
 
 def _run_integration_with_stack(root: Path, suite: str) -> subprocess.CompletedProcess:
     procs: list[subprocess.Popen] = []
+    env = _subprocess_env()
     try:
         for rel, args in SERVICE_SCRIPTS:
             script = root / rel
@@ -84,6 +97,7 @@ def _run_integration_with_stack(root: Path, suite: str) -> subprocess.CompletedP
                 subprocess.Popen(
                     cmd,
                     cwd=root,
+                    env=env,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
@@ -95,6 +109,10 @@ def _run_integration_with_stack(root: Path, suite: str) -> subprocess.CompletedP
             cwd=root,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+            timeout=PER_SUITE_TIMEOUT_SECONDS,
         )
         if first.returncode == 0:
             return first
@@ -106,6 +124,10 @@ def _run_integration_with_stack(root: Path, suite: str) -> subprocess.CompletedP
             cwd=root,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+            timeout=PER_SUITE_TIMEOUT_SECONDS,
         )
         if second.returncode == 0:
             return second
@@ -138,6 +160,7 @@ def main() -> int:
 
     total_pass = 0
     total_fail = 0
+    env = _subprocess_env()
 
     for suite in SUITES:
         suite_path = root / suite
@@ -149,7 +172,16 @@ def main() -> int:
             proc = _run_integration_with_stack(root, suite)
         else:
             cmd = [sys.executable, "-m", "pytest", suite, "-q"]
-            proc = subprocess.run(cmd, cwd=root, capture_output=True, text=True)
+            proc = subprocess.run(
+                cmd,
+                cwd=root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=env,
+                timeout=PER_SUITE_TIMEOUT_SECONDS,
+            )
         combined = (proc.stdout or "") + "\n" + (proc.stderr or "")
         passed, failed = parse_counts(combined)
 
@@ -173,6 +205,7 @@ def main() -> int:
     lines.append(f"TARGET (Week 23 Desktop): >= {WEEK23_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 24 Memory+Launcher): >= {WEEK24_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 25 WM+Sessions): >= {WEEK25_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Month 7 Desktop GUI): >= {MONTH7_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)
