@@ -17,6 +17,7 @@ SUITES = [
     "eonix-shell/branding.py",
     "eonix-hub/hub_server.py",
     "tests/test_integration_month5.py",
+    "tests/test_integration_month6.py",
     "eonix-core/scheduler/train_scheduler.py",
     "eonix-core/scheduler/auto_retrain.py",
     "eonix-core/scheduler/build_features.py",
@@ -41,8 +42,9 @@ MONTH5_MIN_EXPECTED_PASS = 82
 WEEK19_MIN_EXPECTED_PASS = 88
 WEEK20_MIN_EXPECTED_PASS = 96
 WEEK21_MIN_EXPECTED_PASS = 100
+WEEK22_MIN_EXPECTED_PASS = 108
 
-INTEGRATION_SUITE = "tests/test_integration_month5.py"
+INTEGRATION_SUITES = {"tests/test_integration_month5.py", "tests/test_integration_month6.py"}
 SERVICE_SCRIPTS = [
     ("eonix-cortex/goal-engine/engine.py", ["--start"]),
     ("eonix-cortex/context-agent/agent.py", ["--start"]),
@@ -64,7 +66,7 @@ def parse_counts(output: str) -> tuple[int, int]:
     return passed, failed
 
 
-def _run_integration_with_stack(root: Path) -> subprocess.CompletedProcess:
+def _run_integration_with_stack(root: Path, suite: str) -> subprocess.CompletedProcess:
     procs: list[subprocess.Popen] = []
     try:
         for rel, args in SERVICE_SCRIPTS:
@@ -81,7 +83,7 @@ def _run_integration_with_stack(root: Path) -> subprocess.CompletedProcess:
 
         time.sleep(10)
         first = subprocess.run(
-            [sys.executable, "-m", "pytest", INTEGRATION_SUITE, "-q"],
+            [sys.executable, "-m", "pytest", suite, "-q"],
             cwd=root,
             capture_output=True,
             text=True,
@@ -92,7 +94,7 @@ def _run_integration_with_stack(root: Path) -> subprocess.CompletedProcess:
         # Retry once after warm-up for occasional startup race conditions.
         time.sleep(3)
         second = subprocess.run(
-            [sys.executable, "-m", "pytest", INTEGRATION_SUITE, "-q"],
+            [sys.executable, "-m", "pytest", suite, "-q"],
             cwd=root,
             capture_output=True,
             text=True,
@@ -135,8 +137,8 @@ def main() -> int:
             lines.append(f"  {suite}: skipped (missing)")
             continue
 
-        if suite == INTEGRATION_SUITE:
-            proc = _run_integration_with_stack(root)
+        if suite in INTEGRATION_SUITES:
+            proc = _run_integration_with_stack(root, suite)
         else:
             cmd = [sys.executable, "-m", "pytest", suite, "-q"]
             proc = subprocess.run(cmd, cwd=root, capture_output=True, text=True)
@@ -159,6 +161,7 @@ def main() -> int:
     lines.append(f"TARGET (Week 19 Shell): >= {WEEK19_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 20 NL+Voice): >= {WEEK20_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 21 Install+Brand): >= {WEEK21_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 22 Month6): >= {WEEK22_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)

@@ -1,0 +1,27 @@
+=== Eonix OS Month 6 Benchmarks ===
+Date: 2026-03-15
+
+EONIX SHELL:
+  Startup time:          18.215s  (banner to prompt)
+  Prompt refresh:        5s  (background thread)
+  eon status latency:    23447.6ms (all agents polled)
+  NL intent classify:    0.0ms (sentence-transformers)
+  NL bash translation:   0.7ms (LLaMA 3B)
+  Voice transcription:   N/A (Whisper base.en)
+
+INSTALLER:
+  --dev mode runtime:    15.105s
+  Idempotent 2nd run:    2.469s  (should be faster)
+  Syntax check:          567.3ms
+
+BRANDING:
+  Boot art render:       2.1ms
+  Banner format:         0.0ms
+
+CUMULATIVE:
+  Total tests:           108 passed / 0 failed
+  CI jobs:               24/24
+  Test runtime:          807.662s total
+
+SHELL COMMANDS LOGGED TODAY: 0
+  (from ContextAgent events of type='shell')

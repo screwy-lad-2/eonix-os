@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import shlex
@@ -763,6 +764,35 @@ class EonixShell:
         self.shutdown()
         return 0
 
+    def run_single_command(self, command: str) -> int:
+        if branding_print_boot_art is not None:
+            sync_state = _http_json(f"{SYNC_BASE}/sync/status") or {}
+            device_id = str(sync_state.get("device_id") or "local") if isinstance(sync_state, dict) else "local"
+            branding_print_boot_art(self._state_snapshot().model_version, device_id)
+        print(self.startup_banner())
+        cmd = (command or "").strip()
+        if not cmd:
+            self.shutdown()
+            return 0
+
+        self._cmd_count += 1
+        self._save_history_line(cmd)
+        self._log_context_event(cmd)
+        if self.handle_eon_command(cmd):
+            self.shutdown()
+            return 0
+
+        if self.state.nl_enabled and self.nl_interpreter is not None and not self.nl_interpreter.is_shell_command(cmd):
+            out = self._process_nl_text(cmd)
+            if out:
+                print(out)
+            self.shutdown()
+            return 0
+
+        rc = self.run_os_command(cmd)
+        self.shutdown()
+        return rc
+
     def shutdown(self) -> None:
         self._running = False
         try:
@@ -773,7 +803,25 @@ class EonixShell:
 
 
 def main() -> int:
-    return EonixShell().run()
+    parser = argparse.ArgumentParser(description="EonixShell")
+    parser.add_argument("--banner-only", action="store_true", help="Print startup banner and exit")
+    parser.add_argument("--run-command", default="", help="Run one command then exit")
+    args = parser.parse_args()
+
+    shell = EonixShell()
+    if args.banner_only:
+        if branding_print_boot_art is not None:
+            sync_state = _http_json(f"{SYNC_BASE}/sync/status") or {}
+            device_id = str(sync_state.get("device_id") or "local") if isinstance(sync_state, dict) else "local"
+            branding_print_boot_art(shell._state_snapshot().model_version, device_id)
+        print(shell.startup_banner())
+        shell.shutdown()
+        return 0
+
+    if args.run_command:
+        return shell.run_single_command(args.run_command)
+
+    return shell.run()
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+import sys
 
 GREEN = "\033[92m"
 RESET = "\033[0m"
@@ -44,7 +45,7 @@ def format_banner(goal, progress, ram, model, memories, peers) -> str:
     """Return a startup status banner that includes all key shell fields."""
     bar = progress_bar(float(progress), width=20)
     lines = [
-        "EONIX SHELL STARTUP",
+        "⚡ EONIX SHELL STARTUP",
         f"Goal: {goal}",
         f"Progress: {bar} {int(round(float(progress) * 100))}%",
         f"RAM: {ram}",
@@ -61,11 +62,20 @@ def print_boot_art(version, device_id, tagline=None):
     text = "\n".join(
         [
             f"{GREEN}{BOOT_ART}{RESET}",
+            f"{GREEN}EONIX OS{RESET}",
             f"{GREEN}Version: {version} | Device: {device_id}{RESET}",
             f"{GREEN}{chosen}{RESET}",
         ]
     )
-    print(text)
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        if hasattr(sys.stdout, "reconfigure"):
+            try:
+                sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+        print(text)
     return text
 
 
