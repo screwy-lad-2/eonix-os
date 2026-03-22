@@ -1,4 +1,13 @@
 Week 32 Full Desktop Boot
-- ISO: eonix-os-0.9.0.iso
-- Status: TODO (fill after CI build)
-- Notes: Verify GTK4 desktop boots and MIND present.
+ISO: eonix-os-0.9.0.iso
+
+GRUB menu shown ("Boot EONIX OS"): NO
+Starting EONIX OS shown: NO
+All 5 agents online: NO
+MIND started and mind_v2.py found: NO
+X server started (vboxvideo loads): NO
+GTK4 desktop appears: NO
+GoalPanel visible on left: NO
+TopBar with clock visible: NO
+
+Status: Pending VirtualBox boot verification on downloaded CI artifact.

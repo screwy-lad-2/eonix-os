@@ -47,6 +47,7 @@ def _parse_model_status(text: str) -> Dict[str, Any]:
     rows = 0
     threshold = 0
     eta_days = None
+    model_ready = False
 
     m_model = re.search(r"Current model:\s*(v[0-9.]+)\s*\|\s*Top-3:\s*([0-9.]+)%", text)
     if m_model:
@@ -62,12 +63,23 @@ def _parse_model_status(text: str) -> Dict[str, Any]:
     if m_eta:
         eta_days = float(m_eta.group(1))
 
+    m_ready = re.search(r"Model ready:\s*(true|false)", text, flags=re.IGNORECASE)
+    if m_ready:
+        model_ready = m_ready.group(1).lower() == "true"
+    elif model_version != "unknown":
+        model_ready = True
+
+    m_active = re.search(r"Active model:\s*(v[0-9.]+)", text)
+    if m_active:
+        model_version = m_active.group(1)
+
     return {
         "model_version": model_version,
         "top3": top3,
         "rows": rows,
         "threshold": threshold,
         "eta_days": eta_days,
+        "model_ready": model_ready,
         "raw": text.strip(),
     }
 
@@ -391,10 +403,14 @@ async def hub_status() -> Dict[str, Any]:
         "resource": "resource" not in stale,
         "sync": "sync" not in stale,
     }
+    model_info = hub.snapshot.get("model_info", {}) if isinstance(hub.snapshot, dict) else {}
     return {
         "all_agents_healthy": all(agents.values()),
         "agents": agents,
         "last_updated": hub.snapshot.get("last_updated", ""),
+        "model_version": model_info.get("model_version", "unknown"),
+        "model_ready": bool(model_info.get("model_ready", False)),
+        "next_retrain_eta": model_info.get("eta_days"),
     }
 
 

@@ -61,6 +61,7 @@ WEEK27_MIN_EXPECTED_PASS = 154
 WEEK28_MIN_EXPECTED_PASS = 158
 MONTH9_MIN_EXPECTED_PASS = 174
 WEEK32_MIN_EXPECTED_PASS = 178
+WEEK33_MIN_EXPECTED_PASS = 182
 
 DEFAULT_PROOF_PATH = Path("results/week28_cumulative_proof.txt")
 
@@ -258,6 +259,7 @@ def main() -> int:
     lines.append(f"TARGET (Week 28 ISO Assembly): >= {WEEK28_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 31 Month9 ISO): >= {MONTH9_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 32 Full ISO): >= {WEEK32_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 33 Model Hooks): >= {WEEK33_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)

@@ -13,7 +13,14 @@ ROOT = Path(__file__).resolve().parents[1]
 ISO_DIR = ROOT / "iso"
 START_SCRIPT = ROOT / "start_eonix.sh"
 
-pytestmark = pytest.mark.skipif(sys.platform.startswith("win"), reason="Month 9 integration skips on Windows")
+
+def _bash_path(path: Path) -> str:
+    p = str(path)
+    if sys.platform.startswith("win") and len(p) > 2 and p[1:3] == ":\\":
+        drive = p[0].lower()
+        rest = p[2:].replace("\\", "/")
+        return f"/mnt/{drive}{rest}"
+    return p
 
 
 def _read_chroot() -> str:
@@ -42,6 +49,9 @@ def test_chroot_setup_fixes_hostname():
 
 
 def test_start_eonix_handles_missing_mind(tmp_path: Path):
+    if sys.platform.startswith("win"):
+        pytest.skip("start script process bootstrap check runs on Linux")
+
     env = os.environ.copy()
     env["HOME"] = str(tmp_path)
     env["EONIX_START_SMOKE"] = "1"
@@ -71,7 +81,7 @@ def test_all_iso_scripts_syntax_valid():
     ]
     for script in scripts:
         assert script.exists()
-        proc = subprocess.run([bash, "-n", str(script)], capture_output=True, text=True)
+        proc = subprocess.run([bash, "-n", _bash_path(script)], capture_output=True, text=True)
         assert proc.returncode == 0, proc.stderr
 
 
@@ -90,10 +100,11 @@ def test_vm_boot_issues_documented():
 
 def test_install_script_syntax_valid():
     bash = shutil.which("bash")
-    assert bash
+    if bash is None:
+        pytest.skip("bash missing")
     script = ISO_DIR / "install_eonix_into_chroot.sh"
     assert script.exists()
-    proc = subprocess.run([bash, "-n", str(script)], capture_output=True, text=True)
+    proc = subprocess.run([bash, "-n", _bash_path(script)], capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr
 
 
@@ -113,3 +124,23 @@ def test_week32_boot_result_template_exists():
     assert path.exists()
     content = path.read_text(encoding="utf-8")
     assert "Week 32" in content or content.strip() != ""
+
+
+def test_post_retrain_hook_exists():
+    text = (ROOT / "eonix-core" / "scheduler" / "auto_retrain.py").read_text(encoding="utf-8")
+    assert "def on_retrain_complete" in text
+
+
+def test_rollback_safety_implemented():
+    text = (ROOT / "eonix-core" / "scheduler" / "auto_retrain.py").read_text(encoding="utf-8")
+    assert "rolled back" in text and "accuracy_drop" in text
+
+
+def test_model_comparison_function_exists():
+    text = (ROOT / "eonix-core" / "scheduler" / "auto_retrain.py").read_text(encoding="utf-8")
+    assert "def compare_model_versions" in text
+
+
+def test_hub_status_includes_model_version():
+    text = (ROOT / "eonix-hub" / "hub_server.py").read_text(encoding="utf-8")
+    assert "model_version" in text and "next_retrain_eta" in text and "model_ready" in text

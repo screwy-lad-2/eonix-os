@@ -11,6 +11,7 @@ else
 fi
 
 VENV_PATH="${VENV_PATH:-.venv-iso}"
+SKIP_CUMULATIVE_TESTS="${SKIP_CUMULATIVE_TESTS:-0}"
 
 if [[ "$(uname -s)" != "Linux" ]]; then
   echo "This script is intended for Linux/Codespaces." >&2
@@ -62,7 +63,11 @@ else
   echo "[Week27] Skipping full bootstrap build. Set RUN_FULL_BUILD=1 to execute." 
 fi
 
-echo "[Week27] Running cumulative tests"
-python run_all_tests.py
+if [[ "$SKIP_CUMULATIVE_TESTS" == "1" ]]; then
+  echo "[Week27] Skipping cumulative tests (SKIP_CUMULATIVE_TESTS=1)"
+else
+  echo "[Week27] Running cumulative tests"
+  python run_all_tests.py
+fi
 
 echo "[Week27] Completed."

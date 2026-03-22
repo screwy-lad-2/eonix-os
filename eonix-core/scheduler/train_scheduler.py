@@ -219,6 +219,10 @@ def run_training(
         output_dict=True,
         zero_division=0,
     )
+    weighted = report.get("weighted avg", {}) if isinstance(report, dict) else {}
+    precision = float(weighted.get("precision", top1))
+    recall = float(weighted.get("recall", top1))
+    f1 = float(weighted.get("f1-score", top1))
 
     local_models_dir.mkdir(parents=True, exist_ok=True)
     local_results_dir.mkdir(parents=True, exist_ok=True)
@@ -253,6 +257,9 @@ def run_training(
         "version": version,
         "top1": top1,
         "top3": top3,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1,
         "n_samples": int(len(df)),
         "n_classes": int(len(np.unique(y))),
         "best_params": used_params,
