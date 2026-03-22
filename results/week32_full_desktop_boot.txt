@@ -1,0 +1,4 @@
+Week 32 Full Desktop Boot
+- ISO: eonix-os-0.9.0.iso
+- Status: TODO (fill after CI build)
+- Notes: Verify GTK4 desktop boots and MIND present.

@@ -86,3 +86,30 @@ def test_vm_boot_issues_documented():
         "hostname not resolving",
     ]:
         assert bug in content
+
+
+def test_install_script_syntax_valid():
+    bash = shutil.which("bash")
+    assert bash
+    script = ISO_DIR / "install_eonix_into_chroot.sh"
+    assert script.exists()
+    proc = subprocess.run([bash, "-n", str(script)], capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr
+
+
+def test_install_script_copies_mind():
+    text = (ISO_DIR / "install_eonix_into_chroot.sh").read_text(encoding="utf-8")
+    assert "eonix-mind" in text
+    assert "mind_v2.py" in text
+
+
+def test_ci_iso_build_job_exists():
+    workflow = (ROOT / ".github" / "workflows" / "test.yml").read_text(encoding="utf-8")
+    assert "build-iso-full" in workflow
+
+
+def test_week32_boot_result_template_exists():
+    path = ROOT / "results" / "week32_full_desktop_boot.txt"
+    assert path.exists()
+    content = path.read_text(encoding="utf-8")
+    assert "Week 32" in content or content.strip() != ""

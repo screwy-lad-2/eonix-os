@@ -702,3 +702,35 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           python -m pytest iso/test_iso_build.py -v
+
+  build-iso-full:
+    name: Build ISO Full (Week 32)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Install ISO build dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y debootstrap squashfs-tools \
+            xorriso grub-pc-bin grub-efi-amd64-bin mtools dosfstools isolinux
+
+      - name: Run full ISO build
+        env:
+          RUN_FULL_BUILD: "1"
+          BUILD_ROOT: /root/eonix-iso-build
+          ISO_PATH: /root/eonix-iso-build/eonix-os-0.9.0.iso
+          VOLUME_ID: EONIX_OS_0_9_0
+        run: |
+          sudo bash iso/codespaces_build.sh
+          sudo CHROOT=/root/eonix-iso-build/chroot bash iso/install_eonix_into_chroot.sh
+          sudo bash iso/build_squashfs.sh
+          sudo bash iso/build_iso.sh
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: eonix-os-0.9.0.iso
+          path: |
+            /root/eonix-iso-build/eonix-os-0.9.0.iso
+            /root/eonix-iso-build/eonix-os-0.9.0.iso.sha256

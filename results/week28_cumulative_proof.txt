@@ -45,3 +45,4 @@ TARGET (Month 7 Desktop GUI): >= 146 passed
 TARGET (Week 27 ISO Bootstrap): >= 154 passed
 TARGET (Week 28 ISO Assembly): >= 158 passed
 TARGET (Week 31 Month9 ISO): >= 174 passed
+TARGET (Week 32 Full ISO): >= 178 passed

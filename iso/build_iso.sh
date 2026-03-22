@@ -4,8 +4,8 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 BUILD_ROOT=${BUILD_ROOT:-"$HOME/eonix-iso-build"}
 IMAGE=${IMAGE:-"$BUILD_ROOT/image"}
-ISO_PATH=${ISO_PATH:-"$HOME/eonix-os-0.8.0.iso"}
-VOLUME_ID=${VOLUME_ID:-"EONIX_OS_0_8_0"}
+ISO_PATH=${ISO_PATH:-"$HOME/eonix-os-0.9.0.iso"}
+VOLUME_ID=${VOLUME_ID:-"EONIX_OS_0_9_0"}
 TEST_MODE=0
 SIGN_MODE=0
 

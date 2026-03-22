@@ -43,6 +43,11 @@ def test_iso_script_syntax_valid() -> None:
     assert result.returncode == 0, result.stderr
 
 
+def test_install_eonix_into_chroot_syntax_valid() -> None:
+    result = _run([BASH, "-n", str(ISO_DIR / "install_eonix_into_chroot.sh")])
+    assert result.returncode == 0, result.stderr
+
+
 def test_eonix_install_called_with_dev_flag() -> None:
     text = (ISO_DIR / "build_base.sh").read_text(encoding="utf-8")
     assert "eonix-install.sh" in text
