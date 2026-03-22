@@ -83,7 +83,7 @@ ensure_efi_image() {
   sudo mcopy -i "$efi_img" "$tmp_dir/BOOTX64.EFI" ::/EFI/BOOT/
 }
 
-# Ensure grub artifacts are staged
+# Ensure grub artifacts are staged (spec step 1)
 bash "$SCRIPT_DIR/grub_config.sh"
 
 # Preconditions
@@ -128,7 +128,8 @@ ls -lh "$ISO_PATH"
 file "$ISO_PATH"
 sha256sum "$ISO_PATH" > "$ISO_PATH.sha256"
 cat "$ISO_PATH.sha256"
-echo "✅ ISO ready: $ISO_PATH"
+ISO_HUMAN_SIZE=$(du -h "$ISO_PATH" | awk '{print $1}')
+echo "✅ ISO ready: $ISO_HUMAN_SIZE at $ISO_PATH"
 
 if [[ $SIGN_MODE -eq 1 ]]; then
   if command -v gpg >/dev/null 2>&1; then
