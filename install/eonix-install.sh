@@ -92,6 +92,13 @@ prepare_directories() {
 }
 
 init_repo() {
+  if [ "$DEV_MODE" -eq 1 ] && [ -d "$LOCAL_REPO" ]; then
+    log "Dev mode: using local repository at $LOCAL_REPO"
+    rm -rf "$EONIX_OS_DIR"
+    cp -a "$LOCAL_REPO" "$EONIX_OS_DIR"
+    return
+  fi
+
   if [ ! -d "$EONIX_OS_DIR/.git" ]; then
     log "Cloning Eonix OS into $EONIX_OS_DIR"
     rm -rf "$EONIX_OS_DIR"
