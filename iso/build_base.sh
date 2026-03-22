@@ -32,7 +32,13 @@ sync_tree() {
   local source_dir="$1"
   local dest_dir="$2"
   if command -v rsync >/dev/null 2>&1; then
-    sudo rsync -a --delete "$source_dir/" "$dest_dir/"
+    sudo rsync -a --delete \
+      --exclude '.git/' \
+      --exclude '.venv/' \
+      --exclude '.venv-iso/' \
+      --exclude '__pycache__/' \
+      --exclude '.pytest_cache/' \
+      "$source_dir/" "$dest_dir/"
   else
     log "rsync not found; using cp -a fallback"
     sudo rm -rf "$dest_dir"
