@@ -61,8 +61,9 @@ ExecStart=-/sbin/agetty --autologin eonix --noclear %I linux
 EOF
 
 # Runtime Python dependencies baked into the ISO
-python3 -m pip install --no-cache-dir --upgrade pip
+python3 -m pip install --break-system-packages --no-cache-dir --upgrade pip
 python3 -m pip install --no-cache-dir \
+  --break-system-packages \
   numpy scikit-learn lightgbm onnxruntime \
   sentence-transformers chromadb psutil prompt_toolkit pytest-asyncio pyarrow \
   pycairo PyGObject python-xlib ewmh \
