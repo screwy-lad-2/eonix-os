@@ -65,9 +65,20 @@ python3 -m pip install --break-system-packages --no-cache-dir --upgrade pip
 python3 -m pip install --no-cache-dir \
   --break-system-packages \
   numpy scikit-learn lightgbm onnxruntime \
-  sentence-transformers chromadb psutil prompt_toolkit pytest-asyncio pyarrow \
+  psutil prompt_toolkit pytest-asyncio pyarrow \
   pycairo PyGObject python-xlib ewmh \
   httpx fastapi uvicorn aiohttp websockets zeroconf requests
+
+# Avoid hard CI failures from very large optional AI wheels (torch/CUDA stack).
+optional_python_packages=(
+  sentence-transformers
+  chromadb
+)
+for pkg in "${optional_python_packages[@]}"; do
+  if ! python3 -m pip install --no-cache-dir --break-system-packages "$pkg"; then
+    echo "[chroot_setup] WARNING: Optional Python package '$pkg' failed to install; continuing"
+  fi
+done
 
 # Ensure MIND code exists inside the live filesystem
 if [[ -d /home/eonix/eonix-os/eonix-mind ]]; then
