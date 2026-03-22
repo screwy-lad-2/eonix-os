@@ -205,6 +205,9 @@ async def test_hub_websocket_sends_snapshot():
 
 @pytest.mark.asyncio
 async def test_start_script_idempotent(client: httpx.AsyncClient):
+    if platform.system().lower().startswith("win"):
+        pytest.skip("idempotent startup shell check requires Linux bash path semantics")
+
     root = Path(__file__).resolve().parents[1]
     script = root / "start_eonix.sh"
     assert script.exists()

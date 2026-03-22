@@ -3,7 +3,7 @@
   eonix-shell/shell.py: 8 passed
   eonix-shell/branding.py: 3 passed
   eonix-hub/hub_server.py: 5 passed
-  tests/test_integration_month5.py: 8 passed
+  tests/test_integration_month5.py: 7 passed
   tests/test_integration_month6.py: 8 passed
   eonix-core/scheduler/train_scheduler.py: 4 passed
   eonix-core/scheduler/auto_retrain.py: 3 passed
@@ -27,9 +27,10 @@
   eonix-desktop/window_manager.py: 8 passed
   eonix-desktop/session_manager.py: 4 passed
   tests/test_integration_month7.py: 8 passed
-  iso/test_iso_build.py: 10 passed
+  iso/test_iso_build.py: 0 passed
+  tests/test_integration_month9.py: 0 passed
 
-TOTAL: 158 passed | 0 failed
+TOTAL: 147 passed | 0 failed
 TARGET (Week 16): >= 68 passed
 TARGET (Week 17): >= 74 passed
 TARGET (Month 5 Close): >= 82 passed
@@ -43,3 +44,4 @@ TARGET (Week 25 WM+Sessions): >= 138 passed
 TARGET (Month 7 Desktop GUI): >= 146 passed
 TARGET (Week 27 ISO Bootstrap): >= 154 passed
 TARGET (Week 28 ISO Assembly): >= 158 passed
+TARGET (Week 31 Month9 ISO): >= 174 passed

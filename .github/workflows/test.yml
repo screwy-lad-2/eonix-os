@@ -611,6 +611,29 @@ jobs:
       - name: Run Month 7 integration tests
         run: python3 -m pytest tests/test_integration_month7.py -v
 
+  test-integration-month9:
+    name: Test Integration Month 9
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi uvicorn aiohttp websockets pytest pytest-asyncio httpx psutil \
+            numpy scikit-learn lightgbm onnxruntime chromadb sentence-transformers requests \
+            zeroconf prompt_toolkit pyarrow
+
+      - name: Run Month 9 integration tests
+        env:
+          EONIX_START_SMOKE: '1'
+        run: python3 -m pytest tests/test_integration_month9.py -v
+
   test-desktop:
     name: Test Desktop (GTK headless)
     runs-on: ubuntu-latest

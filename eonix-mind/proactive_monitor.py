@@ -340,8 +340,11 @@ def test_cooldown_prevents_duplicate_alerts(monkeypatch):
 
 
 def test_deadline_detected_from_memory():
+    from datetime import datetime, timedelta, timezone
+
     spoken: List[str] = []
-    m = ProactiveMonitor(speak_fn=lambda msg: spoken.append(msg), memory=_dummy_memory("OS exam on 2026-03-20"))
+    future = (datetime.now(timezone.utc) + timedelta(days=3)).strftime("%Y-%m-%d")
+    m = ProactiveMonitor(speak_fn=lambda msg: spoken.append(msg), memory=_dummy_memory(f"OS exam on {future}"))
     m.rule_deadline_approaching()
     assert any("days remaining" in x for x in spoken)
 

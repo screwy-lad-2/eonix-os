@@ -15,6 +15,7 @@ NO_MIND="${EONIX_START_NO_MIND:-0}"
 NO_MIND="${NO_MIND//$'\r'/}"
 HEALTH_RETRIES="${EONIX_HEALTH_RETRIES:-30}"
 HEALTH_INTERVAL_SECONDS="${EONIX_HEALTH_INTERVAL_SECONDS:-2}"
+SMOKE_MODE="${EONIX_START_SMOKE:-0}"
 
 declare -a PIDS=()
 declare -A STATUS=()
@@ -23,6 +24,18 @@ KEEP_PROCS_ON_SUCCESS=1
 log() {
 	local msg="$1"
 	echo "[$(date -u +%H:%M:%S)] ${msg}"
+}
+
+ensure_httpx() {
+	if ! "${PYTHON_BIN}" - <<'PY' 2>/dev/null
+import httpx
+PY
+	then
+		log "httpx missing -> installing"
+		"${PYTHON_BIN}" -m pip install httpx -q >/dev/null 2>&1 || pip install httpx -q >/dev/null 2>&1 || true
+	else
+		log "httpx already installed"
+	fi
 }
 
 cleanup() {
@@ -73,24 +86,37 @@ print_summary() {
 	local res="${STATUS[resource]:-fail}"
 	local sync="${STATUS[sync]:-fail}"
 	local hub="${STATUS[hub]:-fail}"
+	local mind="${STATUS[mind]:-fail}"
 
-	local icon_goal icon_ctx icon_res icon_sync icon_hub
+	local icon_goal icon_ctx icon_res icon_sync icon_hub icon_mind
 	icon_goal=$([[ "${goal}" == "ok" ]] && echo "✅" || echo "❌")
 	icon_ctx=$([[ "${ctx}" == "ok" ]] && echo "✅" || echo "❌")
 	icon_res=$([[ "${res}" == "ok" ]] && echo "✅" || echo "❌")
 	icon_sync=$([[ "${sync}" == "ok" ]] && echo "✅" || echo "❌")
 	icon_hub=$([[ "${hub}" == "ok" ]] && echo "✅" || echo "❌")
+	icon_mind=$([[ "${mind}" == "ok" ]] && echo "✅" || ([[ "${mind}" == "skip" ]] && echo "!" || echo "❌"))
 
 	echo "Port 7735 GoalEngine:     ${icon_goal}"
 	echo "Port 7736 ContextAgent:   ${icon_ctx}"
 	echo "Port 7737 ResourceAgent:  ${icon_res}"
 	echo "Port 7740 SyncDaemon:     ${icon_sync}"
 	echo "Port 7750 Hub:            ${icon_hub}"
+	echo "MIND v2:                  ${icon_mind}"
 }
 
 overall_success=0
 
 log "⚡ Starting EONIX OS..."
+
+ensure_httpx
+
+if [[ "${SMOKE_MODE}" -eq 1 ]]; then
+	log "SMOKE mode enabled -> skipping service startup"
+	STATUS[goal]="skip"; STATUS[context]="skip"; STATUS[resource]="skip"; STATUS[sync]="skip"; STATUS[hub]="skip"; STATUS[mind]="skip"
+	overall_success=1
+	print_summary
+	exit 0
+fi
 
 start_bg "GoalEngine" "$PYTHON_BIN" eonix-cortex/goal-engine/engine.py --start
 start_bg "ContextAgent" "$PYTHON_BIN" eonix-cortex/context-agent/agent.py --start
@@ -146,9 +172,21 @@ fi
 
 if [[ "${NO_MIND}" == "1" ]]; then
 	log "EONIX_START_NO_MIND=1 -> skipping MIND startup"
+	STATUS[mind]="skip"
 else
-	start_bg "MIND" "$PYTHON_BIN" eonix-mind/mind_v2.py
-	STATUS[mind]="ok"
+	MIND_PATH=""
+	MIND_FOUND=$( { find "${HOME}/eonix-os" "${HOME}/eonix-mind" -name 'mind_v2.py' 2>/dev/null || true; } | head -n 1 )
+	if [[ -n "${MIND_FOUND}" ]]; then
+		MIND_PATH="${MIND_FOUND}"
+	fi
+	if [[ -z "${MIND_PATH}" ]]; then
+		log "MIND not found -> skipping"
+		STATUS[mind]="skip"
+	else
+		log "Starting MIND from ${MIND_PATH}"
+		start_bg "MIND" "$PYTHON_BIN" "${MIND_PATH}"
+		STATUS[mind]="ok"
+	fi
 fi
 
 print_summary

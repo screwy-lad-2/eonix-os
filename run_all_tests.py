@@ -43,6 +43,7 @@ SUITES = [
     "eonix-desktop/session_manager.py",
     "tests/test_integration_month7.py",
     "iso/test_iso_build.py",
+    "tests/test_integration_month9.py",
 ]
 
 WEEK16_MIN_EXPECTED_PASS = 68
@@ -58,10 +59,11 @@ WEEK25_MIN_EXPECTED_PASS = 138
 MONTH7_MIN_EXPECTED_PASS = 146
 WEEK27_MIN_EXPECTED_PASS = 154
 WEEK28_MIN_EXPECTED_PASS = 158
+MONTH9_MIN_EXPECTED_PASS = 174
 
 DEFAULT_PROOF_PATH = Path("results/week28_cumulative_proof.txt")
 
-INTEGRATION_SUITES = {"tests/test_integration_month5.py", "tests/test_integration_month6.py", "tests/test_integration_month7.py"}
+INTEGRATION_SUITES = {"tests/test_integration_month5.py", "tests/test_integration_month6.py", "tests/test_integration_month7.py", "tests/test_integration_month9.py"}
 SERVICE_SCRIPTS = [
     ("eonix-cortex/goal-engine/engine.py", ["--start"]),
     ("eonix-cortex/context-agent/agent.py", ["--start"]),
@@ -253,6 +255,7 @@ def main() -> int:
     lines.append(f"TARGET (Month 7 Desktop GUI): >= {MONTH7_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 27 ISO Bootstrap): >= {WEEK27_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 28 ISO Assembly): >= {WEEK28_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 31 Month9 ISO): >= {MONTH9_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)

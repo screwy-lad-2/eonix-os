@@ -1,0 +1,5 @@
+Bug 1: mind_v2.py missing       -> FIXED
+Bug 2: httpx missing            -> FIXED
+Bug 3: vboxvideo driver missing -> FIXED
+Bug 4: hostname not resolving   -> FIXED
+Status: All 4 bugs patched in chroot_setup.sh

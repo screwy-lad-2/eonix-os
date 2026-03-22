@@ -11,11 +11,15 @@ apt-get install -y --no-install-recommends \
   portaudio19-dev ffmpeg espeak-ng \
   xorg xinit openbox \
   fonts-noto-color-emoji \
-  network-manager xvfb
+  network-manager xvfb \
+  virtualbox-guest-x11 virtualbox-guest-utils virtualbox-guest-dkms
 
 # Hostname
 if [[ ! -f /etc/hostname ]] || ! grep -q '^eonix-os$' /etc/hostname; then
   echo 'eonix-os' > /etc/hostname
+fi
+if ! grep -q '127.0.1.1 eonix-os' /etc/hosts 2>/dev/null; then
+  echo '127.0.1.1 eonix-os' >> /etc/hosts
 fi
 
 # User setup
@@ -35,5 +39,21 @@ cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<'EOF'
 ExecStart=
 ExecStart=-/sbin/agetty --autologin eonix --noclear %I linux
 EOF
+
+# Runtime Python dependencies baked into the ISO
+python3 -m pip install --no-cache-dir --upgrade pip
+python3 -m pip install --no-cache-dir \
+  numpy scikit-learn lightgbm onnxruntime \
+  sentence-transformers chromadb psutil prompt_toolkit pytest-asyncio pyarrow \
+  pycairo PyGObject python-xlib ewmh \
+  httpx fastapi uvicorn aiohttp websockets zeroconf requests
+
+# Ensure MIND code exists inside the live filesystem
+if [[ -d /home/eonix/eonix-os/eonix-mind ]]; then
+  cp -a /home/eonix/eonix-os/eonix-mind /home/eonix/eonix-mind
+  chown -R eonix:eonix /home/eonix/eonix-mind
+else
+  echo "[chroot_setup] WARNING: /home/eonix/eonix-os/eonix-mind missing; skipping copy" >&2
+fi
 
 apt-get clean
