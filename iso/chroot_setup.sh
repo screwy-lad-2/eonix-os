@@ -11,8 +11,28 @@ apt-get install -y --no-install-recommends \
   portaudio19-dev ffmpeg espeak-ng \
   xorg xinit openbox \
   fonts-noto-color-emoji \
-  network-manager xvfb \
-  virtualbox-guest-x11 virtualbox-guest-utils virtualbox-guest-dkms
+  network-manager xvfb
+
+# VirtualBox guest packages are in contrib/non-free on some Debian mirrors.
+# Install only those currently resolvable to keep CI builds reproducible.
+vbox_guest_packages=(
+  virtualbox-guest-x11
+  virtualbox-guest-utils
+  virtualbox-guest-dkms
+)
+available_vbox_guest_packages=()
+for pkg in "${vbox_guest_packages[@]}"; do
+  if apt-cache show "$pkg" >/dev/null 2>&1; then
+    available_vbox_guest_packages+=("$pkg")
+  else
+    echo "[chroot_setup] INFO: Optional package '$pkg' not available; skipping"
+  fi
+done
+if [[ ${#available_vbox_guest_packages[@]} -gt 0 ]]; then
+  apt-get install -y --no-install-recommends "${available_vbox_guest_packages[@]}"
+else
+  echo "[chroot_setup] INFO: No VirtualBox guest packages available in apt sources"
+fi
 
 # Hostname
 if [[ ! -f /etc/hostname ]] || ! grep -q '^eonix-os$' /etc/hostname; then
