@@ -50,13 +50,17 @@ done
 sudo chown -R 1000:1000 "$CHROOT/home/eonix"
 
 echo "[install] Installing Python dependencies inside chroot"
-sudo chroot "$CHROOT" /bin/bash -lc "pip3 install --no-cache-dir \
+sudo chroot "$CHROOT" /bin/bash -lc "pip3 install --no-cache-dir --break-system-packages \
   httpx fastapi uvicorn aiohttp \
   websockets requests psutil \
   numpy scikit-learn lightgbm \
-  onnxruntime sentence-transformers \
-  chromadb prompt_toolkit \
+  onnxruntime prompt_toolkit \
   pycairo PyGObject python-xlib ewmh"
+
+echo "[install] Installing optional heavy packages (may be skipped)"
+sudo chroot "$CHROOT" /bin/bash -lc "pip3 install --no-cache-dir --break-system-packages \
+  sentence-transformers chromadb 2>/dev/null" || \
+  echo "[install] WARNING: Optional packages (sentence-transformers, chromadb) failed; continuing"
 
 if [[ ! -f "$CHROOT/home/eonix/eonix-mind/mind_v2.py" ]]; then
   echo "mind_v2.py missing after install" >&2
