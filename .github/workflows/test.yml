@@ -738,6 +738,8 @@ jobs:
           sudo env CHROOT=/root/eonix-iso-build/chroot bash iso/install_eonix_into_chroot.sh
           sudo env BUILD_ROOT=/root/eonix-iso-build bash iso/build_squashfs.sh
           sudo env BUILD_ROOT=/root/eonix-iso-build ISO_PATH=/root/eonix-iso-build/eonix-os-0.9.0.iso VOLUME_ID=EONIX_OS_0_9_0 bash iso/build_iso.sh
+          sudo chown -R $USER:$USER /root/eonix-iso-build
+          sudo chmod 755 /root
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4.6.0
