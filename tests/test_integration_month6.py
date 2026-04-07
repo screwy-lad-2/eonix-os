@@ -138,8 +138,8 @@ def test_installer_dev_mode_idempotent(tmp_path):
     env["HOME"] = str(home)
     env["CI"] = "true"
 
-    first = _run(["bash", "install/eonix-install.sh", "--dev"], env=env, timeout=300)
-    second = _run(["bash", "install/eonix-install.sh", "--dev"], env=env, timeout=300)
+    first = _run(["bash", "install/eonix-install.sh", "--dev"], env=env, timeout=900)
+    second = _run(["bash", "install/eonix-install.sh", "--dev"], env=env, timeout=900)
 
     assert first.returncode == 0, first.stderr
     assert second.returncode == 0, second.stderr

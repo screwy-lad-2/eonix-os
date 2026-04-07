@@ -23,6 +23,7 @@
 
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/version.h>
 #include <linux/init.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
@@ -843,8 +844,12 @@ static int __init eonix_deadlock_init(void)
 	register_kprobes_safe();
 
 	/* Start hrtimer */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
+	hrtimer_setup(&detection_timer, detection_timer_fn, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+#else
 	hrtimer_init(&detection_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	detection_timer.function = detection_timer_fn;
+#endif
 	hrtimer_start(&detection_timer, ms_to_ktime(DETECTION_INTERVAL_MS),
 		      HRTIMER_MODE_REL);
 	pr_info("EONIX_RAG: hrtimer started (%dms interval)\n",
