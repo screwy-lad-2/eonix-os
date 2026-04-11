@@ -65,6 +65,7 @@ WEEK32_MIN_EXPECTED_PASS = 178
 WEEK33_MIN_EXPECTED_PASS = 182
 WEEK36_MIN_EXPECTED_PASS = 170
 WEEK37_MIN_EXPECTED_PASS = 174
+WEEK40_MIN_EXPECTED_PASS = 180
 
 
 DEFAULT_PROOF_PATH = Path("results/week28_cumulative_proof.txt")
@@ -266,6 +267,7 @@ def main() -> int:
     lines.append(f"TARGET (Week 33 Model Hooks): >= {WEEK33_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 36 v1.2 Retrain): >= {WEEK36_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 37 Release Finalization): >= {WEEK37_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 40 Hardening): >= {WEEK40_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)

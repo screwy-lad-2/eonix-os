@@ -214,3 +214,24 @@ def test_rollback_checks_top3_degradation():
         content = f.read()
     assert "top3_drop" in content
     assert "0.03" in content
+
+
+def test_landing_page_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(
+        os.path.join(REPO, "docs/index.html"))
+
+
+def test_getting_started_doc_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(
+        os.path.join(REPO, "docs/getting-started.md"))
+
+
+def test_api_doc_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(
+        os.path.join(REPO, "docs/api.md"))

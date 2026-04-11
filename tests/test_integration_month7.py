@@ -109,3 +109,29 @@ def test_goal_workspace_restore_calls_session_manager():
     panel.active_goal_id = "goal-123"
     panel.open_workspace()
     mock_sm.restore_session.assert_called_once_with("goal-123")
+
+
+def test_splash_screen_implemented():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    desktop = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(desktop) as f: content = f.read()
+    assert "splash" in content.lower()
+    assert "1500" in content  # 1500ms timeout
+
+
+def test_workspace_css_class_set():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    desktop = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(desktop) as f: content = f.read()
+    assert "eonix-workspace" in content
+
+
+def test_clock_format_string():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    desktop = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(desktop) as f: content = f.read()
+    assert "%I:%M" in content
+    assert "%p" in content
