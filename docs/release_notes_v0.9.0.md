@@ -31,3 +31,7 @@ All 8 boot checks passed on `eonix-os-0.9.0.iso`:
   QEMU: `qemu-system-x86_64 -cdrom eonix-os-0.9.0.iso -m 4G`
 
 ### Next: v1.0.0 â€” Month 10/11 Public Release
+
+### Download ISO
+[eonix-os-0.9.0.iso – Google Drive](YOUR_GOOGLE_DRIVE_LINK_HERE)
+

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Eonix OS — AI-Native Operating System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>⚡ Eonix OS</h1>
+    <p class="tagline">The AI-Native Operating System</p>
+    <div class="badges">
+      <img src="https://img.shields.io/badge/version-v0.9.0-blue">
+      <img src="https://img.shields.io/badge/tests-174%2B-brightgreen">
+      <img src="https://img.shields.io/badge/model-LightGBM_v1.2-orange">
+      <img src="https://img.shields.io/badge/desktop-GTK4-purple">
+    </div>
+  </header>
+
+  <section class="hero">
+    <h2>An operating system that thinks with you</h2>
+    <p>Eonix OS embeds a live AI scheduler, goal engine,
+    ChromaDB memory, and GTK4 desktop into a bootable ISO.
+    Built from scratch over 11 months.</p>
+    <a class="btn" href="https://github.com/shahnoor-exe/eonix-os/releases/tag/v0.9.0">
+      Download v0.9.0 ISO
+    </a>
+    <a class="btn secondary"
+       href="https://github.com/shahnoor-exe/eonix-os">
+      View on GitHub
+    </a>
+  </section>
+
+  <section class="features">
+    <h2>What's Inside</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>🧠 LightGBM v1.2 AI</h3>
+        <p>Trained on 148,812 events.
+        63.47% accuracy. Auto-retrains with
+        rollback safety.</p>
+      </div>
+      <div class="card">
+        <h3>🖥️ GTK4 Desktop</h3>
+        <p>Full window manager with GoalPanel,
+        TopBar clock, splash screen,
+        and snap geometry.</p>
+      </div>
+      <div class="card">
+        <h3>🤖 5 AI Agents</h3>
+        <p>GoalEngine, ContextAgent,
+        ResourceAgent, SyncDaemon, Hub.
+        Always-on, ports 7735–7750.</p>
+      </div>
+      <div class="card">
+        <h3>🧬 MIND v2</h3>
+        <p>ChromaDB vector memory,
+        proactive monitor, voice input,
+        NL shell commands.</p>
+      </div>
+      <div class="card">
+        <h3>🔄 Cross-Device Sync</h3>
+        <p>zeroconf peer discovery.
+        Syncs goals and context
+        across all your devices.</p>
+      </div>
+      <div class="card">
+        <h3>📦 Bootable ISO</h3>
+        <p>Full Debian base. GRUB + UEFI.
+        Boots in VirtualBox or
+        real hardware.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats">
+    <h2>By the Numbers</h2>
+    <div class="stat-row">
+      <div class="stat"><span>11</span><p>Months Built</p></div>
+      <div class="stat"><span>174+</span><p>Tests Passing</p></div>
+      <div class="stat"><span>148K</span><p>Training Rows</p></div>
+      <div class="stat"><span>5</span><p>AI Agents</p></div>
+      <div class="stat"><span>63.47%</span><p>Model Accuracy</p></div>
+      <div class="stat"><span>30</span><p>CI Jobs</p></div>
+    </div>
+  </section>
+
+  <section class="quickstart">
+    <h2>Boot in 3 Steps</h2>
+    <pre>
+1. Download eonix-os-0.9.0.iso from GitHub Releases
+
+2. Create VirtualBox VM:
+   RAM: 4096MB | CPUs: 2 | Display: VMSVGA
+
+3. Boot ISO → GRUB → Desktop in ~30 seconds
+    </pre>
+  </section>
+
+  <footer>
+    <p>Built by Shahnoor |
+       <a href="https://github.com/shahnoor-exe/eonix-os">
+       GitHub</a> |
+       v1.0.0 coming soon</p>
+  </footer>
+</body>
+</html>
