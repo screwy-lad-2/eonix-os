@@ -5,6 +5,7 @@
 - v1.2 model: 63.47% accuracy (+1.86%)
 - Splash screen, TopBar, GoalPanel polish
 - 174+ tests passing
+- Android bridge: implemented, physical device test deferred to v1.1 (verified in emulator logic only)
 
 ## v0.8.0 (January 2026)
 - Full ISO build pipeline
