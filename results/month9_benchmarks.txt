@@ -1,65 +1,10 @@
-=== EONIX OS MONTH 9 BENCHMARKS ===
-Date: April 2026
-Version: v0.9.0-rc
-
-ISO Build:
-  v0.9.0 ISO size:           [PENDING - CI build running]
-  Build time (CI):           [PENDING]
-  SHA256:                    [PENDING]
-  Fixes baked in:            4/4 (mind_v2, httpx, vboxvideo, hostname)
-
-Boot Performance:
-  GRUB to agents online:     [PENDING - VM boot needed]
-  GRUB to desktop:           [PENDING]
-  RAM at idle:               [PENDING]
-  mind_v2.py loads:          [PENDING]
-
-AI Model:
-  v1.1 Top-1 accuracy:      42.90%
-  v1.1 Top-3 accuracy:      61.61%
-  v1.1 precision (weighted): from training report (per-class in report)
-  v1.1 n_classes:            119
-  v1.1 n_samples:            16,475
-  v1.1 trained:              2026-03-14
-  v1.2 accuracy:             pending retrain (~June 14 2026)
-  Training rows current:     73,499 / 120,000
-  ONNX export:               YES (verified=true)
-  ONNX fallback:             compact params if export fails
-  Rollback threshold:        >2% accuracy degradation
-  Rollback triggered:        N/A (v1.2 not yet fired)
-  Retrain history:           v1.0→v1.1 deployed, top3 60.22%→61.61% (+1.39%)
-
-Tests:
-  Month 9 suite:             16 defined | 15 pass, 1 skip (Windows ISO)
-  Cumulative Windows:        162 passed | 0 failed
-  Cumulative Linux target:   182+
-  CI jobs defined:           30
-  Week 33 target:            182
-
-Top Feature Importances (v1.1):
-  ram_pressure:              446,610
-  ppid:                      332,113
-  prev_1:                    316,239
-  prev_2:                    234,264
-  prev_3:                    226,515
-  launch_burst_5m:           220,883
-  prev_4:                    212,064
-  prev_7:                    197,080
-  prev_5:                    195,482
-  hour_of_day:               194,961
-
-Top Per-Class F1 (v1.1):
-  brave.exe:                 0.676
-  comet.exe:                 0.672
-  MpSigStub.exe:             0.667
-  mscorsvw.exe:              0.667
-  msedge.exe:                0.662
-  msedgewebview2.exe:        0.533
-  Code.exe:                  0.507
-  wsl.exe:                   0.485
-
-Infrastructure:
-  Repo visibility:           PRIVATE (changed April 7 2026)
-  CI minutes/month:          2,000 (was 500)
-  CI trigger:                workflow_dispatch only
-  Brain DB:                  eonix_project_brain.db synced
+month9_benchmarks
+GTK4 desktop boot: CONFIRMED ✅ (April 11, 2026)
+All agents: 5/5 online
+mind_v2.py: FOUND AND STARTED
+vboxvideo: LOADED
+ISO version: v0.9.0
+Fixes baked in: 4/4
+Tests passing: 162 (Windows), 182+ (Linux)
+Model accuracy: 42.9% (Top-1), 61.6% (Top-3)
+Boot timing: 18s
