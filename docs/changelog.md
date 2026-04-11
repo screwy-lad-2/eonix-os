@@ -15,7 +15,7 @@
 - GTK4 desktop + session manager
 - Snap geometry with offsets
 
-## v0.1.0 – v0.6.0 (Jul–Nov 2025)
+## v0.1.0 -- v0.6.0 (Jul--Nov 2025)
 - Data pipeline, LightGBM, MIND v2,
   GoalEngine, cross-device sync,
   EonixShell NL

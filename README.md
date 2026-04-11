@@ -1,7 +1,7 @@
-# ⚡ Eonix OS
+# Eonix OS
 
 [![Version](https://img.shields.io/badge/version-v0.9.0-blue)](https://github.com/shahnoor-exe/eonix-os/releases/tag/v0.9.0)
-[![Tests](https://img.shields.io/badge/tests-174%2B-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
+[![Tests](https://img.shields.io/badge/tests-174+-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
 [![Model](https://img.shields.io/badge/model-LightGBM_v1.2_63.47%25-orange)](docs/ai-model.md)
 [![Desktop](https://img.shields.io/badge/desktop-GTK4-purple)](docs/getting-started.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -35,20 +35,20 @@ python3 eonix-shell/shell.py
 
 | Feature              | Status  | Since   |
 |----------------------|---------|---------|
-| AI Scheduler         | ✅ Live | Month 1 |
-| EONIX MIND v2.0      | ✅ Live | Month 4 |
-| GoalEngine           | ✅ Live | Month 4 |
-| Persistent Memory    | ✅ Live | Month 4 |
-| ContextAgent         | ✅ Live | Month 3 |
-| ResourceAgent        | ✅ Live | Month 4 |
-| SyncDaemon (LAN)     | ✅ Live | Month 5 |
-| Android App          | ✅ Live | Month 5 |
-| Eonix Hub            | ✅ Live | Month 5 |
-| EonixShell           | ✅ Live | Month 6 |
-| NL Interpreter       | ✅ Live | Month 6 |
-| Installer            | ✅ Live | Month 6 |
-| Desktop GUI          | ✅ Live | Month 7 |
-| Bootable ISO         | ✅ Live (GTK4 desktop confirmed) | Month 9 |
+| AI Scheduler         | OK Live | Month 1 |
+| EONIX MIND v2.0      | OK Live | Month 4 |
+| GoalEngine           | OK Live | Month 4 |
+| Persistent Memory    | OK Live | Month 4 |
+| ContextAgent         | OK Live | Month 3 |
+| ResourceAgent        | OK Live | Month 4 |
+| SyncDaemon (LAN)     | OK Live | Month 5 |
+| Android App          | OK Live | Month 5 |
+| Eonix Hub            | OK Live | Month 5 |
+| EonixShell           | OK Live | Month 6 |
+| NL Interpreter       | OK Live | Month 6 |
+| Installer            | OK Live | Month 6 |
+| Desktop GUI          | OK Live | Month 7 |
+| Bootable ISO         | OK Live (GTK4 desktop confirmed) | Month 9 |
 
 ## Test Coverage
 
@@ -76,10 +76,10 @@ qemu-system-x86_64 -cdrom eonix-os-0.9.0.iso -m 4G
 
 ## Roadmap
 
-Month 7 → Eonix Desktop (GTK GUI, shipped v0.7.0)
-Month 8 → Bootable ISO
-Month 9 → Hardware testing
-Month 10 → Public release
+Month 7 -> Eonix Desktop (GTK GUI, shipped v0.7.0)
+Month 8 -> Bootable ISO
+Month 9 -> Hardware testing
+Month 10 -> Public release
 
 ## Author
 

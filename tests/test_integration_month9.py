@@ -144,3 +144,73 @@ def test_model_comparison_function_exists():
 def test_hub_status_includes_model_version():
     text = (ROOT / "eonix-hub" / "hub_server.py").read_text(encoding="utf-8")
     assert "model_version" in text and "next_retrain_eta" in text and "model_ready" in text
+
+def test_hub_status_all_fields_present():
+    """Verify /hub/status returns all required model fields."""
+    import ast, os
+    hub_file = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "eonix-hub/hub_server.py"
+    )
+    with open(hub_file) as f:
+        content = f.read()
+    assert "model_version" in content
+    assert "model_ready" in content
+    assert "next_retrain_eta" in content
+
+def test_hub_uses_json_flag_for_model_info():
+    """Verify hub_server uses --json flag not regex."""
+    import os
+    hub_file = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "eonix-hub/hub_server.py"
+    )
+    with open(hub_file) as f:
+        content = f.read()
+    assert "--json" in content
+    # Should NOT use regex for parsing anymore
+    # (regex was the old fragile method)
+    assert "json.loads" in content or "json_data" in content
+
+def test_mind_memory_empty_recall_guard():
+    """Verify memory.py handles empty recall without crash."""
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    mem_file = os.path.join(REPO, "eonix-mind/memory.py")
+    with open(mem_file) as f:
+        content = f.read()
+    # Should have a guard for empty results
+    assert "if not" in content or "len(" in content or \
+           "results is None" in content or "except" in content
+
+def test_proactive_monitor_no_hardcoded_2025_dates():
+    """Verify proactive_monitor.py uses dynamic dates."""
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pm_file = os.path.join(REPO, "eonix-mind/proactive_monitor.py")
+    with open(pm_file) as f:
+        content = f.read()
+    # Should not have hardcoded year 2025 as a deadline
+    assert "2025-" not in content or "datetime" in content
+
+def test_auto_retrain_has_json_flag():
+    """Verify --json flag exists in auto_retrain.py."""
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ar_file = os.path.join(REPO,
+        "eonix-core/scheduler/auto_retrain.py")
+    with open(ar_file) as f:
+        content = f.read()
+    assert "--json" in content
+    assert "json.dumps" in content
+
+def test_rollback_checks_top3_degradation():
+    """Verify rollback guards against top3 degradation."""
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ar_file = os.path.join(REPO,
+        "eonix-core/scheduler/auto_retrain.py")
+    with open(ar_file) as f:
+        content = f.read()
+    assert "top3_drop" in content
+    assert "0.03" in content

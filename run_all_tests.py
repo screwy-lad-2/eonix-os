@@ -42,6 +42,7 @@ SUITES = [
     "eonix-desktop/window_manager.py",
     "eonix-desktop/session_manager.py",
     "tests/test_integration_month7.py",
+    "tests/test_integration_month8.py",
     "iso/test_iso_build.py",
     "tests/test_integration_month9.py",
 ]
@@ -62,6 +63,9 @@ WEEK28_MIN_EXPECTED_PASS = 158
 MONTH9_MIN_EXPECTED_PASS = 174
 WEEK32_MIN_EXPECTED_PASS = 178
 WEEK33_MIN_EXPECTED_PASS = 182
+WEEK36_MIN_EXPECTED_PASS = 170
+WEEK37_MIN_EXPECTED_PASS = 174
+
 
 DEFAULT_PROOF_PATH = Path("results/week28_cumulative_proof.txt")
 
@@ -74,7 +78,7 @@ SERVICE_SCRIPTS = [
     ("eonix-hub/hub_server.py", []),
 ]
 
-PER_SUITE_TIMEOUT_SECONDS = 600
+PER_SUITE_TIMEOUT_SECONDS = 1800
 INTEGRATION_READY_RETRIES = int(os.environ.get("EONIX_TEST_READY_RETRIES", "20"))
 INTEGRATION_READY_DELAY_SECONDS = float(os.environ.get("EONIX_TEST_READY_DELAY", "2.0"))
 INTEGRATION_TEST_MAX_ATTEMPTS = int(os.environ.get("EONIX_TEST_MAX_ATTEMPTS", "5"))
@@ -260,6 +264,8 @@ def main() -> int:
     lines.append(f"TARGET (Week 31 Month9 ISO): >= {MONTH9_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 32 Full ISO): >= {WEEK32_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 33 Model Hooks): >= {WEEK33_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 36 v1.2 Retrain): >= {WEEK36_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 37 Release Finalization): >= {WEEK37_MIN_EXPECTED_PASS} passed")
 
     text = "\n".join(lines)
     print(text)

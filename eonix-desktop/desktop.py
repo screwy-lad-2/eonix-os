@@ -119,6 +119,13 @@ class DataFetcher:
                 memories = payload.get("recent_memories") or []
         except Exception:
             pass
+        if context_events == 0:
+            from datetime import datetime
+            context_events = 1
+            last_event = "Eonix OS v0.9.0 started"
+            if not memories:
+                memories.append({"type": "system", "msg": last_event, "time": datetime.now().isoformat()})
+
         return GoalSnapshot(
             goal_id=goal_id,
             name=goal_name,
@@ -207,7 +214,7 @@ class EonixTopBar:
         self._label_metrics.set_text(f"{self.ram_display}  {self.cpu_display}")
 
     def tick_clock(self) -> None:
-        self.clock_value = time.strftime("%H:%M:%S")
+        self.clock_value = time.strftime("%I:%M %p %a %d %b")
         self._label_clock.set_text(self.clock_value)
 
 
@@ -269,7 +276,10 @@ class EonixGoalPanel:
             pct = f"{goal.progress * 100:.0f}% complete"
             self._progress_label.set_text(pct)
             self._context_label.set_text(f"Context: {self.context_events} events")
-            self._memory_header.set_text(f"🧠 Memories ({self.memory_count})")
+            if self.memory_count == 0:
+                self._memory_header.set_text("🧠 Memories (0) — Add your first goal with + Add")
+            else:
+                self._memory_header.set_text(f"🧠 Memories ({self.memory_count})")
 
     def toggle_memory_section(self) -> None:
         self.memory_expanded = not self.memory_expanded
@@ -300,6 +310,26 @@ class EonixWallpaper:
         if GTK_AVAILABLE and not headless:
             self.window = Gtk.Window(title="Eonix Wallpaper")  # type: ignore
             self.window.fullscreen()
+            
+            css = b"""
+              .eonix-workspace {
+                background-color: #1a1a2e;
+                color: #e0e0e0;
+              }
+              .eonix-topbar {
+                background-color: #0d0d1a;
+                color: #ffffff;
+                min-height: 32px;
+              }
+            """
+            provider = Gtk.CssProvider()
+            provider.load_from_data(css)
+            Gtk.StyleContext.add_provider_for_display(
+                Gdk.Display.get_default(), 
+                provider, 
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            )
+            self.window.add_css_class("eonix-workspace")
 
     def set_watermark(self, text: str) -> None:
         self.watermark = text
@@ -559,9 +589,20 @@ class EonixDesktop:
         if self.panel_only:
             self.goal_panel.window.present()
             return
+
+        if GTK_AVAILABLE and not self.headless:
+            label = Gtk.Label(label="Starting Eonix OS...")
+            splash = Gtk.Window(title="Eonix OS")
+            splash.set_default_size(400, 200)
+            splash.set_child(label)
+            splash.present()
+            GLib.timeout_add(1500, splash.close)
+
         self.wallpaper.window.present()
         self.top_bar.tick_clock()
         self.top_bar.window.present()
+        if hasattr(self.top_bar.window, "set_visible"):
+            self.top_bar.window.set_visible(True)
         self.goal_panel.window.present()
         if hasattr(self.taskbar, "window"):
             self.taskbar.window.present()  # type: ignore[attr-defined]

@@ -1,0 +1,8 @@
+{
+    "active_version": "v1.2",
+    "ready": true,
+    "last_trained": "2026-04-11T16:33:53Z",
+    "accuracy_top1": 0.6347385,
+    "accuracy_top3": 0.72514,
+    "rows": 148812
+}
