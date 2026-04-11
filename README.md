@@ -1,46 +1,25 @@
-# ⚡ EONIX OS — AI-Native Operating System
+# ⚡ Eonix OS
 
-> Your OS knows what you are building.
+[![Version](https://img.shields.io/badge/version-v0.9.0-blue)](https://github.com/shahnoor-exe/eonix-os/releases/tag/v0.9.0)
+[![Tests](https://img.shields.io/badge/tests-174%2B-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
+[![Model](https://img.shields.io/badge/model-LightGBM_v1.2_63.47%25-orange)](docs/ai-model.md)
+[![Desktop](https://img.shields.io/badge/desktop-GTK4-purple)](docs/getting-started.md)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[![CI](https://github.com/shahnoor-exe/eonix-os/actions/workflows/test.yml/badge.svg)](https://github.com/shahnoor-exe/eonix-os/actions/workflows/test.yml)
-[![Tests](https://img.shields.io/badge/tests-162%2B_target-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
-[![Version](https://img.shields.io/badge/version-v0.9.0-blue)](https://github.com/shahnoor-exe/eonix-os/tags)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+> An AI-native operating system with live LightGBM
+> scheduling, ChromaDB memory, GTK4 desktop, and
+> 5 always-on agents. Bootable ISO.
 
----
+## Quick Start
+1. [Download eonix-os-0.9.0.iso](https://github.com/shahnoor-exe/eonix-os/releases/tag/v0.9.0)
+2. Boot in VirtualBox (4GB RAM, VMSVGA display)
+3. See [Getting Started](docs/getting-started.md)
 
-## What Is EONIX OS?
-
-EONIX OS is an AI-first operating layer on Linux that combines a goal-aware shell, autonomous agents, and a self-improving scheduler into one cohesive developer environment. It is designed so the system understands intent, keeps context over time, and helps execute workflows across local and networked nodes.
-
-Today, EONIX ships as a full stack with EonixShell, MIND v2, GoalEngine, ContextAgent, ResourceAgent, SyncDaemon, Android companion app, and the web-based Eonix Hub. The next milestone is a bootable ISO in Month 8.
-
-## Architecture Diagram (ASCII)
-
-```text
-┌─────────────────────────────────────────┐
-│           EONIX OS v0.9.0               │
-├──────────┬──────────┬────────┬──────────┤
-│  Shell   │  MIND    │  Hub   │ Android  │
-│ (v0.6)   │  v2.0    │ :7750  │   App    │
-├──────────┴──────────┴────────┴──────────┤
-│  GoalEngine  │  ContextAgent  │  Sync   │
-│    :7735     │     :7736      │  :7740  │
-├──────────────┼────────────────┼─────────┤
-│ ResourceAgent│   Memory(DB)   │StateStore│
-│    :7737     │  (ChromaDB)    │  JSON   │
-├──────────────┴────────────────┴─────────┤
-│         AI Scheduler (LightGBM+ONNX)    │
-│    v1.1 | 61.61% Top-3 | Auto-retrains  │
-└─────────────────────────────────────────┘
-```
-
-## Quick Install (Linux)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/shahnoor-exe/eonix-os/master/install/eonix-install.sh | bash
-eonix-shell
-```
+## Docs
+- [Getting Started](docs/getting-started.md)
+- [Hub API](docs/api.md)
+- [AI Model](docs/ai-model.md)
+- [Changelog](docs/changelog.md)
 
 ## Quick Start (Dev)
 
