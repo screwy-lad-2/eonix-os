@@ -71,9 +71,9 @@ arXiv **always compiles your .tex from source** server-side. You upload
 1. Go to **https://arxiv.org/user/register**
 2. Fill in:
    - **Username**: your choice (e.g., `shahnoor-butt`)
-   - **Email**: use your university email (`@presidencyuniversity.in`) — institutional emails are preferred
-   - **Full name**: Shahnoor Ahmed Butt
-   - **Affiliation**: Presidency University, Bengaluru, India
+   - **Email**: use your university email (@cuchd.in) — institutional emails are preferred
+   - **Full name**: Shahnoor Ahmed Laskar
+   - **Affiliation**: Chandigarh University, India
    - **Country**: India
    - **Default category**: cs.OS
 3. Confirm your email
@@ -156,7 +156,7 @@ Upload the zip file.
    | Field | Value |
    |-------|-------|
    | **Title** | `Eonix OS: A Self-Healing, Proactive Security Kernel with Autonomous Deadlock Recovery and eBPF Threat Detection` |
-   | **Authors** | `Shahnoor Ahmed Butt` |
+   | **Authors** | `Shahnoor Ahmed Laskar` |
    | **Abstract** | *(see below)* |
    | **Comments** | `15 pages, 9 figures, 6 tables, open-source at https://github.com/shahnoor-exe/eonix-os` |
    | **Primary category** | `cs.OS — Operating Systems` |
@@ -299,7 +299,7 @@ The script pauses between each section — press ENTER when ready.
 
 | Time | Section | What to Say |
 |------|---------|-------------|
-| 0:00 | Intro | "Hi, I'm Shahnoor. This is Eonix OS — a self-healing operating system I built as a 2nd-year B.Tech student. I'll show you autonomous deadlock recovery and eBPF security detection, both running in a real Linux kernel." |
+| 0:00 | Intro | "Hi, I'm Shahnoor. This is Eonix OS — a self-healing operating system I built as a student at Chandigarh University. I'll show you autonomous deadlock recovery and eBPF security detection, both running in a real Linux kernel." |
 | 0:20 | Build | "First, let's build the kernel module. It's about 770 lines of C — a loadable kernel module that hooks into mutex operations via kprobes." |
 | 0:40 | Load | "Now I'll load it into the running kernel. You can see it registered in lsmod, and the dmesg output shows our RAG monitor initialized with 5 subsystems." |
 | 1:00 | 2-way | "Let's trigger a classic 2-way deadlock. Process 1001 holds resource 1 and waits on 2. Process 1002 holds 2 and waits on 1. That's a circular wait — the textbook deadlock. Watch the log..." *(pause for detection)* "Detected and recovered in under 500 milliseconds. No human intervention." |

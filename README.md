@@ -83,5 +83,5 @@ Month 10 -> Public release
 
 ## Author
 
-Shahnoor | B.Tech | Presidency University
+Shahnoor Ahmed Laskar | B.E. C.S.E. (Data Science) | Chandigarh University (Batch 2024-28)
 https://github.com/shahnoor-exe/eonix-os

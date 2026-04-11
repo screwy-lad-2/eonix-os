@@ -1,7 +1,7 @@
 # Eonix OS: A Self-Healing, Proactive Security Kernel with Autonomous Deadlock Recovery and eBPF Threat Detection
 
-**Authors:** Shahnoor Ahmed Butt
-**Institution:** Presidency University, Bengaluru, India
+**Authors:** Shahnoor Ahmed Laskar
+**Institution:** Chandigarh University, India
 **Date:** March 2026
 **arXiv category:** cs.OS (Operating Systems); cross-listed cs.DC (Distributed Computing), cs.CR (Cryptography and Security)
 
