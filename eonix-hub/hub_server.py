@@ -180,6 +180,7 @@ class HubState:
                 sys.executable,
                 str(AUTO_RETRAIN_SCRIPT),
                 "--status",
+                "--json",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -189,7 +190,7 @@ class HubState:
                 text = stderr.decode("utf-8", errors="ignore")
             if not text.strip():
                 return None
-            return _parse_model_status(text)
+            return json.loads(text)
         except Exception:
             return None
 

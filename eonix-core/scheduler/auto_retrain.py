@@ -107,8 +107,9 @@ class AutoRetrainer:
         return ModelState(version=md.get("version", "v1.0"), top3=float(md.get("top3", 0.0)))
 
     def _next_target(self, current_version: str):
+        from packaging import version as semver
         for ver, threshold in VERSION_THRESHOLDS:
-            if ver > current_version:
+            if semver.parse(ver.lstrip("v")) > semver.parse(current_version.lstrip("v")):
                 return ver, threshold
         return VERSION_THRESHOLDS[-1]
 
@@ -186,8 +187,11 @@ class AutoRetrainer:
         retrain_report = REPO_ROOT / "results" / f"retrain_{version}.txt"
         retrain_report.write_text(json.dumps({"version": version, "metrics": metrics, "tests_passed": tests_passed}, indent=2), encoding="utf-8")
 
-        accuracy_drop = max(0.0, float(old_metrics.get("accuracy", 0.0)) - float(metrics.get("accuracy", 0.0)))
-        degraded_over_threshold = accuracy_drop > 0.02
+        accuracy_drop = float(old_metrics.get("accuracy", 0.0)) - float(metrics.get("accuracy", 0.0))
+        top3_drop = float(old_metrics.get("top3", 0.0)) - float(metrics.get("top3", 0.0))
+        degraded_over_threshold = (
+            accuracy_drop > 0.02 or top3_drop > 0.03
+        )
 
         if (not tests_passed) or degraded_over_threshold:
             # Auto rollback keeps v1.1 (or previous active) metadata as active
@@ -259,6 +263,15 @@ class AutoRetrainer:
         rows = self.get_sqlite_row_count()
         next_version, threshold = self._next_target(st.version)
         eta = self.estimate_eta_days(rows, threshold)
+        if "--json" in sys.argv:
+            print(json.dumps({
+                "rows": rows,
+                "threshold": threshold,
+                "eta_days": round(eta, 1),
+                "active_model": active.get('version', st.version),
+                "model_ready": bool(active.get('model_ready', True))
+            }))
+            return
         print(f"Current model: {active.get('version', st.version)} | Top-3: {st.top3*100:.2f}%")
         print(f"Rows: {rows:,} / {threshold:,} threshold for {next_version}")
         print(f"Next retrain ETA: ~{eta} days")
@@ -279,6 +292,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--status", action="store_true")
     p.add_argument("--history", action="store_true")
     p.add_argument("--force", action="store_true")
+    p.add_argument("--json", action="store_true")
     return p.parse_args()
 
 

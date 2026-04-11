@@ -3,8 +3,8 @@
 > Your OS knows what you are building.
 
 [![CI](https://github.com/shahnoor-exe/eonix-os/actions/workflows/test.yml/badge.svg)](https://github.com/shahnoor-exe/eonix-os/actions/workflows/test.yml)
-[![Tests](https://img.shields.io/badge/tests-158%2B_target-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
-[![Version](https://img.shields.io/badge/version-v0.8.0--beta-blue)](https://github.com/shahnoor-exe/eonix-os/tags)
+[![Tests](https://img.shields.io/badge/tests-162%2B_target-brightgreen)](https://github.com/shahnoor-exe/eonix-os/actions)
+[![Version](https://img.shields.io/badge/version-v0.9.0-blue)](https://github.com/shahnoor-exe/eonix-os/tags)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
@@ -19,7 +19,7 @@ Today, EONIX ships as a full stack with EonixShell, MIND v2, GoalEngine, Context
 
 ```text
 ┌─────────────────────────────────────────┐
-│           EONIX OS v0.7.0               │
+│           EONIX OS v0.9.0               │
 ├──────────┬──────────┬────────┬──────────┤
 │  Shell   │  MIND    │  Hub   │ Android  │
 │ (v0.6)   │  v2.0    │ :7750  │   App    │
@@ -69,11 +69,11 @@ python3 eonix-shell/shell.py
 | NL Interpreter       | ✅ Live | Month 6 |
 | Installer            | ✅ Live | Month 6 |
 | Desktop GUI          | ✅ Live | Month 7 |
-| Bootable ISO         | 🔨 Month 8 (next) | Planned |
+| Bootable ISO         | ✅ Live (GTK4 desktop confirmed) | Month 9 |
 
 ## Test Coverage
 
-158+ target tests | 28 CI jobs | 0 failures target
+162+ target tests | 30 CI jobs | 0 failures target
 
 ## Week 27 ISO Build (Codespaces)
 
@@ -85,6 +85,15 @@ RUN_FULL_BUILD=1 bash iso/codespaces_build.sh
 ```
 
 Detailed instructions are in docs/week27_codespaces.md.
+
+## Boot EONIX OS
+
+You can boot the full ISO on VirtualBox (4GB RAM, 2 CPUs, VMSVGA display) or QEMU:
+```bash
+qemu-system-x86_64 -cdrom eonix-os-0.9.0.iso -m 4G
+```
+
+![GTK4 Desktop Month 9](results/week34_desktop_final.png)
 
 ## Roadmap
 
