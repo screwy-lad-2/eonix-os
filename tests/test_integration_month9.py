@@ -235,3 +235,41 @@ def test_api_doc_exists():
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     assert os.path.exists(
         os.path.join(REPO, "docs/api.md"))
+
+
+def test_brain_db_beta_table_exists():
+    import sqlite3, os, pytest
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    db = os.path.join(REPO, "eonix_project_brain.db")
+    if not os.path.exists(db):
+        pytest.skip("Brain DB not present")
+    conn = sqlite3.connect(db)
+    tables = [r[0] for r in
+        conn.execute(
+          "SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+    conn.close()
+    assert "beta_feedback" in tables
+
+def test_v100_release_notes_exist():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(os.path.join(
+        REPO, "docs/release_notes_v1.0.0.md"))
+
+def test_docs_style_css_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(
+        os.path.join(REPO, "docs/style.css"))
+
+def test_changelog_doc_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(
+        os.path.join(REPO, "docs/changelog.md"))
+
+def test_ai_model_doc_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(
+        os.path.join(REPO, "docs/ai-model.md"))

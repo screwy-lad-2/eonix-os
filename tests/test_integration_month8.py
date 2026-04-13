@@ -14,9 +14,8 @@ def test_squashfs_build_script_exists():
 def test_iso_build_script_exists():
     assert os.path.exists(os.path.join(REPO, "iso/build_iso.sh"))
 
-def test_grub_config_exists():
-    assert os.path.exists(os.path.join(REPO, "iso/grub.cfg")) or \
-           os.path.exists(os.path.join(REPO, "iso/grub/grub.cfg"))
+def test_grub_config_script_exists():
+    assert os.path.exists(os.path.join(REPO, "iso/grub_config.sh"))
 
 def test_iso_test_file_exists():
     assert os.path.exists(os.path.join(REPO, "iso/test_iso_build.py"))

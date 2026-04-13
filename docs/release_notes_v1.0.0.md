@@ -19,15 +19,24 @@ Eonix OS is an AI-native, self-healing operating system built from the ground up
 - **Bootable ISO:** Fully bootable Debian-based ISO supporting both BIOS and UEFI. Optimized for VirtualBox (Target: <20s boot).
 
 ### Performance Metrics
-- **Boot Time:** ~18 seconds (GRUB → desktop).
-- **Idle RAM:** ~1.2 GB.
-- **Test Integrity:** 180+ Passed | 0 Failed.
-- **CI Reliability:** 30 automated jobs across 9 months of history.
+  Boot time: ~18 seconds (GRUB → desktop)
+  RAM at idle: ~1.2 GB
+  Model accuracy: 63.47% (v1.2)
+  Tests passing: 185+ | Failing: 0
 
 ### Install & Getting Started
 - **Download:** Available via [GitHub Releases](https://github.com/shahnoor-exe/eonix-os/releases).
 - **VM Requirements:** VirtualBox 7.0+, 4GB RAM, 2 CPUs, VMSVGA Graphics (3D Disabled).
 - **Official Docs:** [shahnoor-exe.github.io/eonix-os](https://shahnoor-exe.github.io/eonix-os)
 
----
-*[DRAFT — This document will be finalized following the close of the Beta Testing period in late May 2026.]*
+### Build Info
+- ISO: eonix-os-1.0.0.iso
+- Base: Debian 12 (Bookworm)
+- Kernel: Linux 6.x
+- Desktop: GTK4 (GLib 2.x)
+- Python: 3.11+
+- AI: LightGBM 4.3+ + ONNX
+
+### Built By
+Shahnoor — 11 months solo development
+github.com/shahnoor-exe/eonix-os

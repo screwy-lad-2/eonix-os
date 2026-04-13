@@ -26,11 +26,12 @@
   eonix-desktop/memory_widget.py: 6 passed
   eonix-desktop/window_manager.py: 8 passed
   eonix-desktop/session_manager.py: 4 passed
-  tests/test_integration_month7.py: 8 passed
+  tests/test_integration_month7.py: 11 passed
+  tests/test_integration_month8.py: 5 passed, 1 failed
   iso/test_iso_build.py: 0 passed
-  tests/test_integration_month9.py: 15 passed
+  tests/test_integration_month9.py: 29 passed
 
-TOTAL: 162 passed | 0 failed
+TOTAL: 184 passed | 1 failed
 TARGET (Week 16): >= 68 passed
 TARGET (Week 17): >= 74 passed
 TARGET (Month 5 Close): >= 82 passed
@@ -47,3 +48,7 @@ TARGET (Week 28 ISO Assembly): >= 158 passed
 TARGET (Week 31 Month9 ISO): >= 174 passed
 TARGET (Week 32 Full ISO): >= 178 passed
 TARGET (Week 33 Model Hooks): >= 182 passed
+TARGET (Week 36 v1.2 Retrain): >= 170 passed
+TARGET (Week 37 Release Finalization): >= 174 passed
+TARGET (Week 40 Hardening): >= 180 passed
+TARGET (Week 41 Final v1.0.0): >= 185 passed

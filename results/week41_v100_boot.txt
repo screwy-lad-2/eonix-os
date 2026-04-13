@@ -1,0 +1,12 @@
+# Week 41 - v1.0.0 Final ISO Boot Verification
+
+GRUB menu:             [ YES / NO ]
+Agents online:         [ YES / NO ]
+Splash screen shows:   [ YES / NO ]
+GTK4 desktop:          [ YES / NO ]
+GoalPanel hint shows:  [ YES / NO ]
+TopBar clock:          [ YES / NO ]
+Boot time:             ~__ seconds
+RAM idle:              ~__ GB
+
+*Please manually fill this out after running the build-iso-full GitHub action or local build process and testing in VirtualBox.*
