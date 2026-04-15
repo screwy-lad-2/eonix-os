@@ -1,0 +1,19 @@
+﻿Ashutosh Kumar, Ankit Kumar Singh, & Ashima Mehta. (2024). AI based Operating System. International Journal of Advanced Research in Science, Communication and Technology, 291–298. https://doi.org/10.48175/ijarsct-17449
+
+Reshmy, A. K., Sunkara, J., & Kumari, R. (2025). Redefining Operating System Design: Integrating Large Language Models as Core Components. 2025 12th International Conference on Computing for Sustainable Global Development (INDIACom), 1–6. https://doi.org/10.23919/indiacom66777.2025.11115792
+
+Singh, R., & Kothari, V. (2025). Composable OS Kernel Architectures for Autonomous Intelligence. In arXiv.org (Version 1). arXiv. https://doi.org/10.48550/ARXIV.2508.00604
+
+Vishaliney, Ms. P., Sangeetha, M., & Rajapaksha, Prof. S. (2025). AI-First Operating systems: Rethinking OS Architectures for Machine Learning Workloads. 2025 9th International Symposium on Multidisciplinary Studies and Innovative Technologies (ISMSIT). https://doi.org/10.1109/ISMSIT67332.2025.11267921
+
+Katara, I., Singh, S., Bhardwaj, M., Mahto, A., & Kumari, P. (2025). XATNYS: AI-Powered Operating System with Integrated Reinforcement Learning and Context-Aware Productivity Assistant. International Conference on Contemporary Computing. https://doi.org/10.1109/IC366947.2025.11290136
+
+Mei, K., Zhu, X., Xu, W., Hua, W., Jin, M., Li, Z., Xu, S., Ye, R., Ge, Y., & Zhang, Y. (2024). AIOS: LLM Agent Operating System. In arXiv.org (Version 5). arXiv. https://doi.org/10.48550/ARXIV.2403.16971
+
+Bobade, P., Sarade, A., Deshpande, L., & Gaikwad, P. (2025). Survey Paper on Developing Operating System’s Complete Agentic Rex using Persistent Memory. International Journal For Multidisciplinary Research, 7(6). https://doi.org/10.36948/ijfmr.2025.v07i06.60537
+
+Li, Z., Xi, C., Li, C., Chen, D., Chen, B., Song, S., Niu, S., Wang, H., Yang, J., Tang, C., Yu, Q., Zhao, J., Wang, Y., Liu, P., Lin, Z., Wang, P., Huo, J., Chen, T., Chen, K., … Xiong, F. (2025). MemOS: A Memory OS for AI System. In arXiv.org (Version 4). arXiv. https://doi.org/10.48550/ARXIV.2507.03724
+
+Gunasekaran, Dr. S. (2025). A Comprehensive Literature Survey on Large Language Model-Driven Operating Systems. International Journal for Research in Applied Science and Engineering Technology. https://doi.org/10.22214/ijraset.2025.76302
+
+Zheng, Y., Hu, Y., Zhang, W., & Quinn, A. (2025). Towards Agentic OS: An LLM Agent Framework for Linux Schedulers.
