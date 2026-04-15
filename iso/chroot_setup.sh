@@ -60,6 +60,26 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin eonix --noclear %I linux
 EOF
 
+# Auto-start X on tty1
+cat >> /home/eonix/.bashrc <<'EOF'
+if [[ -z "$DISPLAY" ]] && [[ "$(tty)" == "/dev/tty1" ]]; then
+  exec startx
+fi
+EOF
+
+# Define X session startup
+cat > /home/eonix/.xinitrc <<'EOF'
+#!/bin/bash
+# Start EONIX background agents
+bash /home/eonix/start_eonix.sh &
+# Give agents a moment to initialize
+sleep 3
+# Launch the main GTK4 Desktop
+exec python3 /home/eonix/eonix-desktop/desktop.py
+EOF
+chown eonix:eonix /home/eonix/.bashrc /home/eonix/.xinitrc
+chmod +x /home/eonix/.xinitrc
+
 # Runtime Python dependencies baked into the ISO
 python3 -m pip install --break-system-packages --no-cache-dir --upgrade pip
 python3 -m pip install --no-cache-dir \

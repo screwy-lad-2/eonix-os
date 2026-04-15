@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=EONIX OS
 Comment=AI-Native Operating System Desktop
-Exec=python3 /opt/eonix/eonix-desktop/desktop.py
+Exec=python3 /home/eonix/eonix-desktop/desktop.py
 TryExec=python3
 Type=XSession
