@@ -9,9 +9,9 @@ apt-get install -y --no-install-recommends \
   python3 python3-pip python3-venv python3-gi python3-gi-cairo \
   gir1.2-gtk-4.0 libgtk-4-dev \
   portaudio19-dev ffmpeg espeak-ng \
-  xorg xinit openbox \
+  xorg xinit openbox xterm \
   fonts-noto-color-emoji \
-  network-manager xvfb
+  network-manager xvfb dbus-x11
 
 # VirtualBox guest packages are in contrib/non-free on some Debian mirrors.
 # Install only those currently resolvable to keep CI builds reproducible.
@@ -60,23 +60,46 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin eonix --noclear %I linux
 EOF
 
-# Auto-start X on tty1
-cat >> /home/eonix/.bashrc <<'EOF'
-if [[ -z "$DISPLAY" ]] && [[ "$(tty)" == "/dev/tty1" ]]; then
-  exec startx
-fi
-EOF
+# Auto-start X on tty1 login
+cat >> /home/eonix/.bashrc <<'BASHEOF'
 
-# Define X session startup
-cat > /home/eonix/.xinitrc <<'EOF'
+# --- Eonix OS: Auto-start graphical desktop on tty1 ---
+if [[ -z "$DISPLAY" ]] && [[ "$(tty)" == "/dev/tty1" ]]; then
+  exec startx -- -nolisten tcp vt1 2>/home/eonix/.xsession-errors
+fi
+BASHEOF
+
+# X session startup: window manager + agents + desktop
+cat > /home/eonix/.xinitrc <<'XINITEOF'
 #!/bin/bash
-# Start EONIX background agents
-bash /home/eonix/start_eonix.sh &
-# Give agents a moment to initialize
-sleep 3
-# Launch the main GTK4 Desktop
+
+# Set DISPLAY explicitly
+export DISPLAY=:0
+
+# Start D-Bus session bus (needed by GTK4)
+if command -v dbus-launch >/dev/null 2>&1; then
+  eval $(dbus-launch --sh-syntax)
+fi
+
+# Set keyboard repeat rate
+xset r rate 250 30 2>/dev/null || true
+
+# Start the window manager (openbox) in the background
+openbox &
+sleep 1
+
+# Start EONIX background agents (non-fatal if they fail)
+cd /home/eonix
+bash /home/eonix/start_eonix.sh >/home/eonix/results/boot_agents.log 2>&1 &
+AGENT_PID=$!
+
+# Give agents time to initialize
+sleep 4
+
+# Launch the GTK4 Desktop (this is the main foreground process)
 exec python3 /home/eonix/eonix-desktop/desktop.py
-EOF
+XINITEOF
+
 chown eonix:eonix /home/eonix/.bashrc /home/eonix/.xinitrc
 chmod +x /home/eonix/.xinitrc
 
@@ -107,5 +130,9 @@ if [[ -d /home/eonix/eonix-os/eonix-mind ]]; then
 else
   echo "[chroot_setup] WARNING: /home/eonix/eonix-os/eonix-mind missing; skipping copy" >&2
 fi
+
+# Pre-create the results directory so agent logs have somewhere to go
+mkdir -p /home/eonix/results
+chown eonix:eonix /home/eonix/results
 
 apt-get clean

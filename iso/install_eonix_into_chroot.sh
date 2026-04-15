@@ -29,8 +29,10 @@ copy_items=(
   eonix-desktop
   eonix-shell
   eonix-hub
+  eonix-sync
   tests
   results
+  docs
   start_eonix.sh
   run_all_tests.py
 )
