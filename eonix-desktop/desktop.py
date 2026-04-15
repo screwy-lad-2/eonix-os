@@ -608,7 +608,7 @@ class EonixDesktop:
             self.taskbar.window.present()  # type: ignore[attr-defined]
         self.start_background_refresh()
         if GTK_AVAILABLE and not self.headless:
-            Gtk.main()  # type: ignore
+            GLib.MainLoop().run()  # GTK4 event loop
 
 
 def main(argv: Optional[list[str]] = None) -> int:

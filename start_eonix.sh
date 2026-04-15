@@ -175,9 +175,14 @@ if [[ "${NO_MIND}" == "1" ]]; then
 	STATUS[mind]="skip"
 else
 	MIND_PATH=""
-	MIND_FOUND=$( { find "${HOME}/eonix-os" "${HOME}/eonix-mind" -name 'mind_v2.py' 2>/dev/null || true; } | head -n 1 )
-	if [[ -n "${MIND_FOUND}" ]]; then
-		MIND_PATH="${MIND_FOUND}"
+	# Direct check first (fast path for ISO)
+	if [[ -f "${ROOT_DIR}/eonix-mind/mind_v2.py" ]]; then
+		MIND_PATH="${ROOT_DIR}/eonix-mind/mind_v2.py"
+	else
+		MIND_FOUND=$( { find "${ROOT_DIR}" "${HOME}/eonix-os" "${HOME}/eonix-mind" -name 'mind_v2.py' 2>/dev/null || true; } | head -n 1 )
+		if [[ -n "${MIND_FOUND}" ]]; then
+			MIND_PATH="${MIND_FOUND}"
+		fi
 	fi
 	if [[ -z "${MIND_PATH}" ]]; then
 		log "MIND not found -> skipping"
