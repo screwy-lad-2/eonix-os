@@ -705,7 +705,7 @@ jobs:
           python -m pytest iso/test_iso_build.py -v
 
   build-iso-full:
-    name: Build ISO Full (Week 34)
+    name: Build ISO Full (v1.0.0)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
@@ -737,14 +737,14 @@ jobs:
           sudo env RUN_FULL_BUILD=1 SKIP_CUMULATIVE_TESTS=1 BUILD_ROOT=/root/eonix-iso-build bash iso/codespaces_build.sh
           sudo env CHROOT=/root/eonix-iso-build/chroot bash iso/install_eonix_into_chroot.sh
           sudo env BUILD_ROOT=/root/eonix-iso-build bash iso/build_squashfs.sh
-          sudo env BUILD_ROOT=/root/eonix-iso-build ISO_PATH=/root/eonix-iso-build/eonix-os-0.9.0.iso VOLUME_ID=EONIX_OS_0_9_0 bash iso/build_iso.sh
+          sudo env BUILD_ROOT=/root/eonix-iso-build ISO_PATH=/root/eonix-iso-build/eonix-os-1.0.0.iso VOLUME_ID=EONIX_OS_1_0_0 bash iso/build_iso.sh
           sudo chown -R $USER:$USER /root/eonix-iso-build
           sudo chmod 755 /root
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4.6.0
         with:
-          name: eonix-os-0.9.0.iso
+          name: eonix-os-1.0.0.iso
           path: |
-            /root/eonix-iso-build/eonix-os-0.9.0.iso
-            /root/eonix-iso-build/eonix-os-0.9.0.iso.sha256
+            /root/eonix-iso-build/eonix-os-1.0.0.iso
+            /root/eonix-iso-build/eonix-os-1.0.0.iso.sha256
