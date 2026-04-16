@@ -15,7 +15,7 @@
   eonix-cortex/goal-engine/engine.py: 6 passed
   eonix-cortex/resource-agent/agent.py: 5 passed
   eonix-sync/sync_daemon.py: 8 passed
-  eonix-sync/state_store.py: 3 passed, 1 failed
+  eonix-sync/state_store.py: 4 passed
   eonix-mind/memory.py: 5 passed
   eonix-mind/proactive_monitor.py: 4 passed
   eonix-mind/system_reader.py: 5 passed
@@ -26,13 +26,15 @@
   eonix-desktop/memory_widget.py: 6 passed
   eonix-desktop/window_manager.py: 8 passed
   eonix-desktop/session_manager.py: 4 passed
-  tests/test_integration_month7.py: 11 passed
+  tests/test_integration_month7.py: 15 passed
   tests/test_integration_month8.py: 6 passed
   iso/test_iso_build.py: 0 passed
   tests/test_integration_month9.py: 29 passed
   tests/test_v100_release.py: 4 passed
+  eonix-desktop/wallpaper.py: 5 passed
+  eonix-desktop/dock.py: 5 passed
 
-TOTAL: 188 passed | 1 failed
+TOTAL: 203 passed | 0 failed
 TARGET (Week 16): >= 68 passed
 TARGET (Week 17): >= 74 passed
 TARGET (Month 5 Close): >= 82 passed
@@ -54,3 +56,4 @@ TARGET (Week 37 Release Finalization): >= 174 passed
 TARGET (Week 40 Hardening): >= 180 passed
 TARGET (Week 41 Final v1.0.0): >= 185 passed
 TARGET (Week 42 v1.0.0 Release): >= 190 passed
+TARGET (Week 43 Core Canvas): >= 194 passed

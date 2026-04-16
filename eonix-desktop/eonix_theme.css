@@ -1,0 +1,212 @@
+/* ═══════════════════════════════════════════════════
+   EONIX AURA — Design System v1.0
+   Glass · Glow · Depth · Motion
+
+   Color Palette:
+     Background:  #0d0d1a
+     Surface:     rgba(26,26,46,0.85)
+     Accent:      #7c4dff
+     Text:        #e0e0e0
+     Muted:       #888aa0
+     Success:     #4cff91
+     Warning:     #ffb347
+     Danger:      #ff4c6a
+   ═══════════════════════════════════════════════════ */
+
+/* ── Global Transitions ─────────────────────────── */
+* {
+  transition: background 120ms ease-out,
+              border-color 120ms ease-out,
+              box-shadow 120ms ease-out,
+              opacity 120ms ease-out;
+  font-family: 'Inter', 'Segoe UI',
+               'Helvetica Neue', sans-serif;
+}
+
+window, .background {
+  background: transparent;
+}
+
+/* ── TopBar ─────────────────────────────────────── */
+.eonix-topbar {
+  background: rgba(13,13,26, 0.90);
+  border-bottom: 1px solid rgba(124,77,255,0.18);
+  min-height: 32px;
+  padding: 0 20px;
+  color: #e0e0e0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.eonix-topbar label {
+  color: #e0e0e0;
+  font-size: 13px;
+}
+
+/* ── GoalPanel ──────────────────────────────────── */
+.eonix-goalpanel {
+  background: rgba(18,18,36, 0.80);
+  border-right: 1px solid rgba(124,77,255,0.12);
+  padding: 16px 10px;
+  color: #e0e0e0;
+  font-size: 13px;
+  min-width: 220px;
+}
+
+.eonix-goalpanel label {
+  color: #a78bfa;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+/* ── Workspace ──────────────────────────────────── */
+.eonix-workspace {
+  background: transparent;
+}
+
+/* ── Windows (app cards) ────────────────────────── */
+.eonix-window {
+  background: rgba(20,20,40, 0.86);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  color: #e0e0e0;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(124,77,255,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.eonix-window:focus-within {
+  border-color: rgba(124,77,255,0.35);
+  box-shadow:
+    0 12px 48px rgba(0,0,0,0.65),
+    0 0 0 1px rgba(124,77,255,0.25),
+    0 0 32px rgba(124,77,255,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+}
+
+/* ── Titlebar ───────────────────────────────────── */
+.eonix-titlebar {
+  background: rgba(15,15,30,0.70);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px 16px 0 0;
+  padding: 8px 14px;
+  min-height: 36px;
+}
+
+/* ── Traffic lights ─────────────────────────────── */
+.btn-close   { background:#ff4c6a; border-radius:50%; min-width:13px; min-height:13px; }
+.btn-min     { background:#ffb347; border-radius:50%; min-width:13px; min-height:13px; }
+.btn-max     { background:#4cff91; border-radius:50%; min-width:13px; min-height:13px; }
+.btn-close:hover  { background:#ff2244; box-shadow:0 0 8px rgba(255,76,106,0.53); }
+.btn-min:hover    { background:#ff9922; box-shadow:0 0 8px rgba(255,179,71,0.53); }
+.btn-max:hover    { background:#22ff77; box-shadow:0 0 8px rgba(76,255,145,0.53); }
+
+/* ── Buttons ────────────────────────────────────── */
+.eonix-btn {
+  background: rgba(124,77,255, 0.18);
+  border: 1px solid rgba(124,77,255,0.35);
+  border-radius: 8px;
+  color: #e0e0e0;
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.eonix-btn:hover {
+  background: rgba(124,77,255, 0.38);
+  border-color: rgba(124,77,255,0.75);
+  box-shadow: 0 0 16px rgba(124,77,255,0.28),
+              0 2px 8px rgba(0,0,0,0.3);
+}
+.eonix-btn:active {
+  background: rgba(124,77,255, 0.58);
+  box-shadow: 0 0 24px rgba(124,77,255,0.45);
+}
+
+/* ── Input fields ───────────────────────────────── */
+entry, .eonix-input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 8px;
+  color: #e0e0e0;
+  padding: 7px 12px;
+  caret-color: #7c4dff;
+}
+entry:focus, .eonix-input:focus {
+  border-color: rgba(124,77,255,0.6);
+  box-shadow: 0 0 0 3px rgba(124,77,255,0.15);
+  background: rgba(255,255,255,0.06);
+}
+
+/* ── Scrollbars ─────────────────────────────────── */
+scrollbar {
+  background: transparent;
+  min-width: 6px;
+}
+scrollbar slider {
+  background: rgba(124,77,255,0.35);
+  border-radius: 3px;
+  min-width: 6px;
+  min-height: 32px;
+}
+scrollbar slider:hover {
+  background: rgba(124,77,255,0.60);
+}
+
+/* ── AI Pulse Ring ──────────────────────────────── */
+.ai-pulse-ring {
+  border: 2px solid rgba(124,77,255,0.55);
+  border-radius: 50%;
+}
+
+/* ── Notifications ──────────────────────────────── */
+.eonix-toast {
+  background: rgba(22,22,44,0.96);
+  border: 1px solid rgba(124,77,255,0.28);
+  border-radius: 14px;
+  padding: 14px 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55),
+              0 0 16px rgba(124,77,255,0.08);
+  color: #e0e0e0;
+  font-size: 13px;
+}
+.toast-icon-ai      { color:#7c4dff; font-size:16px; }
+.toast-icon-success { color:#4cff91; font-size:16px; }
+.toast-icon-warn    { color:#ffb347; font-size:16px; }
+.toast-icon-error   { color:#ff4c6a; font-size:16px; }
+
+/* ── Memory constellation dots ─────────────────── */
+.memory-dot {
+  background: #7c4dff;
+  border-radius: 50%;
+  min-width: 6px;
+  min-height: 6px;
+}
+
+/* ── Developer mode widgets ─────────────────────── */
+.dev-stat {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(124,77,255,0.2);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-family: 'JetBrains Mono','Consolas',monospace;
+  font-size: 11px;
+  color: #a78bfa;
+}
+
+/* ── Labels ─────────────────────────────────────── */
+.eonix-accent {
+  color: #7c4dff;
+}
+.eonix-success {
+  color: #4cff91;
+}
+.eonix-warning {
+  color: #ffb347;
+}
+.eonix-danger {
+  color: #ff4c6a;
+}
+.eonix-muted {
+  color: #888aa0;
+}

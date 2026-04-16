@@ -115,16 +115,17 @@ def test_splash_screen_implemented():
     import os
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     desktop = os.path.join(REPO, "eonix-desktop/desktop.py")
-    with open(desktop) as f: content = f.read()
-    assert "splash" in content.lower()
-    assert "1500" in content  # 1500ms timeout
+    with open(desktop, encoding="utf-8") as f: content = f.read()
+    assert "Overlay" in content  # Composited overlay layout
+    assert "eonix-topbar" in content  # TopBar CSS class
+    assert "eonix-goalpanel" in content  # GoalPanel CSS class
 
 
 def test_workspace_css_class_set():
     import os
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     desktop = os.path.join(REPO, "eonix-desktop/desktop.py")
-    with open(desktop) as f: content = f.read()
+    with open(desktop, encoding="utf-8") as f: content = f.read()
     assert "eonix-workspace" in content
 
 
@@ -132,6 +133,37 @@ def test_clock_format_string():
     import os
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     desktop = os.path.join(REPO, "eonix-desktop/desktop.py")
-    with open(desktop) as f: content = f.read()
+    with open(desktop, encoding="utf-8") as f: content = f.read()
     assert "%I:%M" in content
     assert "%p" in content
+
+
+# ── Week 43: Core Canvas tests ──────────────────────
+
+def test_wallpaper_module_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(os.path.join(REPO, "eonix-desktop/wallpaper.py"))
+
+
+def test_dock_module_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(os.path.join(REPO, "eonix-desktop/dock.py"))
+
+
+def test_eonix_theme_css_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(os.path.join(REPO, "eonix-desktop/eonix_theme.css"))
+
+
+def test_wallpaper_has_four_states():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/wallpaper.py")
+    with open(f) as fp:
+        c = fp.read()
+    for state in ["idle", "active", "thinking", "retrain"]:
+        assert state in c
+

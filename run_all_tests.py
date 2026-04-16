@@ -46,6 +46,8 @@ SUITES = [
     "iso/test_iso_build.py",
     "tests/test_integration_month9.py",
     "tests/test_v100_release.py",
+    "eonix-desktop/wallpaper.py",
+    "eonix-desktop/dock.py",
 ]
 
 WEEK16_MIN_EXPECTED_PASS = 68
@@ -69,6 +71,7 @@ WEEK37_MIN_EXPECTED_PASS = 174
 WEEK40_MIN_EXPECTED_PASS = 180
 WEEK41_MIN_EXPECTED_PASS = 185
 WEEK42_MIN_EXPECTED_PASS = 190
+WEEK43_MIN_EXPECTED_PASS = 194
 
 
 
@@ -274,6 +277,7 @@ def main() -> int:
     lines.append(f"TARGET (Week 40 Hardening): >= {WEEK40_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 41 Final v1.0.0): >= {WEEK41_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 42 v1.0.0 Release): >= {WEEK42_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 43 Core Canvas): >= {WEEK43_MIN_EXPECTED_PASS} passed")
 
 
     text = "\n".join(lines)
