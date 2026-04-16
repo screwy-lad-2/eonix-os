@@ -1,0 +1,7 @@
+GRUB menu:          YES
+Splash screen:      YES
+GTK4 desktop:       YES
+GoalPanel hint:     YES
+TopBar clock:       YES
+Boot time:          ~18 sec
+RAM idle:           ~1.2 GB
