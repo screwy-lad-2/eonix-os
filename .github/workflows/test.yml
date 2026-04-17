@@ -258,8 +258,10 @@ jobs:
       - name: Upload module and test artifacts
         if: env.MODULE_BUILT == '1'
         uses: actions/upload-artifact@v4.6.0
+        continue-on-error: true
         with:
           name: deadlock-module
+          retention-days: 1
           path: |
             eonix-core/deadlock/eonix_deadlock.ko
             eonix-core/deadlock/results/
@@ -745,6 +747,7 @@ jobs:
         uses: actions/upload-artifact@v4.6.0
         with:
           name: eonix-os-1.0.0.iso
+          retention-days: 1
           path: |
             /root/eonix-iso-build/eonix-os-1.0.0.iso
             /root/eonix-iso-build/eonix-os-1.0.0.iso.sha256
