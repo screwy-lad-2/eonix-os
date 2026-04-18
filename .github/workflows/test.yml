@@ -709,8 +709,6 @@ jobs:
   build-iso-full:
     name: Build ISO Full (v1.0.0)
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4.2.2
 
@@ -745,20 +743,11 @@ jobs:
           sudo chown -R $USER:$USER /root/eonix-iso-build
           sudo chmod 755 /root
 
-      - name: Create GitHub Release and upload ISO
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Create a rolling release tag or use current week/version
-          TAG="v1.1.0-aura"
-          # Check if release exists, delete if so to clobber
-          gh release delete $TAG --yes || true
-          git tag -d $TAG || true
-          git tag $TAG
-          git push origin $TAG --force
-          
-          gh release create $TAG \
-            --title "Eonix OS v1.1.0 - Aura UI (Week 43)" \
-            --notes "Neural Particle Wallpaper + Physics Dock + Aura CSS Theme System. 203 Tests Passing." \
-            /root/eonix-iso-build/eonix-os-1.0.0.iso \
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: eonix-os-1.0.0.iso
+          retention-days: 1
+          path: |
+            /root/eonix-iso-build/eonix-os-1.0.0.iso
             /root/eonix-iso-build/eonix-os-1.0.0.iso.sha256
