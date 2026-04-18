@@ -1,3 +1,4 @@
+# Eonix Aura — Week 43 Core Canvas build
 name: Eonix OS Tests
 on:
   workflow_dispatch:
