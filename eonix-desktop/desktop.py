@@ -629,20 +629,29 @@ class EonixDesktop:
             # ── Build the composited desktop layout ──────────
             # Wallpaper window is the root — everything overlays on it
             overlay = Gtk.Overlay()
+            overlay.set_hexpand(True)
+            overlay.set_vexpand(True)
 
-            # Neural particle wallpaper as base layer
+            # Neural particle wallpaper as base layer (must fill entire overlay)
             if self.wallpaper.aura is not None:
+                self.wallpaper.aura.set_hexpand(True)
+                self.wallpaper.aura.set_vexpand(True)
                 overlay.set_child(self.wallpaper.aura)
             else:
                 placeholder = Gtk.Box()
+                placeholder.set_hexpand(True)
+                placeholder.set_vexpand(True)
                 placeholder.add_css_class("eonix-workspace")
                 overlay.set_child(placeholder)
 
             # Main content: TopBar + GoalPanel + Workspace + Dock
             main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+            main_vbox.set_hexpand(True)
+            main_vbox.set_vexpand(True)
 
-            # TopBar at top
+            # TopBar at top (spans full width)
             topbar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            topbar_box.set_hexpand(True)
             topbar_box.add_css_class("eonix-topbar")
             topbar_box.set_margin_start(12)
             topbar_box.set_margin_end(12)
@@ -660,14 +669,16 @@ class EonixDesktop:
             self.top_bar._label_metrics = lbl_metrics
             main_vbox.append(topbar_box)
 
-            # Content row: GoalPanel on left, workspace on right (expands)
+            # Content row: GoalPanel on left, workspace on right (both expand)
             content_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+            content_row.set_hexpand(True)
             content_row.set_vexpand(True)
 
             # GoalPanel sidebar
             panel_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
             panel_box.add_css_class("eonix-goalpanel")
             panel_box.set_size_request(240, -1)
+            panel_box.set_vexpand(True)
             goal_label = Gtk.Label(label=self.goal_panel.active_goal_text)
             progress_label = Gtk.Label(label="0% complete")
             context_label = Gtk.Label(label="Context: 0 events")
@@ -683,7 +694,7 @@ class EonixDesktop:
                 self.goal_panel._memory_header = memory_header
             content_row.append(panel_box)
 
-            # Workspace area (transparent)
+            # Workspace area (transparent, fills remaining space)
             workspace = Gtk.Box()
             workspace.set_hexpand(True)
             workspace.set_vexpand(True)
@@ -692,7 +703,7 @@ class EonixDesktop:
 
             main_vbox.append(content_row)
 
-            # Dock at bottom
+            # Dock at bottom (spans full width)
             if hasattr(self.dock, 'set_hexpand'):
                 self.dock.set_hexpand(True)
                 main_vbox.append(self.dock)

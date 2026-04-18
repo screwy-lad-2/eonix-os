@@ -109,14 +109,14 @@ if GTK_AVAILABLE and not HEADLESS:
             self.breathe: float = 0.0
             self.breathe_dir: int = 1
             self.particles: list[Particle] = []
+            self._particles_init = False
+            self.set_hexpand(True)
+            self.set_vexpand(True)
             self.set_draw_func(self._draw)
             self.connect("realize", self._on_realize)
 
         def _on_realize(self, *_args) -> None:
-            alloc = self.get_allocation()
-            self.w = alloc.width or 1920
-            self.h = alloc.height or 1080
-            self.particles = [Particle(self.w, self.h) for _ in range(self.N_PARTICLES)]
+            # Start the animation timer; particles will be initialized on first draw
             GLib.timeout_add(33, self._tick)  # ~30fps
 
         def set_state(self, state: str) -> None:
@@ -162,6 +162,10 @@ if GTK_AVAILABLE and not HEADLESS:
 
         def _draw(self, _area, cr, w: int, h: int) -> None:
             self.w, self.h = float(w), float(h)
+            # Lazy-init particles on first draw (when dimensions are real)
+            if not self._particles_init and w > 1 and h > 1:
+                self.particles = [Particle(self.w, self.h) for _ in range(self.N_PARTICLES)]
+                self._particles_init = True
             b = self.breathe
             s = self.state
             rc, gc, bc = STATE_COLORS.get(s, STATE_COLORS[IDLE])
