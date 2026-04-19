@@ -55,7 +55,7 @@ if [[ $VERIFY_ONLY -eq 0 ]]; then
     COMP_OPTS=("-comp" "gzip" "-b" "1M")
   fi
   BEFORE_SIZE=$(sudo du -sh "$CHROOT" 2>/dev/null | awk '{print $1}')
-  # Build with extensive exclusions to reduce ISO size under 2GB
+  # Exclude only virtual fs and build-time cache — locale/libs MUST stay for systemd
   sudo mksquashfs "$CHROOT" "$IMAGE/live/filesystem.squashfs" \
     -e boot \
     -e proc \
@@ -64,10 +64,6 @@ if [[ $VERIFY_ONLY -eq 0 ]]; then
     -e tmp \
     -e var/cache/apt \
     -e var/lib/apt/lists \
-    -e usr/share/doc \
-    -e usr/share/man \
-    -e usr/share/locale \
-    -e usr/lib/debug \
     "${COMP_OPTS[@]}" -no-progress
   AFTER_SIZE=$(sudo du -sh "$IMAGE/live/filesystem.squashfs" 2>/dev/null | awk '{print $1}')
   echo "✅ Squashfs built: ${BEFORE_SIZE:-?} → ${AFTER_SIZE:-?}"

@@ -629,8 +629,21 @@ class EonixDesktop:
             return
         self._loop = asyncio.new_event_loop()
 
+        def _safe_apply_snapshot(snap: GoalSnapshot) -> None:
+            """Marshal GTK updates to the main thread via GLib.idle_add."""
+            if GTK_AVAILABLE and GLib:
+                GLib.idle_add(self._apply_goal_snapshot, snap)
+            else:
+                self._apply_goal_snapshot(snap)
+
+        def _safe_apply_metrics(m: SystemMetrics) -> None:
+            if GTK_AVAILABLE and GLib:
+                GLib.idle_add(self._apply_metrics, m)
+            else:
+                self._apply_metrics(m)
+
         async def runner() -> None:
-            await self.fetcher.run_periodic(self._apply_goal_snapshot, self._apply_metrics)
+            await self.fetcher.run_periodic(_safe_apply_snapshot, _safe_apply_metrics)
 
         def spin() -> None:
             asyncio.set_event_loop(self._loop)
