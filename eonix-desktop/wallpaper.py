@@ -61,8 +61,8 @@ class Particle:
         angle = random.uniform(0, 2 * math.pi)
         self.vx = math.cos(angle) * speed
         self.vy = math.sin(angle) * speed
-        self.r = random.uniform(1.5, 3.2)
-        self.a = random.uniform(0.35, 0.75)
+        self.r = random.uniform(2.5, 4.5)
+        self.a = random.uniform(0.55, 0.90)
 
     def update(self, w: float, h: float, speed_mult: float = 1.0) -> None:
         self.x += self.vx * speed_mult
@@ -116,8 +116,18 @@ if GTK_AVAILABLE and not HEADLESS:
             self.connect("realize", self._on_realize)
 
         def _on_realize(self, *_args) -> None:
-            # Start the animation timer; particles will be initialized on first draw
+            # Defer particle creation so it doesn't block window from showing
+            GLib.idle_add(self._init_particles)
+
+        def _init_particles(self) -> bool:
+            alloc = self.get_allocation()
+            if alloc.width > 1 and alloc.height > 1:
+                self.w = float(alloc.width)
+                self.h = float(alloc.height)
+            self.particles = [Particle(self.w, self.h) for _ in range(self.N_PARTICLES)]
+            self._particles_init = True
             GLib.timeout_add(33, self._tick)  # ~30fps
+            return False  # run once
 
         def set_state(self, state: str) -> None:
             """Change wallpaper state — triggers visual reactions."""
@@ -175,7 +185,7 @@ if GTK_AVAILABLE and not HEADLESS:
                 t = min(1.0, self.retrain_x / w) if w > 0 else 0
                 cr.set_source_rgb(0.05 + t * 0.10, 0.03 + t * 0.04, 0.10 + t * 0.02)
             else:
-                cr.set_source_rgb(0.05, 0.03, 0.10)
+                cr.set_source_rgb(0.06, 0.04, 0.13)
             cr.paint()
 
             # ── Retrain sweep wave ───────────────────────
@@ -215,9 +225,9 @@ if GTK_AVAILABLE and not HEADLESS:
                     if d2 < cd2:
                         d = math.sqrt(d2)
                         st = 1.0 - d / self.CONNECT_DIST
-                        alp = st * 0.38 * glow
+                        alp = st * 0.55 * glow
                         cr.set_source_rgba(rc, gc, bc, alp)
-                        cr.set_line_width(0.9 * st)
+                        cr.set_line_width(1.4 * st)
                         cr.move_to(ai.x, ai.y)
                         cr.line_to(aj.x, aj.y)
                         cr.stroke()

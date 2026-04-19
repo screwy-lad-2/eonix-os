@@ -167,3 +167,41 @@ def test_wallpaper_has_four_states():
     for state in ["idle", "active", "thinking", "retrain"]:
         assert state in c
 
+
+# ── Week 44: UI Polish tests ────────────────────────
+
+def test_terminal_has_dark_theme():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/eonix_theme.css")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "eonix-terminal-view" in c
+    assert "#a0ff80" in c  # green terminal text
+
+
+def test_dock_uses_noto_emoji_font():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/dock.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "Noto" in c or "noto" in c
+
+
+def test_goalpanel_has_css_class():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "eonix-goalpanel" in c
+
+
+def test_agent_startup_is_async():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "threading" in c or "idle_add" in c

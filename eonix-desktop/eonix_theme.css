@@ -210,3 +210,34 @@ scrollbar slider:hover {
 .eonix-muted {
   color: #888aa0;
 }
+
+/* ── Terminal View ──────────────────────────────── */
+.eonix-terminal-view {
+  background: rgba(8,8,18,0.97);
+  color: #a0ff80;
+  font-family: 'JetBrains Mono',
+               'Cascadia Code',
+               'Consolas', monospace;
+  font-size: 13px;
+  padding: 12px;
+  caret-color: #7c4dff;
+  border: none;
+}
+.eonix-terminal-view text {
+  background: transparent;
+  color: #a0ff80;
+}
+
+/* ── Panel Separator ───────────────────────────── */
+.eonix-separator {
+  background: rgba(124,77,255,0.2);
+  min-width: 1px;
+}
+
+/* ── GoalPanel Header ──────────────────────────── */
+.eonix-goalpanel .eonix-accent {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7c4dff;
+  letter-spacing: 0.12em;
+}

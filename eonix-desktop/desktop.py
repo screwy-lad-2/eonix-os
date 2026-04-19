@@ -664,20 +664,54 @@ class EonixDesktop:
             panel_box.add_css_class("eonix-goalpanel")
             panel_box.set_size_request(240, -1)
             panel_box.set_vexpand(True)
+
+            # Panel header
+            header = Gtk.Label(label="\U0001f9e0  GOALS")
+            header.set_halign(Gtk.Align.START)
+            header.set_margin_start(12)
+            header.set_margin_top(12)
+            header.set_margin_bottom(8)
+            header.add_css_class("eonix-accent")
+            panel_box.append(header)
+
             goal_label = Gtk.Label(label=self.goal_panel.active_goal_text)
+            goal_label.set_halign(Gtk.Align.START)
+            goal_label.set_margin_start(12)
             progress_label = Gtk.Label(label="0% complete")
+            progress_label.set_halign(Gtk.Align.START)
+            progress_label.set_margin_start(12)
+            progress_label.add_css_class("eonix-muted")
             context_label = Gtk.Label(label="Context: 0 events")
+            context_label.set_halign(Gtk.Align.START)
+            context_label.set_margin_start(12)
+            context_label.add_css_class("eonix-muted")
             memory_header = Gtk.Label(label="\U0001f9e0 Memories (0)")
+            memory_header.set_halign(Gtk.Align.START)
+            memory_header.set_margin_start(12)
             panel_box.append(goal_label)
             panel_box.append(progress_label)
             panel_box.append(context_label)
             panel_box.append(memory_header)
+
+            # Empty-state hint
+            hint = Gtk.Label(label="Add your first goal\nwith the MIND agent")
+            hint.set_halign(Gtk.Align.CENTER)
+            hint.set_valign(Gtk.Align.CENTER)
+            hint.set_vexpand(True)
+            hint.add_css_class("eonix-muted")
+            panel_box.append(hint)
+
             if hasattr(self.goal_panel, '_goal_label'):
                 self.goal_panel._goal_label = goal_label
                 self.goal_panel._progress_label = progress_label
                 self.goal_panel._context_label = context_label
                 self.goal_panel._memory_header = memory_header
             content_row.append(panel_box)
+
+            # Separator between panel and workspace
+            sep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+            sep.add_css_class("eonix-separator")
+            content_row.append(sep)
 
             # Workspace: neural particle wallpaper fills this area
             if self.wallpaper.aura is not None:

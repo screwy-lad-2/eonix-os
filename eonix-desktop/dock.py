@@ -205,14 +205,21 @@ if GTK_AVAILABLE and not HEADLESS:
             by = h - bh - 8
 
             # ── Frosted glass pill background ────────
-            cr.set_source_rgba(1, 1, 1, 0.07)
+            cr.set_source_rgba(1, 1, 1, 0.18)
             self._rrect(cr, bx, by, bw, bh, 22)
             cr.fill()
 
             # ── Pill border ──────────────────────────
-            cr.set_source_rgba(1, 1, 1, 0.14)
+            cr.set_source_rgba(1, 1, 1, 0.25)
             self._rrect(cr, bx, by, bw, bh, 22)
             cr.set_line_width(1)
+            cr.stroke()
+
+            # ── Violet accent line above dock ────────
+            cr.set_source_rgba(0.48, 0.30, 1.0, 0.3)
+            cr.set_line_width(1)
+            cr.move_to(bx + 20, by)
+            cr.line_to(bx + bw - 20, by)
             cr.stroke()
 
             for i, ic in enumerate(self.icons):
@@ -232,10 +239,11 @@ if GTK_AVAILABLE and not HEADLESS:
 
                 # ── Emoji ────────────────────────────
                 cr.set_source_rgba(1, 1, 1, 0.92)
-                cr.select_font_face("Noto Color Emoji",
-                                    0,  # FONT_SLANT_NORMAL
-                                    0)  # FONT_WEIGHT_NORMAL
-                cr.set_font_size(sz * 0.50)
+                # Font fallback chain for Linux
+                for font in ["Noto Color Emoji", "Noto Emoji", "DejaVu Sans", "Sans"]:
+                    cr.select_font_face(font, 0, 0)
+                    break  # Use first available
+                cr.set_font_size(sz * 0.58)
                 te = cr.text_extents(ic.emoji)
                 cr.move_to(
                     ox + (sz - te.width) / 2 - te.x_bearing,

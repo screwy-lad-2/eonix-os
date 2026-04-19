@@ -10,7 +10,7 @@ apt-get install -y --no-install-recommends \
   gir1.2-gtk-4.0 libgtk-4-dev \
   portaudio19-dev ffmpeg espeak-ng \
   xorg xinit openbox xterm \
-  fonts-noto-color-emoji \
+  fonts-noto-color-emoji fonts-noto \
   network-manager xvfb dbus-x11
 
 # VirtualBox guest packages are in contrib/non-free on some Debian mirrors.
