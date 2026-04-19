@@ -549,9 +549,41 @@ class EonixDesktop:
         self._running_loops = False
         self.loop_registry: list[str] = []
 
+    def _launch_terminal(self) -> None:
+        """Launch styled terminal inside window manager."""
+        if not GTK_AVAILABLE:
+            return
+        term_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        term_box.add_css_class("eonix-workspace")
+
+        tv = Gtk.TextView()
+        tv.add_css_class("eonix-terminal-view")
+        tv.set_editable(True)
+        tv.set_monospace(True)
+        tv.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+
+        buf = tv.get_buffer()
+        buf.set_text("eonix@eonix-os:~$ ")
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_child(tv)
+        scroll.set_vexpand(True)
+        scroll.set_hexpand(True)
+        term_box.append(scroll)
+
+        if self.window_manager:
+            self.window_manager.open(
+                "⚡ EonixShell",
+                term_box,
+                x=80, y=60,
+                w=680, h=420
+            )
+
     def _handle_dock_launch(self, app_name: str) -> None:
         """Called when a dock icon is clicked."""
-        pass  # Week 45: wire to actual app launchers
+        if app_name in ("Terminal", "EonixShell"):
+            self._launch_terminal()
+        # Week 45: wire to actual app launchers
 
     def _apply_goal_snapshot(self, snapshot: GoalSnapshot) -> None:
         self.current_goal_id = snapshot.goal_id
@@ -619,9 +651,19 @@ class EonixDesktop:
         if self._loop and self._loop.is_running():
             self._loop.call_soon_threadsafe(self._loop.stop)
 
+    def _start_agents_async(self) -> None:
+        """Start agent connections and loops without blocking UI."""
+        def _run():
+            try:
+                self.restore_active_goal_workspace()
+                self.start_runtime_loops()
+            except Exception:
+                pass
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+
     def run(self) -> None:
-        self.restore_active_goal_workspace()
-        self.start_runtime_loops()
+        self._start_agents_async()
         if self.panel_only:
             self.goal_panel.window.present()
             return
