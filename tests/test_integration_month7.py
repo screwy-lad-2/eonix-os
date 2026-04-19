@@ -205,3 +205,45 @@ def test_agent_startup_is_async():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "threading" in c or "idle_add" in c
+
+
+# ── Week 45: Core Apps tests ────────────────────────
+
+def test_files_app_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(os.path.join(REPO, "eonix-desktop/apps/files_app.py"))
+
+
+def test_settings_app_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(os.path.join(REPO, "eonix-desktop/apps/settings_app.py"))
+
+
+def test_terminal_uses_vte_or_textview():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "Vte" in c or "eonix-terminal-view" in c
+
+
+def test_files_app_has_dir_loading():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/files_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "_load_dir" in c
+    assert "os.scandir" in c
+
+
+def test_settings_shows_model_version():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "model_version" in c or "v1.2" in c

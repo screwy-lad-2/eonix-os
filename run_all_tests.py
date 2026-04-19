@@ -72,6 +72,7 @@ WEEK40_MIN_EXPECTED_PASS = 180
 WEEK41_MIN_EXPECTED_PASS = 185
 WEEK42_MIN_EXPECTED_PASS = 190
 WEEK43_MIN_EXPECTED_PASS = 194
+WEEK45_MIN_EXPECTED_PASS = 212
 
 
 
@@ -278,6 +279,7 @@ def main() -> int:
     lines.append(f"TARGET (Week 41 Final v1.0.0): >= {WEEK41_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 42 v1.0.0 Release): >= {WEEK42_MIN_EXPECTED_PASS} passed")
     lines.append(f"TARGET (Week 43 Core Canvas): >= {WEEK43_MIN_EXPECTED_PASS} passed")
+    lines.append(f"TARGET (Week 45 Core Apps): >= {WEEK45_MIN_EXPECTED_PASS} passed")
 
 
     text = "\n".join(lines)

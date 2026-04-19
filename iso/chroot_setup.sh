@@ -11,6 +11,7 @@ apt-get install -y --no-install-recommends \
   portaudio19-dev ffmpeg espeak-ng \
   xorg xinit openbox xterm \
   fonts-noto-color-emoji fonts-noto \
+  libvte-2.91-dev gir1.2-vte-2.91 \
   network-manager xvfb dbus-x11
 
 # VirtualBox guest packages are in contrib/non-free on some Debian mirrors.
@@ -136,3 +137,8 @@ mkdir -p /home/eonix/results
 chown eonix:eonix /home/eonix/results
 
 apt-get clean
+rm -rf /var/cache/apt/archives/*
+rm -rf /var/lib/apt/lists/*
+rm -rf /usr/share/doc/*
+rm -rf /usr/share/man/*
+rm -rf /tmp/*

@@ -40,6 +40,12 @@ try:
 except Exception:  # pragma: no cover
     EonixDock = None  # type: ignore
 
+try:
+    from apps.files_app import EonixFiles
+    from apps.settings_app import EonixSettings
+except Exception:
+    EonixFiles = EonixSettings = None  # type: ignore
+
 GTK_AVAILABLE = False
 try:  # pragma: no cover - exercised in CI with GTK installed
     import gi  # type: ignore
@@ -550,39 +556,59 @@ class EonixDesktop:
         self.loop_registry: list[str] = []
 
     def _launch_terminal(self) -> None:
-        """Launch styled terminal inside window manager."""
+        """Launch styled terminal inside window manager using VTE if available."""
         if not GTK_AVAILABLE:
             return
-        term_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        term_box.add_css_class("eonix-workspace")
+        
+        widget = None
+        try:
+            gi.require_version("Vte", "2.91")
+            from gi.repository import Vte
+            term = Vte.Terminal()
+            term.add_css_class("eonix-terminal")
+            term.spawn_async(
+                Vte.PtyFlags.DEFAULT,
+                None, ["/bin/bash"], None,
+                GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+                None, None, -1, None, None
+            )
+            widget = term
+        except Exception:
+            # Fallback: styled TextView
+            tv = Gtk.TextView()
+            tv.add_css_class("eonix-terminal-view")
+            tv.set_editable(True)
+            tv.set_monospace(True)
+            tv.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+            
+            buf = tv.get_buffer()
+            buf.set_text("eonix@eonix-os:~$ ")
+            
+            scroll = Gtk.ScrolledWindow()
+            scroll.set_child(tv)
+            scroll.set_vexpand(True)
+            scroll.set_hexpand(True)
+            widget = scroll
 
-        tv = Gtk.TextView()
-        tv.add_css_class("eonix-terminal-view")
-        tv.set_editable(True)
-        tv.set_monospace(True)
-        tv.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-
-        buf = tv.get_buffer()
-        buf.set_text("eonix@eonix-os:~$ ")
-
-        scroll = Gtk.ScrolledWindow()
-        scroll.set_child(tv)
-        scroll.set_vexpand(True)
-        scroll.set_hexpand(True)
-        term_box.append(scroll)
-
-        if self.window_manager:
+        if self.window_manager and widget:
             self.window_manager.open(
                 "⚡ EonixShell",
-                term_box,
+                widget,
                 x=80, y=60,
-                w=680, h=420
+                w=700, h=440
             )
 
     def _handle_dock_launch(self, app_name: str) -> None:
         """Called when a dock icon is clicked."""
+        if not self.window_manager:
+            return
+
         if app_name in ("Terminal", "EonixShell"):
             self._launch_terminal()
+        elif app_name == "Files" and EonixFiles:
+            self.window_manager.open("📁 Files", EonixFiles(), x=140, y=80, w=720, h=480)
+        elif app_name == "Settings" and EonixSettings:
+            self.window_manager.open("⚙️ Settings", EonixSettings(), x=180, y=100, w=680, h=480)
         # Week 45: wire to actual app launchers
 
     def _apply_goal_snapshot(self, snapshot: GoalSnapshot) -> None:
@@ -651,19 +677,9 @@ class EonixDesktop:
         if self._loop and self._loop.is_running():
             self._loop.call_soon_threadsafe(self._loop.stop)
 
-    def _start_agents_async(self) -> None:
-        """Start agent connections and loops without blocking UI."""
-        def _run():
-            try:
-                self.restore_active_goal_workspace()
-                self.start_runtime_loops()
-            except Exception:
-                pass
-        t = threading.Thread(target=_run, daemon=True)
-        t.start()
-
     def run(self) -> None:
-        self._start_agents_async()
+        self.restore_active_goal_workspace()
+        self.start_runtime_loops()
         if self.panel_only:
             self.goal_panel.window.present()
             return

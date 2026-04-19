@@ -50,12 +50,25 @@ if [[ $VERIFY_ONLY -eq 0 ]]; then
   sudo cp "$CHROOT"/boot/initrd.img-* "$IMAGE/live/initrd.img"
 
   echo "[squashfs] Building squashfs"
-  COMP_OPTS=("-comp" "xz")
+  COMP_OPTS=("-comp" "xz" "-Xbcj" "x86" "-b" "1M" "-Xdict-size" "1M")
   if [[ $FAST -eq 1 ]]; then
-    COMP_OPTS=("-comp" "gzip")
+    COMP_OPTS=("-comp" "gzip" "-b" "1M")
   fi
   BEFORE_SIZE=$(sudo du -sh "$CHROOT" 2>/dev/null | awk '{print $1}')
-  sudo mksquashfs "$CHROOT" "$IMAGE/live/filesystem.squashfs" -e boot "${COMP_OPTS[@]}" -b 1M -no-progress
+  # Build with extensive exclusions to reduce ISO size under 2GB
+  sudo mksquashfs "$CHROOT" "$IMAGE/live/filesystem.squashfs" \
+    -e boot \
+    -e proc \
+    -e sys \
+    -e dev \
+    -e tmp \
+    -e var/cache/apt \
+    -e var/lib/apt/lists \
+    -e usr/share/doc \
+    -e usr/share/man \
+    -e usr/share/locale \
+    -e usr/lib/debug \
+    "${COMP_OPTS[@]}" -no-progress
   AFTER_SIZE=$(sudo du -sh "$IMAGE/live/filesystem.squashfs" 2>/dev/null | awk '{print $1}')
   echo "✅ Squashfs built: ${BEFORE_SIZE:-?} → ${AFTER_SIZE:-?}"
 fi
