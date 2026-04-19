@@ -341,13 +341,14 @@ class EonixWallpaper:
         self.window = _StubWindow()
         if GTK_AVAILABLE and not headless:
             self.window = Gtk.Window(title="Eonix Desktop")  # type: ignore
-            self.window.fullscreen()
+            self.window.set_default_size(1920, 1080)
+            self.window.set_decorated(False)
             self.window.add_css_class("eonix-workspace")
 
             # Load Aura CSS design system
             _load_aura_css()
 
-            # Create the neural particle wallpaper as the base layer
+            # Create the neural particle wallpaper widget
             if AuraWallpaper is not None:
                 self.aura = AuraWallpaper()
                 self.aura.set_hexpand(True)
@@ -626,36 +627,20 @@ class EonixDesktop:
             return
 
         if GTK_AVAILABLE and not self.headless:
-            # ── Build the composited desktop layout ──────────
-            # Wallpaper window is the root — everything overlays on it
-            overlay = Gtk.Overlay()
-            overlay.set_hexpand(True)
-            overlay.set_vexpand(True)
+            # ── Build the desktop layout ──────────────────────
+            # Simple Box layout — no Overlay (DrawingArea has 0 natural size
+            # which causes Overlay to collapse). Particles fill workspace.
+            root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+            root.set_hexpand(True)
+            root.set_vexpand(True)
 
-            # Neural particle wallpaper as base layer (must fill entire overlay)
-            if self.wallpaper.aura is not None:
-                self.wallpaper.aura.set_hexpand(True)
-                self.wallpaper.aura.set_vexpand(True)
-                overlay.set_child(self.wallpaper.aura)
-            else:
-                placeholder = Gtk.Box()
-                placeholder.set_hexpand(True)
-                placeholder.set_vexpand(True)
-                placeholder.add_css_class("eonix-workspace")
-                overlay.set_child(placeholder)
-
-            # Main content: TopBar + GoalPanel + Workspace + Dock
-            main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-            main_vbox.set_hexpand(True)
-            main_vbox.set_vexpand(True)
-
-            # TopBar at top (spans full width)
+            # ── TopBar (spans full width) ────────────────────
             topbar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             topbar_box.set_hexpand(True)
             topbar_box.add_css_class("eonix-topbar")
             topbar_box.set_margin_start(12)
             topbar_box.set_margin_end(12)
-            lbl_goal = Gtk.Label(label="⚡ EONIX | No active goal")
+            lbl_goal = Gtk.Label(label="\u26a1 EONIX | No active goal")
             lbl_clock = Gtk.Label(label=self.top_bar.clock_value)
             lbl_metrics = Gtk.Label(label=f"{self.top_bar.ram_display}  {self.top_bar.cpu_display}")
             topbar_box.append(lbl_goal)
@@ -667,14 +652,14 @@ class EonixDesktop:
             self.top_bar._label_goal = lbl_goal
             self.top_bar._label_clock = lbl_clock
             self.top_bar._label_metrics = lbl_metrics
-            main_vbox.append(topbar_box)
+            root.append(topbar_box)
 
-            # Content row: GoalPanel on left, workspace on right (both expand)
+            # ── Content row: GoalPanel + Workspace ───────────
             content_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
             content_row.set_hexpand(True)
             content_row.set_vexpand(True)
 
-            # GoalPanel sidebar
+            # GoalPanel sidebar (fixed width, full height)
             panel_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
             panel_box.add_css_class("eonix-goalpanel")
             panel_box.set_size_request(240, -1)
@@ -682,7 +667,7 @@ class EonixDesktop:
             goal_label = Gtk.Label(label=self.goal_panel.active_goal_text)
             progress_label = Gtk.Label(label="0% complete")
             context_label = Gtk.Label(label="Context: 0 events")
-            memory_header = Gtk.Label(label="🧠 Memories (0)")
+            memory_header = Gtk.Label(label="\U0001f9e0 Memories (0)")
             panel_box.append(goal_label)
             panel_box.append(progress_label)
             panel_box.append(context_label)
@@ -694,22 +679,26 @@ class EonixDesktop:
                 self.goal_panel._memory_header = memory_header
             content_row.append(panel_box)
 
-            # Workspace area (transparent, fills remaining space)
-            workspace = Gtk.Box()
-            workspace.set_hexpand(True)
-            workspace.set_vexpand(True)
-            workspace.add_css_class("eonix-workspace")
-            content_row.append(workspace)
+            # Workspace: neural particle wallpaper fills this area
+            if self.wallpaper.aura is not None:
+                self.wallpaper.aura.set_hexpand(True)
+                self.wallpaper.aura.set_vexpand(True)
+                content_row.append(self.wallpaper.aura)
+            else:
+                workspace = Gtk.Box()
+                workspace.set_hexpand(True)
+                workspace.set_vexpand(True)
+                workspace.add_css_class("eonix-workspace")
+                content_row.append(workspace)
 
-            main_vbox.append(content_row)
+            root.append(content_row)
 
-            # Dock at bottom (spans full width)
+            # ── Dock at bottom (spans full width) ────────────
             if hasattr(self.dock, 'set_hexpand'):
                 self.dock.set_hexpand(True)
-                main_vbox.append(self.dock)
+                root.append(self.dock)
 
-            overlay.add_overlay(main_vbox)
-            self.wallpaper.window.set_child(overlay)
+            self.wallpaper.window.set_child(root)
 
             # Start clock ticking
             self.top_bar.tick_clock()
@@ -718,7 +707,10 @@ class EonixDesktop:
                 return True
             GLib.timeout_add(1000, _clock_tick)
 
+        # Present and then fullscreen (order matters for some WMs)
         self.wallpaper.window.present()
+        if GTK_AVAILABLE and not self.headless:
+            self.wallpaper.window.fullscreen()
         self.start_background_refresh()
         if GTK_AVAILABLE and not self.headless:
             GLib.MainLoop().run()  # GTK4 event loop

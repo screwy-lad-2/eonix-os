@@ -116,7 +116,7 @@ def test_splash_screen_implemented():
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     desktop = os.path.join(REPO, "eonix-desktop/desktop.py")
     with open(desktop, encoding="utf-8") as f: content = f.read()
-    assert "Overlay" in content  # Composited overlay layout
+    assert "fullscreen" in content  # Fullscreen desktop window
     assert "eonix-topbar" in content  # TopBar CSS class
     assert "eonix-goalpanel" in content  # GoalPanel CSS class
 
