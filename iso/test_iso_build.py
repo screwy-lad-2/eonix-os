@@ -55,9 +55,12 @@ def test_eonix_install_called_with_dev_flag() -> None:
 
 
 def test_autostart_config_correct_format() -> None:
-    text = (ISO_DIR / "build_base.sh").read_text(encoding="utf-8")
-    assert "bash ~/eonix-os/start_eonix.sh &" in text
-    assert "startx ~/eonix-os/eonix-desktop/session/start-eonix-desktop.sh" in text
+    text = (ISO_DIR / "chroot_setup.sh").read_text(encoding="utf-8")
+    # Verify xinitrc uses path-adaptive desktop launch
+    assert "eonix-desktop/desktop.py" in text
+    assert "exec python3" in text
+    # Verify autostart on tty1
+    assert "startx" in text
 
 
 def _run_grub(tmp_path: Path) -> Path:
