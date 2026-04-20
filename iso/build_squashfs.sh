@@ -50,7 +50,7 @@ if [[ $VERIFY_ONLY -eq 0 ]]; then
   sudo cp "$CHROOT"/boot/initrd.img-* "$IMAGE/live/initrd.img"
 
   echo "[squashfs] Building squashfs"
-  COMP_OPTS=("-comp" "xz" "-Xbcj" "x86" "-b" "1M" "-Xdict-size" "1M")
+  COMP_OPTS=("-comp" "xz" "-b" "1M")
   if [[ $FAST -eq 1 ]]; then
     COMP_OPTS=("-comp" "gzip" "-b" "1M")
   fi

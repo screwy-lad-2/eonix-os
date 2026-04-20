@@ -1,6 +1,15 @@
 """Eonix Desktop with launcher, memory-integrated GoalPanel, and headless tests."""
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _P
+# Ensure the eonix-desktop directory is on sys.path so that sibling
+# modules (wallpaper, dock, apps.*) can be imported when desktop.py
+# is launched via an absolute path from .xinitrc or .bash_profile.
+_desktop_dir = str(_P(__file__).resolve().parent)
+if _desktop_dir not in _sys.path:
+    _sys.path.insert(0, _desktop_dir)
+
 import argparse
 import asyncio
 import json

@@ -91,14 +91,26 @@ sleep 1
 
 # Start EONIX background agents (non-fatal if they fail)
 cd /home/eonix
-bash /home/eonix/start_eonix.sh >/home/eonix/results/boot_agents.log 2>&1 &
+if [[ -f /home/eonix/eonix-os/start_eonix.sh ]]; then
+  bash /home/eonix/eonix-os/start_eonix.sh >/home/eonix/results/boot_agents.log 2>&1 &
+elif [[ -f /home/eonix/start_eonix.sh ]]; then
+  bash /home/eonix/start_eonix.sh >/home/eonix/results/boot_agents.log 2>&1 &
+fi
 AGENT_PID=$!
 
 # Give agents time to initialize
 sleep 4
 
 # Launch the GTK4 Desktop (this is the main foreground process)
-exec python3 /home/eonix/eonix-desktop/desktop.py
+# Try the eonix-os subdirectory first (build_base.sh layout), then flat layout
+if [[ -f /home/eonix/eonix-os/eonix-desktop/desktop.py ]]; then
+  exec python3 /home/eonix/eonix-os/eonix-desktop/desktop.py
+elif [[ -f /home/eonix/eonix-desktop/desktop.py ]]; then
+  exec python3 /home/eonix/eonix-desktop/desktop.py
+else
+  echo "ERROR: desktop.py not found" >/home/eonix/results/desktop_error.log
+  exec xterm
+fi
 XINITEOF
 
 chown eonix:eonix /home/eonix/.bashrc /home/eonix/.xinitrc
@@ -139,6 +151,4 @@ chown eonix:eonix /home/eonix/results
 apt-get clean
 rm -rf /var/cache/apt/archives/*
 rm -rf /var/lib/apt/lists/*
-rm -rf /usr/share/doc/*
-rm -rf /usr/share/man/*
 rm -rf /tmp/*

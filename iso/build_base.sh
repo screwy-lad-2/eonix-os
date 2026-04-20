@@ -94,15 +94,9 @@ sudo chroot "$CHROOT" chown -R eonix:eonix /home/eonix/eonix-os
 log "Invoking installer in dev mode"
 sudo chroot "$CHROOT" /bin/bash -lc "su - eonix -c 'bash /home/eonix/eonix-os/install/eonix-install.sh --dev'"
 
-# Step 4: Autostart desktop session for live user
-log "Configuring autostart for eonix user"
-autostart_path=/home/eonix/.bash_profile
-sudo chroot "$CHROOT" /bin/bash -c "cat > $autostart_path <<'EOF'
-bash ~/eonix-os/start_eonix.sh &
-sleep 3
-startx ~/eonix-os/eonix-desktop/session/start-eonix-desktop.sh
-EOF
-chown eonix:eonix $autostart_path"
+# Step 4: Autostart handled by chroot_setup.sh (.bashrc + .xinitrc)
+# Do NOT create a .bash_profile here — it conflicts with the .bashrc autostart
+log "Autostart already configured by chroot_setup.sh"
 
 # Step 5: Report status
 chroot_size=$(sudo du -sh "$CHROOT" 2>/dev/null | awk '{print $1}')
