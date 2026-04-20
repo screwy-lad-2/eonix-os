@@ -78,9 +78,25 @@ fi
 if [[ $SKIP_PACKAGES -eq 0 && $EONIX_ONLY -eq 0 ]]; then
   log "Running chroot setup script"
   require sudo
+
+  # Mount virtual filesystems — required for update-initramfs to work
+  # correctly during kernel installation (generates initrd with live-boot hooks)
+  log "Mounting /proc /sys /dev inside chroot"
+  sudo mount --bind /proc "$CHROOT/proc" || true
+  sudo mount --bind /sys  "$CHROOT/sys"  || true
+  sudo mount --bind /dev  "$CHROOT/dev"  || true
+  sudo mount --bind /dev/pts "$CHROOT/dev/pts" 2>/dev/null || true
+
   sudo cp "$SCRIPT_DIR/chroot_setup.sh" "$CHROOT/tmp/chroot_setup.sh"
   sudo chroot "$CHROOT" /bin/bash /tmp/chroot_setup.sh
   sudo rm -f "$CHROOT/tmp/chroot_setup.sh"
+
+  # Unmount virtual filesystems
+  log "Unmounting chroot virtual filesystems"
+  sudo umount "$CHROOT/dev/pts" 2>/dev/null || true
+  sudo umount "$CHROOT/dev"     2>/dev/null || true
+  sudo umount "$CHROOT/sys"     2>/dev/null || true
+  sudo umount "$CHROOT/proc"    2>/dev/null || true
 else
   log "Skipping chroot package installation"
 fi

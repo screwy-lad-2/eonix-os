@@ -5,7 +5,9 @@ export DEBIAN_FRONTEND=noninteractive
 
 apt-get update
 apt-get install -y --no-install-recommends \
-  linux-image-amd64 live-boot systemd systemd-sysv sudo curl wget git \
+  linux-image-amd64 live-boot live-boot-initramfs-tools \
+  live-config live-config-systemd \
+  systemd systemd-sysv sudo curl wget git \
   python3 python3-pip python3-venv python3-gi python3-gi-cairo \
   gir1.2-gtk-4.0 libgtk-4-dev \
   portaudio19-dev ffmpeg espeak-ng \
@@ -147,6 +149,12 @@ fi
 # Pre-create the results directory so agent logs have somewhere to go
 mkdir -p /home/eonix/results
 chown eonix:eonix /home/eonix/results
+
+# Force-regenerate the initramfs so it includes live-boot hooks and
+# all required modules (squashfs, loop, overlay). This MUST run after
+# all packages are installed and with /proc mounted (done by build_base.sh).
+echo "[chroot_setup] Regenerating initramfs with live-boot hooks"
+update-initramfs -u -k all 2>&1 || echo "[chroot_setup] WARNING: update-initramfs returned non-zero"
 
 apt-get clean
 rm -rf /var/cache/apt/archives/*
