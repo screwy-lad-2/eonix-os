@@ -15,18 +15,21 @@ class EonixSettings(Gtk.Box):
     def __init__(self):
         super().__init__(
             orientation=Gtk.Orientation.HORIZONTAL)
+        self.set_css_classes(["eonix-settings-root"])
+        self.set_vexpand(True)
+        self.set_hexpand(True)
 
         # Sidebar
         sidebar = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL,
             spacing=2)
-        sidebar.set_css_classes(["files-sidebar"])
+        sidebar.set_css_classes(["settings-sidebar"])
         sidebar.set_size_request(180, -1)
 
         for emoji, name in self.SECTIONS:
             btn = Gtk.Button(
                 label=f"{emoji}  {name}")
-            btn.set_css_classes(["files-nav-btn"])
+            btn.set_css_classes(["settings-nav-btn"])
             btn.connect(
                 "clicked",
                 lambda b, n=name: self._show(n))

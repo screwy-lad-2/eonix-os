@@ -295,26 +295,31 @@ scrollbar slider:hover {
 }
 
 .section-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: #a78bfa;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  margin-top: 4px;
 }
 .settings-row {
   background: rgba(255,255,255,0.04);
-  border-radius: 8px;
-  padding: 10px 14px;
   border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+.settings-row:hover {
+  background: rgba(124,77,255,0.08);
+  border-color: rgba(124,77,255,0.2);
 }
 .settings-key {
   color: #888aa0;
   font-size: 13px;
-  min-width: 160px;
+  min-width: 180px;
 }
 .settings-val {
   color: #e0e0e0;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* ── Terminal ── */
@@ -331,4 +336,192 @@ scrollbar slider:hover {
 .eonix-terminal-view text {
   background-color: #080818;
   color: #a0ff80;
+}
+
+/* ══════ WEEK 46 — Custom Window Chrome ══════ */
+
+/* Remove ALL default GTK window chrome */
+.eonix-app-window {
+  background: rgba(16,16,32,0.97);
+  border: 1px solid rgba(124,77,255,0.25);
+  border-radius: 14px;
+  box-shadow:
+    0 16px 56px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(124,77,255,0.15),
+    0 0 40px rgba(124,77,255,0.06);
+}
+
+.eonix-titlebar {
+  background: rgba(12,12,26,0.95);
+  border-bottom: 1px solid rgba(124,77,255,0.18);
+  border-radius: 14px 14px 0 0;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.eonix-window-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(224,224,224,0.9);
+  letter-spacing: 0.02em;
+}
+
+/* Traffic light buttons */
+.traffic-btn {
+  border-radius: 50%;
+  min-width: 14px;
+  min-height: 14px;
+  max-width: 14px;
+  max-height: 14px;
+  padding: 0;
+  border: none;
+  font-size: 9px;
+  font-weight: 700;
+  color: transparent;
+}
+.traffic-btn:hover { color: rgba(0,0,0,0.7); }
+.btn-close { background: #ff5f57; }
+.btn-close:hover { background: #ff3b30; }
+.btn-min   { background: #febc2e; }
+.btn-min:hover   { background: #f0a800; }
+.btn-max   { background: #28c840; }
+.btn-max:hover   { background: #00a020; }
+
+/* ── Settings App Dark ── */
+.eonix-settings-root {
+  background: rgba(13,13,26,0.97);
+  color: #e0e0e0;
+}
+.settings-sidebar {
+  background: rgba(10,10,22,0.95);
+  border-right: 1px solid rgba(124,77,255,0.15);
+  padding: 16px 8px;
+  min-width: 180px;
+}
+.settings-nav-btn {
+  background: transparent;
+  border: none;
+  color: #a0a0c0;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+.settings-nav-btn:hover {
+  background: rgba(124,77,255,0.2);
+  color: #e0e0e0;
+}
+.settings-content {
+  background: transparent;
+  padding: 20px 24px;
+}
+
+/* ── Files App Dark ── */
+.eonix-files-root {
+  background: rgba(13,13,26,0.97);
+  color: #e0e0e0;
+}
+.files-sidebar {
+  background: rgba(10,10,22,0.95);
+  border-right: 1px solid rgba(124,77,255,0.15);
+  padding: 12px 8px;
+  min-width: 160px;
+}
+.files-nav-btn {
+  background: transparent;
+  border: none;
+  color: #a0a0c0;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.files-nav-btn:hover {
+  background: rgba(124,77,255,0.2);
+  color: #e0e0e0;
+}
+.files-pathbar {
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #888aa0;
+  padding: 6px 14px;
+}
+.file-item {
+  padding: 10px 6px;
+  border-radius: 10px;
+  min-width: 80px;
+}
+.file-item:hover {
+  background: rgba(124,77,255,0.18);
+}
+.file-icon { font-size: 26px; }
+.file-name {
+  font-size: 11px;
+  color: #b0b0c8;
+}
+
+/* ═══ EONIX UNIQUE ELEMENTS ═══ */
+
+/* Glowing separator lines */
+.eonix-glow-sep {
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(124,77,255,0.6),
+    transparent);
+  min-height: 1px;
+  margin: 4px 0;
+}
+
+/* AI active indicator dot (TopBar) */
+.ai-active-dot {
+  background: #7c4dff;
+  border-radius: 50%;
+  min-width: 8px;
+  min-height: 8px;
+  box-shadow: 0 0 8px #7c4dff,
+              0 0 16px rgba(124,77,255,0.5);
+}
+
+/* Custom scrollbar */
+scrollbar { background: transparent; }
+scrollbar slider {
+  background: rgba(124,77,255,0.3);
+  border-radius: 4px;
+  min-width: 4px;
+  min-height: 24px;
+  border: 1px solid rgba(124,77,255,0.2);
+}
+scrollbar slider:hover {
+  background: rgba(124,77,255,0.6);
+  box-shadow: 0 0 8px rgba(124,77,255,0.3);
+}
+
+/* Frosted listbox rows */
+list row {
+  background: transparent;
+  border-radius: 8px;
+  padding: 2px 4px;
+  color: #e0e0e0;
+}
+list row:hover {
+  background: rgba(124,77,255,0.15);
+}
+list row:selected {
+  background: rgba(124,77,255,0.3);
+  color: #ffffff;
+}
+
+/* TopBar */
+.eonix-topbar {
+  background: rgba(8,8,20,0.92);
+  border-bottom: 1px solid rgba(124,77,255,0.25);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.4),
+              0 1px 0 rgba(124,77,255,0.15);
+}
+
+/* Dock glow */
+.eonix-dock-bar {
+  box-shadow: 0 -1px 0 rgba(124,77,255,0.3),
+              0 -8px 24px rgba(124,77,255,0.06);
 }

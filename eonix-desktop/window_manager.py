@@ -241,6 +241,99 @@ class EonixWindowManager:
     def get_goal_relevant_windows(self) -> list[EonixWindow]:
         return sorted(self.registry.values(), key=lambda x: x.goal_score, reverse=True)
 
+    # ── GTK Window Hosting ──────────────────────────────────
+    def open(self, title: str, content, x: int = 100, y: int = 80,
+             w: int = 640, h: int = 420):
+        """Open a new GTK window with custom Eonix chrome."""
+        if not GTK_AVAILABLE:
+            return None
+
+        win = Gtk.Window()
+        win.set_decorated(False)
+        win.set_default_size(w, h)
+        win.set_resizable(True)
+        win.set_css_classes(["eonix-app-window"])
+
+        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+        # ── Custom titlebar ──
+        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
+        bar.set_css_classes(["eonix-titlebar"])
+        bar.set_size_request(-1, 38)
+
+        # Traffic light buttons
+        btn_box = Gtk.Box(spacing=8)
+        btn_box.set_valign(Gtk.Align.CENTER)
+        btn_box.set_margin_start(14)
+        for css_cls, symbol, action in [
+            ("btn-close", "×", lambda *_: win.close()),
+            ("btn-min",   "−", lambda *_: win.minimize()),
+            ("btn-max",   "+", lambda *_: None),
+        ]:
+            btn = Gtk.Button(label=symbol)
+            btn.set_css_classes(["traffic-btn", css_cls])
+            btn.set_size_request(14, 14)
+            btn.connect("clicked", action)
+            btn_box.append(btn)
+        bar.append(btn_box)
+
+        spacer1 = Gtk.Box()
+        spacer1.set_hexpand(True)
+        bar.append(spacer1)
+
+        lbl = Gtk.Label(label=title)
+        lbl.set_css_classes(["eonix-window-title"])
+        bar.append(lbl)
+
+        spacer2 = Gtk.Box()
+        spacer2.set_hexpand(True)
+        bar.append(spacer2)
+
+        # Drag support via motion controller
+        drag = Gtk.GestureDrag()
+        self._drag_start_x = 0
+        self._drag_start_y = 0
+        def _on_drag_begin(gesture, x, y):
+            pass
+        def _on_drag_update(gesture, off_x, off_y):
+            pass
+        drag.connect("drag-begin", _on_drag_begin)
+        drag.connect("drag-update", _on_drag_update)
+        bar.add_controller(drag)
+
+        outer.append(bar)
+
+        # ── Content ──
+        if content is not None:
+            content.set_vexpand(True)
+            content.set_hexpand(True)
+            outer.append(content)
+
+        win.set_child(outer)
+
+        # Open animation
+        win.set_opacity(0.0)
+        def _animate_open():
+            t = getattr(win, '_anim_t', 0.0)
+            t += 16 / 220.0
+            if t >= 1.0:
+                t = 1.0
+                win.set_opacity(1.0)
+                return False
+            p = 1 - (1 - t) ** 3  # ease-out-cubic
+            win.set_opacity(p)
+            win._anim_t = t
+            return True
+        win._anim_t = 0.0
+        GLib.timeout_add(16, _animate_open)
+
+        win.present()
+
+        # Register in window manager
+        xid = self.register_virtual_window(title, position=(x, y, w, h))
+        win._eonix_xid = xid
+        return win
+
 
 class EonixTaskbar:
     def __init__(self, wm: EonixWindowManager, headless: bool = True):

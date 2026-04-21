@@ -218,14 +218,25 @@ class EonixTopBar:
         self.window.set_resizable(False)
         self.window.set_default_size(1920, 40)
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)  # type: ignore
+        box.set_css_classes(["eonix-topbar"])
         box.set_margin_start(12)
         box.set_margin_end(12)
+
+        # AI active dot
+        ai_dot = Gtk.Box()
+        ai_dot.set_css_classes(["ai-active-dot"])
+        ai_dot.set_size_request(8, 8)
+        ai_dot.set_valign(Gtk.Align.CENTER)
+        box.append(ai_dot)
+
         self._label_goal = Gtk.Label(label="⚡ EONIX | No active goal")  # type: ignore
-        self._label_clock = Gtk.Label(label=self.clock_value)  # type: ignore
+        self._label_goal.set_hexpand(True)
+        self._label_goal.set_halign(Gtk.Align.START)
         self._label_metrics = Gtk.Label(label=f"{self.ram_display}  {self.cpu_display}")  # type: ignore
+        self._label_clock = Gtk.Label(label=self.clock_value)  # type: ignore
         box.append(self._label_goal)  # type: ignore
-        box.append(self._label_clock)  # type: ignore
         box.append(self._label_metrics)  # type: ignore
+        box.append(self._label_clock)  # type: ignore
         self.window.set_child(box)
 
     def update_goal(self, name: str) -> None:
@@ -580,6 +591,26 @@ class EonixDesktop:
             term = Vte.Terminal()
             term.set_vexpand(True)
             term.set_hexpand(True)
+
+            # Dark terminal colors
+            bg = Gdk.RGBA()
+            fg = Gdk.RGBA()
+            bg.parse("#080818")
+            fg.parse("#a0ff80")
+            palette = []
+            for c in [
+                "#1a1a2e", "#ff5555", "#50fa7b", "#f1fa8c",
+                "#bd93f9", "#ff79c6", "#8be9fd", "#f8f8f2",
+                "#44475a", "#ff6e6e", "#69ff94", "#ffffa5",
+                "#d6acff", "#ff92df", "#a4ffff", "#ffffff",
+            ]:
+                rgba = Gdk.RGBA()
+                rgba.parse(c)
+                palette.append(rgba)
+            term.set_colors(fg, bg, palette)
+            term.set_font_scale(1.05)
+            term.set_scrollback_lines(10000)
+
             term.spawn_async(
                 Vte.PtyFlags.DEFAULT,
                 os.path.expanduser("~"),

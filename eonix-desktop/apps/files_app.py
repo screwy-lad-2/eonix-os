@@ -7,6 +7,9 @@ class EonixFiles(Gtk.Box):
     def __init__(self):
         super().__init__(
             orientation=Gtk.Orientation.HORIZONTAL)
+        self.set_css_classes(["eonix-files-root"])
+        self.set_vexpand(True)
+        self.set_hexpand(True)
         self.current_path = os.path.expanduser("~")
 
         # ── Sidebar ───────────────────────────

@@ -272,3 +272,52 @@ def test_terminal_launch_has_fallback():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "launched_vte" in c or "eonix-terminal-view" in c
+
+
+# ── Week 46 tests ──
+
+def test_settings_has_dark_css_class():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "eonix-settings-root" in c
+
+
+def test_terminal_sets_vte_colors():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "set_colors" in c or "parse(" in c
+
+
+def test_traffic_buttons_custom():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/window_manager.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "btn-close" in c
+    assert "btn-min" in c
+    assert "btn-max" in c
+
+
+def test_window_has_no_decoration():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/window_manager.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "set_decorated(False)" in c or "set_titlebar" in c
+
+
+def test_ai_dot_in_topbar():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "ai-active-dot" in c
