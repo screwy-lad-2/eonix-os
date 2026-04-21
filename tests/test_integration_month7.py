@@ -247,3 +247,28 @@ def test_settings_shows_model_version():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "model_version" in c or "v1.2" in c
+
+
+def test_no_rm_rf_on_system_dirs():
+    """Verify chroot_setup.sh does not delete system-critical directories."""
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "iso/chroot_setup.sh")
+    if not os.path.exists(f):
+        pytest.skip("No chroot_setup.sh")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "rm -rf /usr/share/locale" not in c
+    assert "rm -rf /usr/lib" not in c
+    assert "rm -rf /usr/share/doc" not in c
+    assert "rm -rf /usr/share/man" not in c
+
+
+def test_terminal_launch_has_fallback():
+    """Terminal must have VTE fallback."""
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "launched_vte" in c or "eonix-terminal-view" in c

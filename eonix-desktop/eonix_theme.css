@@ -316,3 +316,19 @@ scrollbar slider:hover {
   font-size: 13px;
   font-weight: 500;
 }
+
+/* ── Terminal ── */
+.eonix-terminal-view {
+  background-color: #080818;
+  color: #a0ff80;
+  font-family: 'JetBrains Mono', 'Cascadia Code', 'Courier New', monospace;
+  font-size: 13px;
+  padding: 12px;
+  caret-color: #7c4dff;
+  border: none;
+  outline: none;
+}
+.eonix-terminal-view text {
+  background-color: #080818;
+  color: #a0ff80;
+}

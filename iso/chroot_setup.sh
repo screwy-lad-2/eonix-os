@@ -12,30 +12,38 @@ apt-get install -y --no-install-recommends \
   gir1.2-gtk-4.0 libgtk-4-dev \
   portaudio19-dev ffmpeg espeak-ng \
   xorg xinit openbox xterm \
-  fonts-noto-color-emoji fonts-noto \
-  libvte-2.91-dev gir1.2-vte-2.91 \
   network-manager xvfb dbus-x11
 
-# VirtualBox guest packages are in contrib/non-free on some Debian mirrors.
-# Install only those currently resolvable to keep CI builds reproducible.
-vbox_guest_packages=(
-  virtualbox-guest-x11
-  virtualbox-guest-utils
-  virtualbox-guest-dkms
-)
-available_vbox_guest_packages=()
-for pkg in "${vbox_guest_packages[@]}"; do
+# Optional font and VTE packages — must not break the build
+apt-get install -y --no-install-recommends fonts-noto-color-emoji || true
+apt-get install -y --no-install-recommends fonts-noto || true
+apt-get install -y --no-install-recommends gir1.2-vte-2.91 libvte-2.91-0 || true
+
+# VirtualBox guest packages (optional, may not be in apt sources)
+for pkg in virtualbox-guest-x11 virtualbox-guest-utils virtualbox-guest-dkms; do
   if apt-cache show "$pkg" >/dev/null 2>&1; then
-    available_vbox_guest_packages+=("$pkg")
+    apt-get install -y --no-install-recommends "$pkg" || true
   else
     echo "[chroot_setup] INFO: Optional package '$pkg' not available; skipping"
   fi
 done
-if [[ ${#available_vbox_guest_packages[@]} -gt 0 ]]; then
-  apt-get install -y --no-install-recommends "${available_vbox_guest_packages[@]}"
-else
-  echo "[chroot_setup] INFO: No VirtualBox guest packages available in apt sources"
+
+# Verify init/systemd exists after install
+if [ ! -f /sbin/init ] && [ ! -f /usr/sbin/init ] && \
+   [ ! -L /sbin/init ]; then
+    echo "ERROR: /sbin/init not found after setup!"
+    ls -la /sbin/init /usr/sbin/init 2>/dev/null || true
+    exit 1
 fi
+echo "VERIFY: init found at $(readlink -f /sbin/init)"
+
+# Verify python3 works
+python3 --version || { echo "ERROR: python3 missing"; exit 1; }
+
+# Verify GTK4 is installed
+python3 -c "import gi; gi.require_version('Gtk','4.0'); \
+  from gi.repository import Gtk; print('GTK4 OK')" || \
+  echo "WARN: GTK4 not available"
 
 # Hostname
 if [[ ! -f /etc/hostname ]] || ! grep -q '^eonix-os$' /etc/hostname; then
@@ -76,7 +84,6 @@ BASHEOF
 cat > /home/eonix/.xinitrc <<'XINITEOF'
 #!/bin/bash
 
-# Set DISPLAY explicitly
 export DISPLAY=:0
 
 # Start D-Bus session bus (needed by GTK4)
@@ -84,27 +91,23 @@ if command -v dbus-launch >/dev/null 2>&1; then
   eval $(dbus-launch --sh-syntax)
 fi
 
-# Set keyboard repeat rate
 xset r rate 250 30 2>/dev/null || true
 
-# Start the window manager (openbox) in the background
+# Start openbox window manager
 openbox &
 sleep 1
 
-# Start EONIX background agents (non-fatal if they fail)
+# Start EONIX agents (non-fatal)
 cd /home/eonix
 if [[ -f /home/eonix/eonix-os/start_eonix.sh ]]; then
   bash /home/eonix/eonix-os/start_eonix.sh >/home/eonix/results/boot_agents.log 2>&1 &
 elif [[ -f /home/eonix/start_eonix.sh ]]; then
   bash /home/eonix/start_eonix.sh >/home/eonix/results/boot_agents.log 2>&1 &
 fi
-AGENT_PID=$!
 
-# Give agents time to initialize
 sleep 4
 
-# Launch the GTK4 Desktop (this is the main foreground process)
-# Try the eonix-os subdirectory first (build_base.sh layout), then flat layout
+# Launch the GTK4 Desktop
 if [[ -f /home/eonix/eonix-os/eonix-desktop/desktop.py ]]; then
   exec python3 /home/eonix/eonix-os/eonix-desktop/desktop.py
 elif [[ -f /home/eonix/eonix-desktop/desktop.py ]]; then
@@ -118,7 +121,7 @@ XINITEOF
 chown eonix:eonix /home/eonix/.bashrc /home/eonix/.xinitrc
 chmod +x /home/eonix/.xinitrc
 
-# Runtime Python dependencies baked into the ISO
+# Runtime Python dependencies
 python3 -m pip install --break-system-packages --no-cache-dir --upgrade pip
 python3 -m pip install --no-cache-dir \
   --break-system-packages \
@@ -127,36 +130,28 @@ python3 -m pip install --no-cache-dir \
   pycairo PyGObject python-xlib ewmh \
   httpx fastapi uvicorn aiohttp websockets zeroconf requests
 
-# Avoid hard CI failures from very large optional AI wheels (torch/CUDA stack).
-optional_python_packages=(
-  sentence-transformers
-  chromadb
-)
-for pkg in "${optional_python_packages[@]}"; do
+# Optional heavy AI packages
+for pkg in sentence-transformers chromadb; do
   if ! python3 -m pip install --no-cache-dir --break-system-packages "$pkg"; then
-    echo "[chroot_setup] WARNING: Optional Python package '$pkg' failed to install; continuing"
+    echo "[chroot_setup] WARNING: Optional '$pkg' failed; continuing"
   fi
 done
 
-# Ensure MIND code exists inside the live filesystem
+# Ensure MIND code exists
 if [[ -d /home/eonix/eonix-os/eonix-mind ]]; then
   cp -a /home/eonix/eonix-os/eonix-mind /home/eonix/eonix-mind
   chown -R eonix:eonix /home/eonix/eonix-mind
-else
-  echo "[chroot_setup] WARNING: /home/eonix/eonix-os/eonix-mind missing; skipping copy" >&2
 fi
 
-# Pre-create the results directory so agent logs have somewhere to go
 mkdir -p /home/eonix/results
 chown eonix:eonix /home/eonix/results
 
-# Force-regenerate the initramfs so it includes live-boot hooks and
-# all required modules (squashfs, loop, overlay). This MUST run after
-# all packages are installed and with /proc mounted (done by build_base.sh).
-echo "[chroot_setup] Regenerating initramfs with live-boot hooks"
-update-initramfs -u -k all 2>&1 || echo "[chroot_setup] WARNING: update-initramfs returned non-zero"
+# Regenerate initramfs with all live-boot hooks
+echo "[chroot_setup] Regenerating initramfs"
+update-initramfs -u -k all 2>&1 || echo "[chroot_setup] WARNING: update-initramfs non-zero"
 
+# Safe cleanup — do NOT remove system files
 apt-get clean
-rm -rf /var/cache/apt/archives/*
-rm -rf /var/lib/apt/lists/*
-rm -rf /tmp/*
+apt-get autoremove -y
+rm -rf /var/cache/apt/archives/*.deb
+rm -f /tmp/*.tmp

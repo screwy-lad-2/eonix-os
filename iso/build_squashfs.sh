@@ -38,10 +38,8 @@ require mksquashfs
 require unsquashfs
 
 if [[ $VERIFY_ONLY -eq 0 ]]; then
-  echo "[squashfs] Cleaning chroot apt/cache/tmp"
+  echo "[squashfs] Cleaning chroot apt cache"
   sudo chroot "$CHROOT" apt-get clean || true
-  sudo rm -rf "$CHROOT/tmp"/* || true
-  sudo rm -rf "$CHROOT/var/cache/apt"/* || true
   sudo rm -f "$CHROOT/root/.bash_history" || true
 
   echo "[squashfs] Copying kernel and initrd"
@@ -55,16 +53,15 @@ if [[ $VERIFY_ONLY -eq 0 ]]; then
     COMP_OPTS=("-comp" "gzip" "-b" "1M")
   fi
   BEFORE_SIZE=$(sudo du -sh "$CHROOT" 2>/dev/null | awk '{print $1}')
-  # Exclude only virtual fs and build-time cache — locale/libs MUST stay for systemd
+
+  # SAFE exclusions only — virtual filesystems and dev nodes
   sudo mksquashfs "$CHROOT" "$IMAGE/live/filesystem.squashfs" \
-    -e boot \
     -e proc \
     -e sys \
-    -e dev \
-    -e tmp \
-    -e var/cache/apt \
-    -e var/lib/apt/lists \
+    -e dev/pts \
+    -noappend \
     "${COMP_OPTS[@]}" -no-progress
+
   AFTER_SIZE=$(sudo du -sh "$IMAGE/live/filesystem.squashfs" 2>/dev/null | awk '{print $1}')
   echo "✅ Squashfs built: ${BEFORE_SIZE:-?} → ${AFTER_SIZE:-?}"
 fi
