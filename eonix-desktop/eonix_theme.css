@@ -525,3 +525,48 @@ list row:selected {
   box-shadow: 0 -1px 0 rgba(124,77,255,0.3),
               0 -8px 24px rgba(124,77,255,0.06);
 }
+
+/* ── MIND App ── */
+.eonix-mind-root {
+  background: rgba(13,13,26,0.97);
+}
+.mind-header {
+  border-bottom: 1px solid rgba(124,77,255,0.15);
+}
+.mind-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #a78bfa;
+}
+.mind-key {
+  font-size: 12px;
+  color: #888aa0;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px 0 0 8px;
+  min-width: 160px;
+}
+.mind-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0e0e0;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 0 8px 8px 0;
+  min-width: 120px;
+}
+.mind-online {
+  color: #50fa7b;
+  font-weight: 700;
+}
+
+/* Dock tooltip */
+.dock-btn tooltip {
+  background: rgba(10,10,22,0.95);
+  color: #e0e0e0;
+  border: 1px solid rgba(124,77,255,0.3);
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 4px 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}

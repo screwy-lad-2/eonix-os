@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import math
 import os
-import subprocess
 from typing import Callable, Optional
 
 GTK_AVAILABLE = False
@@ -26,13 +25,13 @@ HEADLESS = not GTK_AVAILABLE or os.environ.get("EONIX_HEADLESS", "0") == "1" or 
 
 # ── App definitions ─────────────────────────────────
 APPS = [
-    ("⚡", "EonixShell",  "eonix-shell"),
-    ("📁", "Files",       "nautilus"),
-    ("🧠", "Goals",       "python3 eonix-desktop/memory_widget.py"),
-    ("⚙️", "Settings",   "python3 eonix-desktop/settings.py"),
-    ("📊", "Hub",         "xdg-open http://localhost:7750"),
-    ("🤖", "MIND",        "python3 eonix-mind/mind_v2.py"),
-    ("💻", "Terminal",     "xterm"),
+    ("⚡", "EonixShell",  ""),
+    ("📁", "Files",       ""),
+    ("🧠", "Goals",       ""),
+    ("⚙️", "Settings",   ""),
+    ("📊", "Hub",         ""),
+    ("🤖", "MIND",        ""),
+    ("🖥️", "System",     ""),
 ]
 
 # ── Constants ───────────────────────────────────────
@@ -172,13 +171,7 @@ if GTK_AVAILABLE and not HEADLESS:
             for i, ic in enumerate(self.icons):
                 if abs(x - (self._icon_x(i, w) + SZ / 2.0)) < (SZ + GAP) / 2.0:
                     ic.launch()
-                    if ic.cmd:
-                        try:
-                            subprocess.Popen(ic.cmd, shell=True,
-                                             stdout=subprocess.DEVNULL,
-                                             stderr=subprocess.DEVNULL)
-                        except Exception:
-                            pass
+                    # All app launching handled via on_launch callback only
                     if self.on_launch:
                         self.on_launch(ic.name)
                     break

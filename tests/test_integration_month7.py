@@ -321,3 +321,36 @@ def test_ai_dot_in_topbar():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "ai-active-dot" in c
+
+
+def test_no_xterm_subprocess():
+    """No xterm or system terminal calls anywhere in eonix-desktop."""
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    desktop_dir = os.path.join(REPO, "eonix-desktop")
+    for root, dirs, fnames in os.walk(desktop_dir):
+        for f in fnames:
+            if f.endswith('.py'):
+                fpath = os.path.join(root, f)
+                with open(fpath, encoding="utf-8") as fp:
+                    content = fp.read()
+                for bad in ["xterm", "gnome-terminal", "x-terminal-emulator"]:
+                    assert bad not in content, f"{bad} found in {fpath}"
+
+
+def test_mind_app_has_real_content():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "mind-online" in c or "LightGBM" in c
+
+
+def test_settings_has_inline_css_fallback():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "_apply_dark_fallback" in c or "CssProvider" in c

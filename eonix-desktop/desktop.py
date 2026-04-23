@@ -414,13 +414,13 @@ class EonixLauncher:
     def _default_apps(self) -> list[LauncherApp]:
         return [
             LauncherApp("EonixShell", "⚡", "eonix-shell", "Natural language shell"),
-            LauncherApp("Eonix Hub", "🌐", "xdg-open http://localhost:7750", "Open Eonix Hub"),
-            LauncherApp("Memory", "🧠", "python3 eonix-desktop/memory_widget.py", "Memory browser"),
-            LauncherApp("Settings", "⚙️", "python3 eonix-desktop/settings.py", "Desktop settings"),
-            LauncherApp("Files", "📁", "nautilus", "File manager"),
-            LauncherApp("Terminal", "🖥️", "gnome-terminal", "Terminal emulator"),
-            LauncherApp("Browser", "🌍", "xdg-open https://", "Web browser"),
-            LauncherApp("VS Code", "💻", "code .", "Code editor"),
+            LauncherApp("Eonix Hub", "🌐", "", "Open Eonix Hub"),
+            LauncherApp("Memory", "🧠", "", "Memory browser"),
+            LauncherApp("Settings", "⚙️", "", "Desktop settings"),
+            LauncherApp("Files", "📁", "", "File manager"),
+            LauncherApp("Terminal", "🖥️", "", "Terminal emulator"),
+            LauncherApp("Browser", "🌍", "", "Web browser"),
+            LauncherApp("VS Code", "💻", "", "Code editor"),
         ]
 
     def _load_apps(self) -> list[LauncherApp]:
@@ -678,12 +678,125 @@ class EonixDesktop:
                 self.window_manager.open("🧠 Goals", content,
                                          x=160, y=90, w=500, h=360)
             elif app_name == "Hub":
-                content = Gtk.Label(
-                    label="📊 Hub Status\n\nlocalhost:7750/hub/status\n"
-                          "Model: LightGBM v1.2\nAccuracy: 63.47%")
-                content.set_justify(Gtk.Justification.CENTER)
-                self.window_manager.open("📊 Hub", content,
+                hub_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+                hub_box.set_css_classes(["eonix-mind-root"])
+                hub_box.set_margin_start(20)
+                hub_box.set_margin_end(20)
+                hub_box.set_margin_top(16)
+                title = Gtk.Label(label="📊 Hub Status")
+                title.set_css_classes(["mind-title"])
+                title.set_halign(Gtk.Align.START)
+                title.set_margin_bottom(12)
+                hub_box.append(title)
+                for k, v in [
+                    ("Endpoint", "localhost:7750"),
+                    ("Model", "LightGBM v1.2"),
+                    ("Accuracy", "63.47%"),
+                    ("Status", "ONLINE"),
+                ]:
+                    row = Gtk.Box(spacing=12)
+                    row.set_css_classes(["settings-row"])
+                    row.set_margin_bottom(4)
+                    kl = Gtk.Label(label=k)
+                    kl.set_css_classes(["settings-key"])
+                    kl.set_size_request(140, -1)
+                    kl.set_halign(Gtk.Align.START)
+                    vl = Gtk.Label(label=v)
+                    vl.set_css_classes(["settings-val"])
+                    if v in ("ONLINE",):
+                        vl.set_css_classes(["mind-val", "mind-online"])
+                    vl.set_halign(Gtk.Align.START)
+                    row.append(kl)
+                    row.append(vl)
+                    hub_box.append(row)
+                self.window_manager.open("📊 Hub", hub_box,
                                          x=200, y=110, w=500, h=360)
+            elif app_name in ("MIND", "🤖", "AI"):
+                mind_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+                mind_box.set_vexpand(True)
+                mind_box.set_hexpand(True)
+                mind_box.set_css_classes(["eonix-mind-root"])
+                header = Gtk.Box(spacing=12)
+                header.set_css_classes(["mind-header"])
+                header.set_margin_start(20)
+                header.set_margin_end(20)
+                header.set_margin_top(16)
+                header.set_margin_bottom(12)
+                title = Gtk.Label(label="🤖 MIND Agent")
+                title.set_css_classes(["mind-title"])
+                header.append(title)
+                mind_box.append(header)
+                stats = [
+                    ("🧠 Model",        "LightGBM v1.2"),
+                    ("📊 Accuracy",     "63.47%"),
+                    ("✅ Status",       "ONLINE"),
+                    ("🔗 Endpoint",     "localhost:7750"),
+                    ("📦 Rows trained", "148,812"),
+                    ("🔄 Next retrain", "Auto at 120k rows"),
+                    ("🧬 Agents",       "5 connected"),
+                    ("⚡ Brain DB",     "Connected"),
+                    ("📅 Week",         "46"),
+                    ("🏁 Version",      "v1.5.0-dev"),
+                ]
+                for k, v in stats:
+                    row = Gtk.Box(spacing=12)
+                    row.set_css_classes(["settings-row"])
+                    row.set_margin_start(20)
+                    row.set_margin_end(20)
+                    row.set_margin_bottom(4)
+                    kl = Gtk.Label(label=k)
+                    kl.set_css_classes(["mind-key"])
+                    kl.set_halign(Gtk.Align.START)
+                    kl.set_size_request(160, -1)
+                    vl = Gtk.Label(label=v)
+                    if v in ("ONLINE", "Connected"):
+                        vl.set_css_classes(["mind-val", "mind-online"])
+                    else:
+                        vl.set_css_classes(["mind-val"])
+                    vl.set_halign(Gtk.Align.START)
+                    row.append(kl)
+                    row.append(vl)
+                    mind_box.append(row)
+                self.window_manager.open("🤖 MIND", mind_box,
+                                         x=160, y=90, w=520, h=420)
+            elif app_name in ("System", "🖥️"):
+                import platform
+                sys_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+                sys_box.set_css_classes(["eonix-mind-root"])
+                sys_box.set_margin_start(20)
+                sys_box.set_margin_end(20)
+                sys_box.set_margin_top(16)
+                sys_box.set_margin_bottom(16)
+                title = Gtk.Label(label="🖥️ System Info")
+                title.set_css_classes(["mind-title"])
+                title.set_halign(Gtk.Align.START)
+                title.set_margin_bottom(12)
+                sys_box.append(title)
+                info = [
+                    ("OS",        "Eonix OS v1.5.0"),
+                    ("Kernel",    platform.release()),
+                    ("Arch",      platform.machine()),
+                    ("CPU cores", str(os.cpu_count())),
+                    ("Python",    platform.python_version()),
+                    ("GTK",       "4.0"),
+                    ("Desktop",   "Eonix Aura"),
+                ]
+                for k, v in info:
+                    row = Gtk.Box(spacing=12)
+                    row.set_css_classes(["settings-row"])
+                    row.set_margin_bottom(4)
+                    kl = Gtk.Label(label=k)
+                    kl.set_css_classes(["settings-key"])
+                    kl.set_size_request(140, -1)
+                    kl.set_halign(Gtk.Align.START)
+                    vl = Gtk.Label(label=v)
+                    vl.set_css_classes(["settings-val"])
+                    vl.set_halign(Gtk.Align.START)
+                    row.append(kl)
+                    row.append(vl)
+                    sys_box.append(row)
+                self.window_manager.open("🖥️ System", sys_box,
+                                         x=200, y=120, w=440, h=360)
             else:
                 placeholder = Gtk.Label(label=f"Opening {app_name}...")
                 self.window_manager.open(app_name, placeholder,

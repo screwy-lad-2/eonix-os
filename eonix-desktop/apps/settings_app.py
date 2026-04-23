@@ -1,6 +1,6 @@
 import gi
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 import subprocess, json, os
 
 class EonixSettings(Gtk.Box):
@@ -18,6 +18,7 @@ class EonixSettings(Gtk.Box):
         self.set_css_classes(["eonix-settings-root"])
         self.set_vexpand(True)
         self.set_hexpand(True)
+        self._apply_dark_fallback()
 
         # Sidebar
         sidebar = Gtk.Box(
@@ -41,6 +42,7 @@ class EonixSettings(Gtk.Box):
             orientation=Gtk.Orientation.VERTICAL,
             spacing=16)
         self.content.set_hexpand(True)
+        self.content.set_css_classes(["settings-content"])
         self.content.set_margin_start(24)
         self.content.set_margin_top(20)
         self.content.set_margin_end(24)
@@ -50,6 +52,71 @@ class EonixSettings(Gtk.Box):
         self.append(scroll)
 
         self._show("About")
+
+    def _apply_dark_fallback(self):
+        """Inline CSS fallback for dark theme."""
+        css = b"""
+        .eonix-settings-root {
+          background-color: #0d0d1a;
+          color: #e0e0e0;
+        }
+        .settings-sidebar {
+          background-color: #0a0a16;
+          border-right: 1px solid rgba(124,77,255,0.15);
+        }
+        .settings-nav-btn {
+          background: transparent;
+          color: #a0a0c0;
+          border: none;
+          padding: 10px 14px;
+          border-radius: 8px;
+          font-weight: 500;
+        }
+        .settings-nav-btn:hover {
+          background: rgba(124,77,255,0.2);
+          color: #e0e0e0;
+        }
+        .settings-content {
+          background: transparent;
+          padding: 20px 24px;
+        }
+        .settings-row {
+          background-color: rgba(255,255,255,0.04);
+          border-radius: 10px;
+          padding: 10px 14px;
+          margin-bottom: 6px;
+        }
+        .settings-row:hover {
+          background: rgba(124,77,255,0.08);
+        }
+        .settings-key {
+          color: #888aa0;
+          font-size: 13px;
+        }
+        .settings-val {
+          color: #e0e0e0;
+          font-size: 13px;
+          font-weight: 600;
+        }
+        .section-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: #a78bfa;
+          margin-bottom: 12px;
+        }
+        """
+        try:
+            provider = Gtk.CssProvider()
+            provider.load_from_data(css)
+            display = Gdk.Display.get_default()
+            if display:
+                Gtk.StyleContext.add_provider_for_display(
+                    display,
+                    provider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                )
+        except Exception as e:
+            print(f"[SETTINGS] CSS fallback failed: {e}")
 
     def _clear(self):
         while c := self.content.get_first_child():
