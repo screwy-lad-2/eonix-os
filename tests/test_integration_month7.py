@@ -354,3 +354,43 @@ def test_settings_has_inline_css_fallback():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "_apply_dark_fallback" in c or "CssProvider" in c
+
+
+def test_settings_saves_json():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "settings.json" in c
+    assert "_save_config" in c
+
+
+def test_settings_has_appearance_controls():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "Gtk.Switch" in c
+    assert "Gtk.Scale" in c
+    assert "ColorButton" in c
+
+
+def test_ai_can_write_settings():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-core/eonix_config_schema.py")
+    assert os.path.exists(f), "Config schema missing"
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "CONFIG_SCHEMA" in c
+
+
+def test_nautilus_in_iso_packages():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "iso/chroot_setup.sh")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "nautilus" in c

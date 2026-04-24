@@ -19,6 +19,10 @@ apt-get install -y --no-install-recommends fonts-noto-color-emoji || true
 apt-get install -y --no-install-recommends fonts-noto || true
 apt-get install -y --no-install-recommends gir1.2-vte-2.91 libvte-2.91-0 || true
 
+# Nautilus file manager + GVFS backends for full file support
+apt-get install -y --no-install-recommends \
+  nautilus gvfs gvfs-backends libglib2.0-bin || true
+
 # VirtualBox guest packages (optional, may not be in apt sources)
 for pkg in virtualbox-guest-x11 virtualbox-guest-utils virtualbox-guest-dkms; do
   if apt-cache show "$pkg" >/dev/null 2>&1; then
@@ -120,6 +124,14 @@ XINITEOF
 
 chown eonix:eonix /home/eonix/.bashrc /home/eonix/.xinitrc
 chmod +x /home/eonix/.xinitrc
+
+# Apply Eonix dark theme to Nautilus/GTK4 apps
+mkdir -p /home/eonix/.config/gtk-4.0
+if [[ -f /home/eonix/eonix-os/eonix-desktop/assets/gtk4-override.css ]]; then
+  cp /home/eonix/eonix-os/eonix-desktop/assets/gtk4-override.css \
+     /home/eonix/.config/gtk-4.0/gtk.css
+fi
+chown -R eonix:eonix /home/eonix/.config
 
 # Runtime Python dependencies
 python3 -m pip install --break-system-packages --no-cache-dir --upgrade pip

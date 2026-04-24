@@ -646,6 +646,17 @@ class EonixDesktop:
                 w=720, h=460
             )
 
+    def _launch_files_fallback(self):
+        """Fallback file manager when Nautilus is not installed."""
+        try:
+            from apps.files_app import EonixFiles as _EF
+            app = _EF()
+        except Exception as e:
+            app = Gtk.Label(label=f"Files unavailable:\n{e}")
+        if self.window_manager:
+            self.window_manager.open("📁 Files", app,
+                                     x=140, y=80, w=740, h=500)
+
     def _handle_dock_launch(self, app_name: str) -> None:
         """Called when a dock icon is clicked."""
         if not self.window_manager:
@@ -653,15 +664,23 @@ class EonixDesktop:
         try:
             if app_name in ("Terminal", "EonixShell"):
                 self._launch_terminal()
-            elif app_name == "Files":
-                try:
-                    from apps.files_app import EonixFiles as _EF
-                    app_widget = _EF()
-                except Exception as e:
-                    print(f"[LAUNCH] Files failed: {e}")
-                    app_widget = Gtk.Label(label=f"Files app error:\n{e}")
-                self.window_manager.open("📁 Files", app_widget,
-                                         x=140, y=80, w=720, h=480)
+            elif app_name in ("Files", "📁"):
+                import subprocess as _sp, threading as _th
+                def _launch_nautilus():
+                    try:
+                        env = os.environ.copy()
+                        env["GTK_THEME"] = "Adwaita:dark"
+                        env["GTK_CSD"] = "0"
+                        _sp.Popen(
+                            ["nautilus", "--new-window",
+                             os.path.expanduser("~")],
+                            env=env,
+                            stdout=_sp.DEVNULL,
+                            stderr=_sp.DEVNULL
+                        )
+                    except FileNotFoundError:
+                        GLib.idle_add(self._launch_files_fallback)
+                _th.Thread(target=_launch_nautilus, daemon=True).start()
             elif app_name == "Settings":
                 try:
                     from apps.settings_app import EonixSettings as _ES

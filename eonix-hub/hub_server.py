@@ -457,6 +457,34 @@ async def hub_live(websocket: WebSocket) -> None:
         hub.clients.discard(websocket)
 
 
+# ── AI Settings API (Iron Man mode) ─────────────────────
+
+_EONIX_CONFIG = Path.home() / ".config" / "eonix" / "settings.json"
+
+
+def _read_eonix_settings() -> dict:
+    try:
+        with open(_EONIX_CONFIG, encoding="utf-8") as f:
+            return json.loads(f.read())
+    except Exception:
+        return {}
+
+
+@app.get("/api/settings")
+async def api_get_settings():
+    return JSONResponse(_read_eonix_settings())
+
+
+@app.post("/api/settings/{key}")
+async def api_set_setting(key: str, body: dict):
+    cfg = _read_eonix_settings()
+    cfg[key] = body.get("value")
+    _EONIX_CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    with open(_EONIX_CONFIG, "w", encoding="utf-8") as f:
+        f.write(json.dumps(cfg, indent=2))
+    return JSONResponse({"ok": True, "key": key, "value": cfg[key]})
+
+
 def main() -> None:
     import uvicorn
 

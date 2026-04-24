@@ -1,0 +1,57 @@
+/* Eonix Aura — GTK4 app dark theme override
+   Applied to Nautilus and all GTK4 apps via ~/.config/gtk-4.0/gtk.css */
+
+window, .nautilus-window {
+  background-color: #0d0d1a;
+  color: #e0e0e0;
+}
+.nautilus-list-view .view {
+  background-color: #0d0d1a;
+  color: #e0e0e0;
+}
+.nautilus-grid-view .view {
+  background-color: #0d0d1a;
+}
+headerbar, .titlebar {
+  background: #090916;
+  border-bottom: 1px solid rgba(124,77,255,0.2);
+  color: #e0e0e0;
+}
+.sidebar, .navigation-sidebar {
+  background: #080813;
+  border-right: 1px solid rgba(124,77,255,0.12);
+  color: #c0b8e8;
+}
+row:selected {
+  background: rgba(124,77,255,0.3);
+  color: #ffffff;
+}
+row:hover {
+  background: rgba(124,77,255,0.12);
+}
+.view {
+  background-color: #0d0d1a;
+  color: #e0e0e0;
+}
+button {
+  background: rgba(255,255,255,0.06);
+  color: #e0e0e0;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+button:hover {
+  background: rgba(124,77,255,0.18);
+}
+entry {
+  background: rgba(255,255,255,0.04);
+  color: #e0e0e0;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+}
+scrollbar slider {
+  background: rgba(124,77,255,0.3);
+  border-radius: 4px;
+  min-width: 4px;
+}
+scrollbar slider:hover {
+  background: rgba(124,77,255,0.6);
+}

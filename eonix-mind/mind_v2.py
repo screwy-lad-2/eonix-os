@@ -40,6 +40,27 @@ RESOURCE_BASE = "http://127.0.0.1:7737"
 SYNC_BASE = "http://127.0.0.1:7740"
 HUB_BASE = "http://127.0.0.1:7750"
 ACTIVE_GOAL_FILE = Path.home() / ".eonix" / "active_goal.txt"
+EONIX_CONFIG = Path.home() / ".config" / "eonix" / "settings.json"
+
+
+def read_settings() -> Dict:
+    """AI reads current Eonix OS settings."""
+    try:
+        with open(EONIX_CONFIG, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def write_setting(key: str, value: Any) -> Dict:
+    """AI writes a single setting (Iron Man mode)."""
+    cfg = read_settings()
+    cfg[key] = value
+    EONIX_CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    with open(EONIX_CONFIG, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2)
+    print(f"[MIND] Set {key} = {value}")
+    return {"status": "ok", "key": key, "value": value}
 
 
 def _desktop_window_count() -> int:
