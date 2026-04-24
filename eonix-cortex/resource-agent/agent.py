@@ -156,7 +156,7 @@ class ResourceAgent:
         return max(0.0, min(1.0, score + boost))
 
     def _tier_for_score(self, score: float) -> str:
-        if score > 0.6:
+        if score >= 0.65:
             return "high"
         if score >= 0.3:
             return "medium"
@@ -375,8 +375,8 @@ def _print_dry_run_summary(agent: ResourceAgent, summary: Dict) -> None:
     goal_name = summary.get("active_goal", {}).get("name", "none")
     print(f"Active goal: {goal_name}")
     print(f"Scored {summary.get('processes_scored', 0)} processes")
-    print(f"HIGH (>0.6): {summary.get('high_count', 0)}")
-    print(f"MEDIUM (0.3-0.6): {summary.get('medium_count', 0)}")
+    print(f"HIGH (>=0.65): {summary.get('high_count', 0)}")
+    print(f"MEDIUM (0.3-0.65): {summary.get('medium_count', 0)}")
     print(f"LOW (<0.3): {summary.get('low_count', 0)}")
     print("[DRY RUN] Would set cpu.shares and memory.max for each tier")
     top = agent.last_scores[:10]
