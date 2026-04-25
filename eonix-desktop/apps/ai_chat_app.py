@@ -1,0 +1,433 @@
+"""Eonix AI Chat — the Iron Man assistant.
+
+Text input → command parser → OS action.
+Handles natural language commands for app launching,
+system info queries, settings changes, file operations.
+"""
+import gi
+import os
+import json
+
+gi.require_version("Gtk", "4.0")
+from gi.repository import Gtk, Gdk, GLib
+
+
+class EonixAIChat(Gtk.Box):
+
+    COMMANDS = {
+        "open terminal": "terminal",
+        "open files": "files",
+        "open settings": "settings",
+        "open mind": "mind",
+        "open hub": "hub",
+        "open goals": "goals",
+        "open system": "system",
+        "open notes": "notes",
+        "dark mode on": "dark_on",
+        "dark mode off": "dark_off",
+        "show cpu": "cpu",
+        "show ram": "ram",
+        "show disk": "disk",
+        "show time": "time",
+        "show date": "date",
+        "show week": "week",
+        "show version": "version",
+        "show ip": "ip",
+        "show hostname": "hostname",
+        "organize files": "organize",
+        "list files": "listfiles",
+        "my notes": "shownotes",
+        "clear chat": "clear",
+        "help": "help",
+    }
+
+    def __init__(self, desktop_ref=None):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+        self.set_vexpand(True)
+        self.set_hexpand(True)
+        self._desktop = desktop_ref
+        self._history = []
+        self._apply_css()
+        self._build_ui()
+
+    def _apply_css(self):
+        css = b"""
+        .ai-root {
+          background: #080814;
+        }
+        .ai-header {
+          background: #0d0d1a;
+          border-bottom: 1px solid rgba(124,77,255,0.25);
+          padding: 12px 16px;
+        }
+        .ai-title {
+          font-size: 15px;
+          font-weight: 700;
+          color: #a78bfa;
+        }
+        .ai-subtitle {
+          font-size: 11px;
+          color: #555580;
+        }
+        .ai-bubble-user {
+          background: rgba(124,77,255,0.22);
+          border-radius: 16px 16px 4px 16px;
+          padding: 10px 14px;
+          margin: 4px 8px 4px 48px;
+          color: #e0e0e0;
+          font-size: 13px;
+        }
+        .ai-bubble-eonix {
+          background: rgba(255,255,255,0.05);
+          border-radius: 16px 16px 16px 4px;
+          padding: 10px 14px;
+          margin: 4px 48px 4px 8px;
+          color: #c0c0d8;
+          font-size: 13px;
+          border: 1px solid rgba(124,77,255,0.15);
+        }
+        .ai-input-bar {
+          background: #0d0d1a;
+          border-top: 1px solid rgba(124,77,255,0.2);
+          padding: 10px 12px;
+        }
+        .ai-input {
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(124,77,255,0.3);
+          border-radius: 24px;
+          padding: 8px 16px;
+          color: #e0e0e0;
+          font-size: 13px;
+        }
+        .ai-input:focus {
+          border-color: #7c4dff;
+        }
+        .ai-send-btn {
+          background: #7c4dff;
+          color: white;
+          border-radius: 50%;
+          min-width: 36px;
+          min-height: 36px;
+          font-size: 16px;
+          margin-left: 8px;
+        }
+        .ai-send-btn:hover {
+          background: #9d6fff;
+        }
+        .ai-status-online {
+          color: #50fa7b;
+          font-size: 11px;
+          font-weight: 700;
+        }
+        """
+        try:
+            provider = Gtk.CssProvider()
+            provider.load_from_data(css)
+            display = Gdk.Display.get_default()
+            if display:
+                Gtk.StyleContext.add_provider_for_display(
+                    display, provider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        except Exception as e:
+            print(f"[AI CHAT] CSS failed: {e}")
+
+    def _build_ui(self):
+        self.set_css_classes(["ai-root"])
+
+        # Header
+        header = Gtk.Box(spacing=8)
+        header.set_css_classes(["ai-header"])
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        vbox.set_hexpand(True)
+        title = Gtk.Label(label="🤖 Eonix AI")
+        title.set_css_classes(["ai-title"])
+        title.set_halign(Gtk.Align.START)
+        subtitle = Gtk.Label(label="MIND Agent • LightGBM v1.2")
+        subtitle.set_css_classes(["ai-subtitle"])
+        subtitle.set_halign(Gtk.Align.START)
+        vbox.append(title)
+        vbox.append(subtitle)
+        header.append(vbox)
+        status = Gtk.Label(label="● ONLINE")
+        status.set_css_classes(["ai-status-online"])
+        header.append(status)
+        self.append(header)
+
+        # Chat scroll area
+        self._scroll = Gtk.ScrolledWindow()
+        self._scroll.set_vexpand(True)
+        self._scroll.set_policy(
+            Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self._chat_box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self._chat_box.set_margin_top(12)
+        self._chat_box.set_margin_bottom(8)
+        self._scroll.set_child(self._chat_box)
+        self.append(self._scroll)
+
+        # Welcome message
+        self._add_eonix_msg(
+            "👋 Hello! I'm Eonix AI.\n\n"
+            "I can help you:\n"
+            "• Open any app — \"open terminal\"\n"
+            "• Check system — \"show cpu\"\n"
+            "• Change settings — \"dark mode on\"\n"
+            "• Manage files — \"list files\"\n"
+            "• View notes — \"my notes\"\n\n"
+            "Type 'help' for all commands.")
+
+        # Input bar
+        input_bar = Gtk.Box(spacing=0)
+        input_bar.set_css_classes(["ai-input-bar"])
+        self._entry = Gtk.Entry()
+        self._entry.set_css_classes(["ai-input"])
+        self._entry.set_hexpand(True)
+        self._entry.set_placeholder_text("Ask Eonix anything...")
+        self._entry.connect("activate", self._on_send)
+        input_bar.append(self._entry)
+        send_btn = Gtk.Button(label="→")
+        send_btn.set_css_classes(["ai-send-btn"])
+        send_btn.connect("clicked", self._on_send)
+        input_bar.append(send_btn)
+        self.append(input_bar)
+
+    def _add_user_msg(self, text):
+        lbl = Gtk.Label(label=text)
+        lbl.set_css_classes(["ai-bubble-user"])
+        lbl.set_halign(Gtk.Align.END)
+        lbl.set_wrap(True)
+        lbl.set_xalign(0)
+        self._chat_box.append(lbl)
+        self._scroll_to_bottom()
+
+    def _add_eonix_msg(self, text):
+        lbl = Gtk.Label(label=text)
+        lbl.set_css_classes(["ai-bubble-eonix"])
+        lbl.set_halign(Gtk.Align.START)
+        lbl.set_wrap(True)
+        lbl.set_xalign(0)
+        self._chat_box.append(lbl)
+        self._scroll_to_bottom()
+
+    def _scroll_to_bottom(self):
+        def _do():
+            adj = self._scroll.get_vadjustment()
+            adj.set_value(adj.get_upper())
+            return False
+        GLib.idle_add(_do)
+
+    def _on_send(self, *_):
+        text = self._entry.get_text().strip()
+        if not text:
+            return
+        self._entry.set_text("")
+        self._add_user_msg(text)
+        self._history.append({"role": "user", "text": text})
+        GLib.timeout_add(300, lambda: self._process(text))
+
+    def _process(self, text):
+        lower = text.lower().strip()
+        response = self._match_command(lower)
+        self._add_eonix_msg(response)
+        self._history.append({"role": "eonix", "text": response})
+        return False
+
+    def _match_command(self, text):
+        import subprocess, socket, datetime
+
+        try:
+            import psutil
+        except ImportError:
+            psutil = None
+
+        # App launchers
+        if any(w in text for w in ["open terminal", "terminal", "shell", "bash"]):
+            if self._desktop:
+                GLib.idle_add(lambda: self._desktop._handle_dock_launch("EonixShell"))
+            return "✅ Opening EonixShell terminal..."
+
+        if any(w in text for w in ["open files", "file manager", "nautilus"]):
+            if self._desktop:
+                GLib.idle_add(lambda: self._desktop._handle_dock_launch("Files"))
+            return "✅ Opening Files..."
+
+        if any(w in text for w in ["open settings", "settings", "preferences"]):
+            if self._desktop:
+                GLib.idle_add(lambda: self._desktop._handle_dock_launch("Settings"))
+            return "✅ Opening Settings..."
+
+        if any(w in text for w in ["open mind", "mind agent", "ai agent"]):
+            if self._desktop:
+                GLib.idle_add(lambda: self._desktop._handle_dock_launch("MIND"))
+            return "✅ Opening MIND Agent..."
+
+        if any(w in text for w in ["open goals", "goals"]):
+            if self._desktop:
+                GLib.idle_add(lambda: self._desktop._handle_dock_launch("Goals"))
+            return "✅ Opening Goals..."
+
+        if any(w in text for w in ["open notes", "notes", "write note"]):
+            if self._desktop:
+                GLib.idle_add(lambda: self._desktop._handle_dock_launch("Notes"))
+            return "📝 Opening Notes..."
+
+        # Notes viewer
+        if any(w in text for w in ["my notes", "show notes", "read notes"]):
+            try:
+                np = os.path.expanduser("~/.config/eonix/notes.json")
+                with open(np, encoding="utf-8") as f:
+                    notes = json.load(f)
+                titles = "\n".join(
+                    f"  📄 {n.get('title', '?')}" for n in notes[:8])
+                return f"📝 Your notes ({len(notes)} total):\n{titles}"
+            except Exception:
+                return "📝 No notes yet. Say 'open notes' to create your first note."
+
+        # Settings changes
+        if "dark mode on" in text or "enable dark" in text:
+            self._write_setting("dark_mode", True)
+            gs = Gtk.Settings.get_default()
+            if gs:
+                gs.set_property("gtk-application-prefer-dark-theme", True)
+            return "🌙 Dark mode enabled. Desktop updated."
+
+        if "dark mode off" in text or "light mode" in text:
+            self._write_setting("dark_mode", False)
+            gs = Gtk.Settings.get_default()
+            if gs:
+                gs.set_property("gtk-application-prefer-dark-theme", False)
+            return "☀️ Light mode enabled. Desktop updated."
+
+        if "font" in text and any(c.isdigit() for c in text):
+            import re
+            nums = re.findall(r'\d+', text)
+            size = int(nums[0]) if nums else 10
+            size = max(8, min(16, size))
+            gs = Gtk.Settings.get_default()
+            if gs:
+                gs.set_property("gtk-font-name", f"Sans {size}")
+            self._write_setting("font_scale", round(size / 10, 1))
+            return f"🔤 Font size set to {size}pt. Applied!"
+
+        # System info
+        if psutil and any(w in text for w in ["cpu", "processor"]):
+            pct = psutil.cpu_percent(interval=0.5)
+            cnt = psutil.cpu_count()
+            return f"🖥️ CPU: {pct}% used across {cnt} core(s)"
+
+        if psutil and any(w in text for w in ["ram", "memory"]):
+            m = psutil.virtual_memory()
+            used = m.used // (1024**2)
+            total = m.total // (1024**2)
+            return f"🧠 RAM: {used}MB / {total}MB ({m.percent}% used)"
+
+        if psutil and any(w in text for w in ["disk", "storage", "space"]):
+            d = psutil.disk_usage('/')
+            used = d.used // (1024**3)
+            total = d.total // (1024**3)
+            return f"💾 Disk: {used}GB / {total}GB ({d.percent}% used)"
+
+        if any(w in text for w in ["time", "clock"]):
+            now = datetime.datetime.now()
+            return f"🕐 Current time: {now.strftime('%H:%M:%S')}"
+
+        if "date" in text:
+            now = datetime.datetime.now()
+            return f"📅 Today: {now.strftime('%A, %d %B %Y')}"
+
+        if any(w in text for w in ["week", "sprint"]):
+            return "📅 Current week: 48\nSprint: Week 48 — AI Assistant Launch"
+
+        if "version" in text:
+            return ("⚡ Eonix OS v1.5.0-dev\n"
+                    "AI: LightGBM v1.2\nAccuracy: 63.47%\nTests: 230+ passing")
+
+        if any(w in text for w in ["ip", "network", "internet"]):
+            try:
+                ip = socket.gethostbyname(socket.gethostname())
+                return f"🌐 IP address: {ip}"
+            except Exception:
+                return "🌐 No network detected"
+
+        if "hostname" in text:
+            return f"💻 Hostname: {socket.gethostname()}"
+
+        # File operations
+        if any(w in text for w in ["list files", "show files", "ls", "what files"]):
+            try:
+                files = os.listdir(os.path.expanduser("~"))
+                visible = sorted(f for f in files if not f.startswith("."))
+                names = "\n".join(
+                    f"  📁 {f}" if os.path.isdir(os.path.expanduser(f"~/{f}"))
+                    else f"  📄 {f}"
+                    for f in visible[:12])
+                extra = f"\n  ...and {len(visible)-12} more" if len(visible) > 12 else ""
+                return f"📂 Home folder ({len(visible)} items):\n{names}{extra}"
+            except Exception as e:
+                return f"❌ Error: {e}"
+
+        if any(w in text for w in ["organize", "clean up", "sort files"]):
+            return (
+                "🗂️ File organization plan:\n\n"
+                "I would move:\n"
+                "  📄 .txt, .md → Documents/\n"
+                "  🖼️ .jpg, .png → Pictures/\n"
+                "  🎵 .mp3, .wav → Music/\n"
+                "  📦 .zip, .tar → Downloads/\n\n"
+                "⚠️ Auto-organize coming in Week 49.")
+
+        # Utility
+        if "clear" in text or "reset chat" in text:
+            child = self._chat_box.get_first_child()
+            while child:
+                nxt = child.get_next_sibling()
+                self._chat_box.remove(child)
+                child = nxt
+            self._history = []
+            return "🧹 Chat cleared."
+
+        if any(w in text for w in ["help", "what can you do", "commands"]):
+            return (
+                "🤖 Eonix AI Commands:\n\n"
+                "📱 APPS\n"
+                "  open terminal / files / settings\n"
+                "  open mind / goals / notes\n\n"
+                "⚙️ SETTINGS\n"
+                "  dark mode on/off\n"
+                "  font 12  (set font size)\n\n"
+                "🖥️ SYSTEM INFO\n"
+                "  show cpu / ram / disk\n"
+                "  show time / date / version\n"
+                "  show ip / hostname\n\n"
+                "📁 FILES\n"
+                "  list files / organize files\n\n"
+                "📝 NOTES\n"
+                "  open notes / my notes\n\n"
+                "💬 OTHER\n"
+                "  clear — reset chat\n"
+                "  help — this message")
+
+        # Fuzzy match
+        for phrase in self.COMMANDS:
+            if phrase in text:
+                return self._match_command(phrase)
+
+        return (
+            f"🤔 I didn't understand \"{text}\"\n\n"
+            "Try: 'help' for all commands\n"
+            "or: 'open terminal', 'show cpu', 'dark mode on'")
+
+    def _write_setting(self, key, value):
+        """AI writes directly to settings.json."""
+        cfg_path = os.path.expanduser("~/.config/eonix/settings.json")
+        try:
+            cfg = {}
+            if os.path.exists(cfg_path):
+                with open(cfg_path, encoding="utf-8") as f:
+                    cfg = json.load(f)
+            cfg[key] = value
+            os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, indent=2)
+        except Exception as e:
+            print(f"[AI] settings write error: {e}")

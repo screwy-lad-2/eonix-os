@@ -484,6 +484,59 @@ async def api_set_setting(key: str, body: dict):
         f.write(json.dumps(cfg, indent=2))
     return JSONResponse({"ok": True, "key": key, "value": cfg[key]})
 
+# ── AI Command REST API ─────────────────────────────────
+
+@app.post("/api/ai/command")
+async def ai_command(body: dict):
+    """
+    POST /api/ai/command
+    {"text": "show cpu"}
+    → {"response": "CPU: 45% ...", "action": "info"}
+    Used by future voice + mobile UI.
+    """
+    text = (body.get("text") or "").lower().strip()
+
+    if "cpu" in text:
+        cpu_pct = psutil.cpu_percent(interval=0.5)
+        return JSONResponse({
+            "response": f"CPU usage: {cpu_pct}%",
+            "action": "info"})
+
+    if "ram" in text or "memory" in text:
+        m = psutil.virtual_memory()
+        return JSONResponse({
+            "response": f"RAM: {m.used // (1024**2)}MB / {m.total // (1024**2)}MB ({m.percent}%)",
+            "action": "info"})
+
+    if "dark mode on" in text:
+        cfg = _read_eonix_settings()
+        cfg["dark_mode"] = True
+        _EONIX_CONFIG.parent.mkdir(parents=True, exist_ok=True)
+        with open(_EONIX_CONFIG, "w", encoding="utf-8") as f:
+            f.write(json.dumps(cfg, indent=2))
+        return JSONResponse({
+            "response": "Dark mode enabled.",
+            "action": "settings_changed", "key": "dark_mode", "value": True})
+
+    if "dark mode off" in text:
+        cfg = _read_eonix_settings()
+        cfg["dark_mode"] = False
+        _EONIX_CONFIG.parent.mkdir(parents=True, exist_ok=True)
+        with open(_EONIX_CONFIG, "w", encoding="utf-8") as f:
+            f.write(json.dumps(cfg, indent=2))
+        return JSONResponse({
+            "response": "Light mode enabled.",
+            "action": "settings_changed", "key": "dark_mode", "value": False})
+
+    if "version" in text:
+        return JSONResponse({
+            "response": "Eonix OS v1.5.0-dev, Week 48, LightGBM v1.2, 63.47%",
+            "action": "info"})
+
+    return JSONResponse({
+        "response": f"Command '{text}' received. Full NLP coming in Week 50.",
+        "action": "unknown"})
+
 
 def main() -> None:
     import uvicorn

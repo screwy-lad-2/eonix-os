@@ -394,3 +394,78 @@ def test_nautilus_in_iso_packages():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "nautilus" in c
+
+
+def test_ai_chat_app_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/ai_chat_app.py")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "EonixAIChat" in c
+    assert "_match_command" in c
+    assert "psutil" in c
+
+
+def test_ai_chat_handles_help():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(REPO, "eonix-desktop/apps/ai_chat_app.py"),
+              encoding="utf-8") as f:
+        c = f.read()
+    assert "def _match_command" in c
+    assert "dark mode on" in c
+    assert "list files" in c
+    assert "font" in c
+
+
+def test_notes_app_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/notes_app.py")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "EonixNotes" in c
+    assert "notes.json" in c
+    assert "_save" in c
+
+
+def test_hub_has_ai_api():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-hub/hub_server.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "/api/ai/command" in c
+    assert "/api/settings" in c
+
+
+def test_settings_live_apply():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "_apply_live" in c
+    assert "gtk-font-name" in c
+
+
+def test_desktop_xdg_dirs_in_iso():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "iso/chroot_setup.sh")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "Desktop" in c
+    assert "xdg-user-dirs" in c
+
+
+def test_ctrl_space_shortcut():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "KEY_space" in c

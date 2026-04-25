@@ -611,10 +611,23 @@ class EonixDesktop:
             term.set_font_scale(1.05)
             term.set_scrollback_lines(10000)
 
+            # Create custom bashrc with cd feedback and Eonix prompt
+            bashrc = os.path.expanduser("~/.eonix_bashrc")
+            if not os.path.exists(bashrc):
+                with open(bashrc, "w") as f:
+                    f.write(r"""
+source ~/.bashrc 2>/dev/null || true
+function cd() {
+    builtin cd "$@" && echo "📁 $(pwd)"
+}
+PS1='\[\033[01;32m\]eonix@eonix-os:\[\033[01;34m\]\w\[\033[00m\]$ '
+echo "⚡ EonixShell ready — Week 48"
+""")
+
             term.spawn_async(
                 Vte.PtyFlags.DEFAULT,
                 os.path.expanduser("~"),
-                ["/bin/bash"],
+                ["/bin/bash", "--rcfile", bashrc],
                 None,
                 GLib.SpawnFlags.DO_NOT_REAP_CHILD,
                 None, None, -1, None, None
@@ -754,7 +767,7 @@ class EonixDesktop:
                     ("🔄 Next retrain", "Auto at 120k rows"),
                     ("🧬 Agents",       "5 connected"),
                     ("⚡ Brain DB",     "Connected"),
-                    ("📅 Week",         "46"),
+                    ("📅 Week",         "48"),
                     ("🏁 Version",      "v1.5.0-dev"),
                 ]
                 for k, v in stats:
@@ -778,6 +791,24 @@ class EonixDesktop:
                     mind_box.append(row)
                 self.window_manager.open("🤖 MIND", mind_box,
                                          x=160, y=90, w=520, h=420)
+            elif app_name in ("AIChat", "💬", "AI Chat"):
+                try:
+                    from apps.ai_chat_app import EonixAIChat
+                    chat = EonixAIChat(desktop_ref=self)
+                except Exception as e:
+                    print(f"[LAUNCH] AI Chat failed: {e}")
+                    chat = Gtk.Label(label=f"AI Chat error:\n{e}")
+                self.window_manager.open("💬 Eonix AI", chat,
+                                         x=180, y=80, w=520, h=620)
+            elif app_name in ("Notes", "📝"):
+                try:
+                    from apps.notes_app import EonixNotes
+                    notes = EonixNotes()
+                except Exception as e:
+                    print(f"[LAUNCH] Notes failed: {e}")
+                    notes = Gtk.Label(label=f"Notes error:\n{e}")
+                self.window_manager.open("📝 Notes", notes,
+                                         x=160, y=80, w=640, h=480)
             elif app_name in ("System", "🖥️"):
                 import platform
                 sys_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -1032,7 +1063,46 @@ class EonixDesktop:
             self.wallpaper.window.fullscreen()
         self.start_background_refresh()
         if GTK_AVAILABLE and not self.headless:
+            # Settings file watcher (polls every 3s for AI-driven changes)
+            self._start_settings_watcher()
+            # Global keyboard shortcut: Ctrl+Space opens AI Chat
+            ctrl = Gtk.EventControllerKey()
+            ctrl.connect("key-pressed", self._on_global_key)
+            self.wallpaper.window.add_controller(ctrl)
             GLib.MainLoop().run()  # GTK4 event loop
+
+    def _start_settings_watcher(self):
+        """Poll settings.json every 3s to apply AI-driven config changes."""
+        self._last_cfg_mtime = 0.0
+        GLib.timeout_add(3000, self._poll_settings)
+
+    def _poll_settings(self):
+        cfg_path = os.path.expanduser("~/.config/eonix/settings.json")
+        try:
+            mt = os.path.getmtime(cfg_path)
+            if mt > self._last_cfg_mtime:
+                self._last_cfg_mtime = mt
+                with open(cfg_path, encoding="utf-8") as f:
+                    cfg = json.load(f)
+                gs = Gtk.Settings.get_default()
+                if gs and "dark_mode" in cfg:
+                    gs.set_property(
+                        "gtk-application-prefer-dark-theme",
+                        bool(cfg["dark_mode"]))
+                if gs and "font_scale" in cfg:
+                    sz = max(8, int(10 * float(cfg["font_scale"])))
+                    gs.set_property("gtk-font-name", f"Sans {sz}")
+        except Exception:
+            pass
+        return True
+
+    def _on_global_key(self, ctrl, keyval, keycode, state):
+        """Ctrl+Space opens AI Chat from anywhere."""
+        CTRL = Gdk.ModifierType.CONTROL_MASK
+        if (state & CTRL) and keyval == Gdk.KEY_space:
+            self._handle_dock_launch("AIChat")
+            return True
+        return False
 
 
 def main(argv: Optional[list[str]] = None) -> int:

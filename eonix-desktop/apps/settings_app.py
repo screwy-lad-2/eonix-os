@@ -99,7 +99,45 @@ class EonixSettings(Gtk.Box):
     def _set(self, key, value):
         self.config[key] = value
         self._save_config()
+        self._apply_live(key, value)
         print(f"[SETTINGS] {key} = {value}")
+
+    def _apply_live(self, key, value):
+        """Apply setting change immediately to the running desktop."""
+        try:
+            display = Gdk.Display.get_default()
+            gs = Gtk.Settings.get_default()
+            if not gs:
+                return
+
+            if key == "font_scale":
+                size = max(8, int(10 * float(value)))
+                gs.set_property("gtk-font-name", f"Sans {size}")
+
+            elif key == "dark_mode":
+                gs.set_property(
+                    "gtk-application-prefer-dark-theme", bool(value))
+
+            elif key == "accent_color" and display:
+                css = f"""
+                .active-section {{
+                    background: {value}33;
+                    border-left: 3px solid {value};
+                }}
+                """.encode()
+                provider = Gtk.CssProvider()
+                provider.load_from_data(css)
+                Gtk.StyleContext.add_provider_for_display(
+                    display, provider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_USER)
+
+            elif key == "wallpaper_brightness":
+                bf = os.path.expanduser("~/.config/eonix/wp_brightness")
+                os.makedirs(os.path.dirname(bf), exist_ok=True)
+                with open(bf, "w") as f:
+                    f.write(str(value))
+        except Exception as e:
+            print(f"[SETTINGS] live apply failed: {e}")
 
     # ── Navigation ──────────────────────────────
 

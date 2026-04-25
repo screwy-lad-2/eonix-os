@@ -67,6 +67,30 @@ if ! grep -q '%sudo ALL=(ALL) NOPASSWD:ALL' /etc/sudoers; then
   echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 fi
 
+# XDG user directories + Welcome file
+apt-get install -y --no-install-recommends xdg-user-dirs || true
+mkdir -p /home/eonix/Desktop /home/eonix/Documents /home/eonix/Downloads \
+         /home/eonix/Pictures /home/eonix/Music /home/eonix/Videos \
+         /home/eonix/.config/eonix
+su - eonix -c "xdg-user-dirs-update" 2>/dev/null || true
+
+cat > /home/eonix/Desktop/Welcome.txt << 'WELCOMEOF'
+Welcome to Eonix OS v1.5.0
+Built by Shahnoor — Week 48
+
+Quick start:
+  ⚡  Terminal  — run shell commands
+  📁  Files     — browse your files
+  🧠  Goals     — track your goals
+  🤖  MIND      — talk to your AI
+  💬  AI Chat   — ask Eonix anything (Ctrl+Space)
+  📝  Notes     — take persistent notes
+  ⚙️  Settings  — customize appearance
+
+Type "Hey Eonix" in the AI chat to begin.
+WELCOMEOF
+chown -R eonix:eonix /home/eonix/
+
 # Auto-login on TTY1
 mkdir -p /etc/systemd/system/getty@tty1.service.d/
 cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<'EOF'
