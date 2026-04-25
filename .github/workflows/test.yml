@@ -748,7 +748,7 @@ jobs:
         uses: actions/upload-artifact@v4.6.0
         with:
           name: eonix-os-1.0.0.iso
-          retention-days: 1
+          retention-days: 3
           path: |
             /root/eonix-iso-build/eonix-os-1.0.0.iso
             /root/eonix-iso-build/eonix-os-1.0.0.iso.sha256
