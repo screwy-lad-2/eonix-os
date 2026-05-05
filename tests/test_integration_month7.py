@@ -469,3 +469,45 @@ def test_ctrl_space_shortcut():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "KEY_space" in c
+
+
+def test_dock_has_9_apps():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/dock.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    for app in ["EonixShell", "Files", "Goals", "Settings",
+                "Hub", "MIND", "AIChat", "Notes", "System"]:
+        assert app in c, f"Missing dock app: {app}"
+
+
+def test_launcher_app_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/launcher_app.py")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "EonixLauncher" in c
+    assert "ALL_APPS" in c
+    assert "_on_search" in c
+
+
+def test_super_key_in_desktop():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "Super_L" in c
+    assert "_open_launcher" in c
+
+
+def test_gedit_in_iso():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "iso/chroot_setup.sh")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "gedit" in c

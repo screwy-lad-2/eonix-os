@@ -23,6 +23,10 @@ apt-get install -y --no-install-recommends gir1.2-vte-2.91 libvte-2.91-0 || true
 apt-get install -y --no-install-recommends \
   nautilus gvfs gvfs-backends libglib2.0-bin || true
 
+# Text editor for .txt files (so Nautilus can open text)
+apt-get install -y --no-install-recommends \
+  gedit gedit-common xdg-utils || true
+
 # VirtualBox guest packages (optional, may not be in apt sources)
 for pkg in virtualbox-guest-x11 virtualbox-guest-utils virtualbox-guest-dkms; do
   if apt-cache show "$pkg" >/dev/null 2>&1; then
@@ -90,6 +94,21 @@ Quick start:
 Type "Hey Eonix" in the AI chat to begin.
 WELCOMEOF
 chown -R eonix:eonix /home/eonix/
+
+# Register Eonix Notes as text file handler
+mkdir -p /home/eonix/.local/share/applications
+cat > /home/eonix/.local/share/applications/eonix-notes.desktop << 'DESKEOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Eonix Notes
+Comment=Eonix OS note editor
+Exec=gedit %f
+Icon=text-editor
+MimeType=text/plain;text/markdown;
+Categories=Utility;TextEditor;
+DESKEOF
+chown -R eonix:eonix /home/eonix/.local
 
 # Auto-login on TTY1
 mkdir -p /etc/systemd/system/getty@tty1.service.d/

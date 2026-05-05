@@ -956,6 +956,12 @@ echo "⚡ EonixShell ready — Week 48"
             topbar_box.add_css_class("eonix-topbar")
             topbar_box.set_margin_start(12)
             topbar_box.set_margin_end(12)
+            # ⚡ Launcher button (opens Spotlight-style app launcher)
+            launcher_btn = Gtk.Button(label="⚡")
+            launcher_btn.set_css_classes(["topbar-launcher-btn"])
+            launcher_btn.set_tooltip_text("App Launcher (Super key)")
+            launcher_btn.connect("clicked", lambda _: self._open_launcher())
+            topbar_box.append(launcher_btn)
             lbl_goal = Gtk.Label(label="\u26a1 EONIX | No active goal")
             lbl_clock = Gtk.Label(label=self.top_bar.clock_value)
             lbl_metrics = Gtk.Label(label=f"{self.top_bar.ram_display}  {self.top_bar.cpu_display}")
@@ -1097,12 +1103,26 @@ echo "⚡ EonixShell ready — Week 48"
         return True
 
     def _on_global_key(self, ctrl, keyval, keycode, state):
-        """Ctrl+Space opens AI Chat from anywhere."""
+        """Ctrl+Space → AI Chat, Super → App Launcher."""
         CTRL = Gdk.ModifierType.CONTROL_MASK
         if (state & CTRL) and keyval == Gdk.KEY_space:
             self._handle_dock_launch("AIChat")
             return True
+        if keyval in (Gdk.KEY_Super_L, Gdk.KEY_Super_R):
+            self._open_launcher()
+            return True
         return False
+
+    def _open_launcher(self):
+        """Open Spotlight-style app launcher."""
+        try:
+            from apps.launcher_app import EonixLauncher
+            launcher = EonixLauncher(desktop_ref=self)
+            launcher.set_transient_for(self.wallpaper.window)
+            launcher.set_modal(True)
+            launcher.present()
+        except Exception as e:
+            print(f"[LAUNCHER] Failed: {e}")
 
 
 def main(argv: Optional[list[str]] = None) -> int:
