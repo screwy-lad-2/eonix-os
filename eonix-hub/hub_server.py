@@ -537,6 +537,13 @@ async def ai_command(body: dict):
         "response": f"Command '{text}' received. Full NLP coming in Week 50.",
         "action": "unknown"})
 
+# ── Phone Bridge ────────────────────────────────────
+try:
+    from phone_bridge import router as phone_router
+    app.include_router(phone_router)
+except ImportError:
+    pass  # phone_bridge not available
+
 
 def main() -> None:
     import uvicorn

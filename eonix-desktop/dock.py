@@ -27,6 +27,7 @@ HEADLESS = not GTK_AVAILABLE or os.environ.get("EONIX_HEADLESS", "0") == "1" or 
 APPS = [
     ("⚡", "EonixShell",  ""),
     ("📁", "Files",       ""),
+    ("🗂️", "SmartFiles",  ""),
     ("🧠", "Goals",       ""),
     ("⚙️", "Settings",   ""),
     ("📊", "Hub",         ""),

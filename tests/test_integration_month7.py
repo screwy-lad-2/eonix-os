@@ -511,3 +511,118 @@ def test_gedit_in_iso():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "gedit" in c
+
+
+# ── Week 49 tests ───────────────────────────────────────────
+
+def test_eonix_files_app_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/eonix_files_app.py")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "EonixFilesApp" in c
+    assert "_navigate" in c
+    assert "_get_icon" in c
+    assert "ef-toolbar" in c
+    assert "ef-sidebar" in c
+
+
+def test_files_handler_uses_eonix():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "EonixFilesApp" in c
+
+
+def test_file_intel_module_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-core/file_intelligence.py")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "EonixFileIntel" in c
+    assert "auto_organize" in c
+    assert "start_background_scan" in c
+    assert "get_duplicates" in c
+
+
+def test_file_intel_scan_runs():
+    import os, sys
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, os.path.join(REPO, "eonix-core"))
+    from file_intelligence import EonixFileIntel
+    intel = EonixFileIntel()
+    idx = intel.scan(root=os.path.join(REPO, "eonix-core"))
+    assert "files" in idx
+    assert "stats" in idx
+    assert idx["stats"]["total_count"] > 0
+
+
+def test_file_intel_app_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/file_intel_app.py")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "EonixFileIntelApp" in c
+    assert "_on_organize" in c
+    assert "_on_search" in c
+
+
+def test_phone_bridge_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-hub/phone_bridge.py")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "phone_pair" in c
+    assert "phone_status" in c
+    assert "phone_notify" in c
+    assert "phone_command" in c
+
+
+def test_dock_has_10_apps():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/dock.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    for app in ["EonixShell", "Files", "SmartFiles", "Goals",
+                "Settings", "Hub", "MIND", "AIChat", "Notes", "System"]:
+        assert app in c, f"Missing: {app}"
+
+
+def test_launcher_has_smart_files():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/launcher_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "SmartFiles" in c
+
+
+def test_ai_chat_file_commands():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/ai_chat_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "scan files" in c
+    assert "find file" in c
+    assert "largest files" in c
+
+
+def test_no_nautilus_in_desktop():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "nautilus" not in c.lower()

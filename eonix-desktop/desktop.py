@@ -660,7 +660,7 @@ echo "⚡ EonixShell ready — Week 48"
             )
 
     def _launch_files_fallback(self):
-        """Fallback file manager when Nautilus is not installed."""
+        """Fallback file manager widget (legacy)."""
         try:
             from apps.files_app import EonixFiles as _EF
             app = _EF()
@@ -678,22 +678,14 @@ echo "⚡ EonixShell ready — Week 48"
             if app_name in ("Terminal", "EonixShell"):
                 self._launch_terminal()
             elif app_name in ("Files", "📁"):
-                import subprocess as _sp, threading as _th
-                def _launch_nautilus():
-                    try:
-                        env = os.environ.copy()
-                        env["GTK_THEME"] = "Adwaita:dark"
-                        env["GTK_CSD"] = "0"
-                        _sp.Popen(
-                            ["nautilus", "--new-window",
-                             os.path.expanduser("~")],
-                            env=env,
-                            stdout=_sp.DEVNULL,
-                            stderr=_sp.DEVNULL
-                        )
-                    except FileNotFoundError:
-                        GLib.idle_add(self._launch_files_fallback)
-                _th.Thread(target=_launch_nautilus, daemon=True).start()
+                try:
+                    from apps.eonix_files_app import EonixFilesApp
+                    files_app = EonixFilesApp()
+                except Exception as e:
+                    print(f"[LAUNCH] Files failed: {e}")
+                    files_app = Gtk.Label(label=f"Files error:\n{e}")
+                self.window_manager.open("📁 Files", files_app,
+                                         x=100, y=80, w=860, h=560)
             elif app_name == "Settings":
                 try:
                     from apps.settings_app import EonixSettings as _ES
@@ -809,6 +801,15 @@ echo "⚡ EonixShell ready — Week 48"
                     notes = Gtk.Label(label=f"Notes error:\n{e}")
                 self.window_manager.open("📝 Notes", notes,
                                          x=160, y=80, w=640, h=480)
+            elif app_name in ("SmartFiles", "🗂️", "Smart Files"):
+                try:
+                    from apps.file_intel_app import EonixFileIntelApp
+                    smart = EonixFileIntelApp()
+                except Exception as e:
+                    print(f"[LAUNCH] Smart Files failed: {e}")
+                    smart = Gtk.Label(label=f"Smart Files error:\n{e}")
+                self.window_manager.open("🗂️ Smart Files", smart,
+                                         x=140, y=80, w=760, h=560)
             elif app_name in ("System", "🖥️"):
                 import platform
                 sys_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)

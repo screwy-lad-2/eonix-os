@@ -14,15 +14,16 @@ class EonixLauncher(Gtk.Window):
     """Eonix App Launcher — press Super key."""
 
     ALL_APPS = [
-        ("⚡", "Terminal",  "EonixShell",  "Shell, bash, command line"),
-        ("📁", "Files",     "Files",       "File manager, browse, folders"),
-        ("🧠", "Goals",     "Goals",       "Goals, tasks, productivity"),
-        ("⚙️", "Settings", "Settings",    "Preferences, appearance, theme"),
-        ("📊", "Hub",       "Hub",         "AI Hub, model, accuracy"),
-        ("🤖", "MIND",      "MIND",        "AI agent, mind, assistant"),
-        ("💬", "AI Chat",   "AIChat",      "Chat, ask, assistant, help"),
-        ("📝", "Notes",     "Notes",       "Notes, write, text, memo"),
-        ("🖥️", "System",   "System",      "System info, hardware, kernel"),
+        ("⚡", "Terminal",    "EonixShell",  "Shell, bash, command line"),
+        ("📁", "Files",       "Files",       "File manager, browse, folders"),
+        ("🗂️", "Smart Files", "SmartFiles",  "Files, search, organize, disk, scan"),
+        ("🧠", "Goals",       "Goals",       "Goals, tasks, productivity"),
+        ("⚙️", "Settings",   "Settings",    "Preferences, appearance, theme"),
+        ("📊", "Hub",         "Hub",         "AI Hub, model, accuracy"),
+        ("🤖", "MIND",        "MIND",        "AI agent, mind, assistant"),
+        ("💬", "AI Chat",     "AIChat",      "Chat, ask, assistant, help"),
+        ("📝", "Notes",       "Notes",       "Notes, write, text, memo"),
+        ("🖥️", "System",     "System",      "System info, hardware, kernel"),
     ]
 
     def __init__(self, desktop_ref=None):

@@ -336,11 +336,11 @@ class EonixAIChat(Gtk.Box):
             return f"📅 Today: {now.strftime('%A, %d %B %Y')}"
 
         if any(w in text for w in ["week", "sprint"]):
-            return "📅 Current week: 48\nSprint: Week 48 — AI Assistant Launch"
+            return "📅 Current week: 49\nSprint: Week 49 — File Intelligence + Phone Bridge"
 
         if "version" in text:
             return ("⚡ Eonix OS v1.5.0-dev\n"
-                    "AI: LightGBM v1.2\nAccuracy: 63.47%\nTests: 230+ passing")
+                    "AI: LightGBM v1.2\nAccuracy: 63.47%\nTests: 250+ passing")
 
         if any(w in text for w in ["ip", "network", "internet"]):
             try:
@@ -351,6 +351,84 @@ class EonixAIChat(Gtk.Box):
 
         if "hostname" in text:
             return f"💻 Hostname: {socket.gethostname()}"
+
+        # File intelligence commands
+        if any(w in text for w in ["scan files", "index files", "file scan", "analyse files"]):
+            def _do_scan():
+                import sys as _s
+                _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                if os.path.join(_root, "eonix-core") not in _s.path:
+                    _s.path.insert(0, os.path.join(_root, "eonix-core"))
+                from file_intelligence import EonixFileIntel
+                intel = EonixFileIntel()
+                idx = intel.scan()
+                stats = idx["stats"]
+                total = stats.get("total_count", 0)
+                sz = stats.get("total_size_bytes", 0)
+                sz_str = (f"{sz/(1024**3):.2f} GB" if sz > 1024**3
+                          else f"{sz/(1024**2):.0f} MB")
+                msg = (
+                    f"🗂️ Scan complete!\n\n"
+                    f"📊 {total} total files ({sz_str})\n"
+                    f"📄 Docs:     {stats.get('documents', 0)}\n"
+                    f"🖼️ Images:  {stats.get('images', 0)}\n"
+                    f"💻 Code:    {stats.get('code', 0)}\n"
+                    f"🎵 Audio:   {stats.get('audio', 0)}\n"
+                    f"🎬 Video:   {stats.get('video', 0)}\n"
+                    f"📦 Archives:{stats.get('archives', 0)}\n"
+                    f"🗃️ Data:    {stats.get('data', 0)}")
+                GLib.idle_add(self._add_eonix_msg, msg)
+            import threading
+            threading.Thread(target=_do_scan, daemon=True).start()
+            return "🔍 Scanning your files..."
+
+        if any(w in text for w in ["find file", "search file", "where is", "locate"]):
+            import re, sys as _s
+            words = text.split()
+            query = " ".join(words[2:]) if len(words) > 2 else ""
+            if not query:
+                return "🔍 What file? Try: \"find file notes.txt\""
+            _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if os.path.join(_root, "eonix-core") not in _s.path:
+                _s.path.insert(0, os.path.join(_root, "eonix-core"))
+            from file_intelligence import EonixFileIntel
+            intel = EonixFileIntel()
+            results = intel.search(query)
+            if not results:
+                return f"❌ No files matching \"{query}\". Try 'scan files' first."
+            lines = "\n".join(f"  {r['name']}\n  📁 {r['path']}" for r in results[:5])
+            return f"🔍 Found {len(results)} match(es) for \"{query}\":\n\n{lines}"
+
+        if any(w in text for w in ["largest files", "big files", "disk hogs"]):
+            import sys as _s
+            _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if os.path.join(_root, "eonix-core") not in _s.path:
+                _s.path.insert(0, os.path.join(_root, "eonix-core"))
+            from file_intelligence import EonixFileIntel
+            intel = EonixFileIntel()
+            large = intel.get_largest(5)
+            if not large:
+                return "📦 No index yet. Try 'scan files' first."
+            lines = "\n".join(f"  {f['name']} — {f['size']//(1024**2)} MB" for f in large)
+            return f"🐘 Top 5 largest files:\n\n{lines}"
+
+        if any(w in text for w in ["open smart files", "open file intel", "smart files"]):
+            if self._desktop:
+                GLib.idle_add(lambda: self._desktop._handle_dock_launch("SmartFiles"))
+            return "🗂️ Opening Smart Files..."
+
+        if any(w in text for w in ["duplicates", "duplicate files", "find duplicates"]):
+            import sys as _s
+            _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if os.path.join(_root, "eonix-core") not in _s.path:
+                _s.path.insert(0, os.path.join(_root, "eonix-core"))
+            from file_intelligence import EonixFileIntel
+            intel = EonixFileIntel()
+            dupes = intel.get_duplicates()
+            if not dupes:
+                return "✅ No duplicate file names found!"
+            lines = "\n".join(f"  {a['name']}" for a, b in dupes[:5])
+            return f"⚠️ Found {len(dupes)} duplicate filename(s):\n\n{lines}"
 
         # File operations
         if any(w in text for w in ["list files", "show files", "ls", "what files"]):
@@ -368,13 +446,9 @@ class EonixAIChat(Gtk.Box):
 
         if any(w in text for w in ["organize", "clean up", "sort files"]):
             return (
-                "🗂️ File organization plan:\n\n"
-                "I would move:\n"
-                "  📄 .txt, .md → Documents/\n"
-                "  🖼️ .jpg, .png → Pictures/\n"
-                "  🎵 .mp3, .wav → Music/\n"
-                "  📦 .zip, .tar → Downloads/\n\n"
-                "⚠️ Auto-organize coming in Week 49.")
+                "🗂️ Auto-organize is now live!\n\n"
+                "Say 'open smart files' to preview what would be moved.\n"
+                "Or try 'scan files' first to build the index.")
 
         # Utility
         if "clear" in text or "reset chat" in text:
