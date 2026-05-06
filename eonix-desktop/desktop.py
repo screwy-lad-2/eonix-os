@@ -1,4 +1,4 @@
-﻿"""Eonix Desktop with launcher, memory-integrated GoalPanel, and headless tests."""
+"""Eonix Desktop with launcher, memory-integrated GoalPanel, and headless tests."""
 from __future__ import annotations
 
 import sys as _sys
@@ -961,6 +961,10 @@ echo "âš¡ EonixShell ready â€” Week 48"
             spacer = Gtk.Box()
             spacer.set_hexpand(True)
             topbar_box.append(spacer)
+            self._mic_lbl = Gtk.Label(label="ðŸŽ¤")
+            self._mic_lbl.set_tooltip_text("Voice â€” say: Hey Eonix")
+            self._mic_lbl.set_margin_end(8)
+            topbar_box.append(self._mic_lbl)
             topbar_box.append(lbl_metrics)
             topbar_box.append(lbl_clock)
             self.top_bar._label_goal = lbl_goal

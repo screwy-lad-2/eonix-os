@@ -1,4 +1,4 @@
-﻿"""Eonix AI Chat — the Iron Man assistant.
+"""Eonix AI Chat — the Iron Man assistant.
 
 Text input → command parser → OS action.
 Handles natural language commands for app launching,
@@ -47,6 +47,16 @@ class EonixAIChat(Gtk.Box):
         self.set_hexpand(True)
         self._desktop = desktop_ref
         self._history = []
+        self._voice = None
+        try:
+            import sys as _s
+            _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            if os.path.join(_root, "eonix-core") not in _s.path:
+                _s.path.insert(0, os.path.join(_root, "eonix-core"))
+            from voice_engine import EonixVoice
+            self._voice = EonixVoice(command_callback=self._on_voice_command)
+        except Exception as e:
+            print(f"[AI CHAT] Voice init: {e}")
         self._apply_css()
         self._build_ui()
 
@@ -119,6 +129,19 @@ class EonixAIChat(Gtk.Box):
           font-size: 11px;
           font-weight: 700;
         }
+        .chat-voice-btn {
+          background: rgba(124,77,255,0.2);
+          border: none;
+          border-radius: 50%;
+          color: #a78bfa;
+          font-size: 16px;
+          min-width: 40px;
+          min-height: 40px;
+          margin-left: 6px;
+        }
+        .chat-voice-btn:hover {
+          background: rgba(124,77,255,0.4);
+        }
         """
         try:
             provider = Gtk.CssProvider()
@@ -189,6 +212,11 @@ class EonixAIChat(Gtk.Box):
         send_btn.set_css_classes(["ai-send-btn"])
         send_btn.connect("clicked", self._on_send)
         input_bar.append(send_btn)
+        self._voice_btn = Gtk.Button(label="🎤")
+        self._voice_btn.set_css_classes(["chat-voice-btn"])
+        self._voice_btn.set_tooltip_text("Voice command")
+        self._voice_btn.connect("clicked", self._on_voice_click)
+        input_bar.append(self._voice_btn)
         self.append(input_bar)
 
     def _add_user_msg(self, text):
@@ -224,6 +252,36 @@ class EonixAIChat(Gtk.Box):
         self._add_user_msg(text)
         self._history.append({"role": "user", "text": text})
         GLib.timeout_add(300, lambda: self._process(text))
+
+    def _on_voice_click(self, btn):
+        """Mic button → listen for one utterance."""
+        if not self._voice:
+            self._add_eonix_msg("🎤 Voice engine not available.\nInstall: pip3 install SpeechRecognition pyttsx3 pyaudio")
+            return
+        btn.set_label("🔴")
+        btn.set_sensitive(False)
+        import threading
+        def _listen():
+            text = self._voice.listen_once()
+            GLib.idle_add(self._voice_done, text, btn)
+        threading.Thread(target=_listen, daemon=True).start()
+
+    def _voice_done(self, text, btn):
+        btn.set_label("🎤")
+        btn.set_sensitive(True)
+        if text:
+            self._entry.set_text(text)
+            self._on_send()
+        else:
+            self._add_eonix_msg("🎤 Didn't catch that. Try again or type your command.")
+
+    def _on_voice_command(self, cmd):
+        """Called by wake word listener (background)."""
+        GLib.idle_add(self._add_user_msg, cmd)
+        response = self._match_command(cmd)
+        GLib.idle_add(self._add_eonix_msg, response)
+        if self._voice:
+            self._voice.speak(response[:120])
 
     def _process(self, text):
         lower = text.lower().strip()
@@ -449,6 +507,69 @@ class EonixAIChat(Gtk.Box):
                 "🗂️ Auto-organize is now live!\n\n"
                 "Say 'open smart files' to preview what would be moved.\n"
                 "Or try 'scan files' first to build the index.")
+
+        # Voice / system commands
+        if any(w in text for w in ["volume up", "louder"]):
+            try:
+                subprocess.run(["pactl", "set-sink-volume", "@DEFAULT_SINK@", "+10%"],
+                               capture_output=True, timeout=3)
+                return "🔊 Volume up +10%"
+            except Exception:
+                return "🔊 Volume control not available"
+
+        if any(w in text for w in ["volume down", "quieter", "softer"]):
+            try:
+                subprocess.run(["pactl", "set-sink-volume", "@DEFAULT_SINK@", "-10%"],
+                               capture_output=True, timeout=3)
+                return "🔉 Volume down -10%"
+            except Exception:
+                return "🔉 Volume control not available"
+
+        if any(w in text for w in ["mute", "unmute"]):
+            try:
+                subprocess.run(["pactl", "set-sink-mute", "@DEFAULT_SINK@", "toggle"],
+                               capture_output=True, timeout=3)
+                return "🔇 Mute toggled"
+            except Exception:
+                return "🔇 Mute not available"
+
+        if "screenshot" in text:
+            try:
+                import datetime as _dt
+                ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+                path = os.path.expanduser(f"~/Pictures/screenshot_{ts}.png")
+                subprocess.run(["gnome-screenshot", "-f", path],
+                               capture_output=True, timeout=5)
+                return f"📸 Screenshot saved: {path}"
+            except Exception:
+                return "📸 Screenshot tool not available"
+
+        if "lock screen" in text or "lock" in text:
+            try:
+                subprocess.Popen(["xdg-screensaver", "lock"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return "🔒 Screen locked"
+            except Exception:
+                return "🔒 Lock not available"
+
+        if "shutdown" in text or "power off" in text:
+            return ("⚠️ To shut down, run in terminal:\n"
+                    "  sudo systemctl poweroff\n\n"
+                    "Voice: say 'Hey Eonix, shutdown' then 'yes' to confirm.")
+
+        if "restart" in text or "reboot" in text:
+            return ("⚠️ To restart, run in terminal:\n"
+                    "  sudo systemctl reboot")
+
+        if any(w in text for w in ["battery", "power status"]):
+            try:
+                bat = psutil.sensors_battery()
+                if bat:
+                    plug = "🔌 Plugged in" if bat.power_plugged else "🔋 On battery"
+                    return f"{plug}\n🔋 {bat.percent}% remaining"
+                return "🔋 No battery detected (desktop)"
+            except Exception:
+                return "🔋 Battery info not available"
 
         # Utility
         if "clear" in text or "reset chat" in text:

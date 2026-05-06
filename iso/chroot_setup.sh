@@ -184,7 +184,8 @@ python3 -m pip install --no-cache-dir \
   psutil prompt_toolkit pytest-asyncio pyarrow \
   pycairo PyGObject python-xlib ewmh \
   httpx fastapi uvicorn aiohttp websockets zeroconf requests \
-  "qrcode[pil]" flask-cors
+  "qrcode[pil]" flask-cors \
+  SpeechRecognition pyttsx3 pyaudio
 
 # Optional heavy AI packages
 for pkg in sentence-transformers chromadb; do

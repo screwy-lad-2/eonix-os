@@ -19,6 +19,7 @@ class EonixSettings(Gtk.Box):
         ("🎨", "Appearance"),
         ("🤖", "AI & Agents"),
         ("🖥️", "Display"),
+        ("🎤", "Voice"),
         ("🔒", "Privacy"),
         ("🔄", "Updates"),
         ("👤", "About"),
@@ -152,6 +153,7 @@ class EonixSettings(Gtk.Box):
             "Appearance": self._show_appearance,
             "AI & Agents": self._show_ai,
             "Display": self._show_display,
+            "Voice": self._show_voice,
             "Privacy": self._show_privacy,
             "Updates": self._show_updates,
             "About": self._show_about,
@@ -304,6 +306,97 @@ class EonixSettings(Gtk.Box):
             sw.connect("notify::active",
                        lambda s, _, k=key: self._set(k, s.get_active()))
             self._content.append(self._row(label, sw))
+
+    def _show_voice(self):
+        self._clear()
+        self._content.append(self._title("\ud83c\udfa4 Voice"))
+
+        import sys as _s, os as _os
+        _root = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+        _core = _os.path.join(_root, "eonix-core")
+        if _core not in _s.path:
+            _s.path.insert(0, _core)
+
+        # Voice toggle
+        sw = Gtk.Switch()
+        sw.set_active(self.config.get("voice_enabled", True))
+        sw.connect("notify::active",
+                    lambda s, _: self._set("voice_enabled", s.get_active()))
+        self._content.append(self._row("Voice Commands", sw))
+
+        # Wake word display
+        wake_lbl = Gtk.Label(label='"Hey Eonix"')
+        wake_lbl.set_halign(Gtk.Align.END)
+        self._content.append(self._row("Wake Word", wake_lbl))
+
+        # Speed slider
+        speed_adj = Gtk.Adjustment(value=self.config.get("voice_speed", 160),
+                                    lower=80, upper=200, step_increment=10)
+        speed_scale = Gtk.Scale(adjustment=speed_adj, orientation=Gtk.Orientation.HORIZONTAL)
+        speed_scale.set_hexpand(True)
+        speed_scale.set_digits(0)
+        speed_scale.set_value_pos(Gtk.PositionType.RIGHT)
+        speed_scale.connect("value-changed",
+                             lambda s: self._set("voice_speed", int(s.get_value())))
+        self._content.append(self._row("Voice Speed (WPM)", speed_scale))
+
+        # Volume slider
+        vol_adj = Gtk.Adjustment(value=self.config.get("voice_volume", 90),
+                                  lower=0, upper=100, step_increment=5)
+        vol_scale = Gtk.Scale(adjustment=vol_adj, orientation=Gtk.Orientation.HORIZONTAL)
+        vol_scale.set_hexpand(True)
+        vol_scale.set_digits(0)
+        vol_scale.set_value_pos(Gtk.PositionType.RIGHT)
+        vol_scale.connect("value-changed",
+                           lambda s: self._set("voice_volume", int(s.get_value())))
+        self._content.append(self._row("Volume (%)", vol_scale))
+
+        # Mic test button
+        self._mic_result = Gtk.Label(label="")
+        self._mic_result.set_halign(Gtk.Align.START)
+        self._mic_result.set_margin_start(16)
+        mic_btn = Gtk.Button(label="\ud83c\udfa4 Test Microphone")
+        mic_btn.set_css_classes(["settings-nav-btn"])
+        mic_btn.set_halign(Gtk.Align.START)
+        mic_btn.set_margin_start(16)
+        mic_btn.set_margin_top(12)
+        mic_btn.connect("clicked", self._test_mic)
+        self._content.append(mic_btn)
+        self._content.append(self._mic_result)
+
+        # Status
+        self._content.append(self._title("Status"))
+        try:
+            import speech_recognition
+            sr_ok = "\ud83d\udfe2 speech_recognition: installed"
+        except ImportError:
+            sr_ok = "\u26aa speech_recognition: not installed"
+        try:
+            import pyttsx3
+            tts_ok = "\ud83d\udfe2 pyttsx3 (espeak-ng): installed"
+        except ImportError:
+            tts_ok = "\u26aa pyttsx3: not installed"
+
+        for s in [sr_ok, tts_ok, "\ud83d\udfe2 Engine: espeak-ng (offline)", "\u26aa Google API: online fallback"]:
+            lbl = Gtk.Label(label=s)
+            lbl.set_halign(Gtk.Align.START)
+            lbl.set_margin_start(16)
+            lbl.set_margin_top(4)
+            self._content.append(lbl)
+
+    def _test_mic(self, _btn):
+        self._mic_result.set_text("\u23f3 Testing...")
+        import threading
+        def _t():
+            try:
+                from voice_engine import EonixVoice
+                v = EonixVoice()
+                ok = v.test_microphone()
+                msg = "\ud83d\udfe2 Microphone detected!" if ok else "\ud83d\udd34 No microphone found"
+            except Exception as e:
+                msg = f"\ud83d\udd34 Error: {e}"
+            GLib.idle_add(self._mic_result.set_text, msg)
+        threading.Thread(target=_t, daemon=True).start()
 
     def _show_updates(self):
         self._clear()

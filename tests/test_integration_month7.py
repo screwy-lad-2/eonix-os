@@ -700,3 +700,60 @@ def test_no_smartfiles_in_dock():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "SmartFiles" not in c
+
+
+# ── Week 51 tests ───────────────────────────────────────────
+
+def test_voice_engine_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-core/voice_engine.py")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "EonixVoice" in c
+    assert "pyttsx3" in c
+    assert "listen_once" in c
+    assert "WAKE_WORDS" in c
+
+
+def test_voice_btn_in_chat():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/ai_chat_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "voice_btn" in c or "chat-voice-btn" in c
+    assert "_on_voice_click" in c
+    assert "_on_voice_command" in c
+
+
+def test_voice_settings_tab():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "Voice" in c
+    assert "_show_voice" in c
+    assert "voice_speed" in c or "Test Microphone" in c
+
+
+def test_voice_commands_in_chat():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/ai_chat_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "volume up" in c
+    assert "screenshot" in c
+    assert "lock screen" in c or "lock" in c
+
+
+def test_topbar_mic_indicator():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "_mic_lbl" in c
