@@ -20,6 +20,7 @@ class EonixSettings(Gtk.Box):
         ("🤖", "AI & Agents"),
         ("🖥️", "Display"),
         ("🔒", "Privacy"),
+        ("🔄", "Updates"),
         ("👤", "About"),
     ]
 
@@ -152,6 +153,7 @@ class EonixSettings(Gtk.Box):
             "AI & Agents": self._show_ai,
             "Display": self._show_display,
             "Privacy": self._show_privacy,
+            "Updates": self._show_updates,
             "About": self._show_about,
         }
         fn = dispatch.get(name, self._show_about)
@@ -302,6 +304,62 @@ class EonixSettings(Gtk.Box):
             sw.connect("notify::active",
                        lambda s, _, k=key: self._set(k, s.get_active()))
             self._content.append(self._row(label, sw))
+
+    def _show_updates(self):
+        self._clear()
+        self._content.append(self._title("\ud83d\udd04 Updates"))
+        import sys, os as _os
+        _root = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+        _core = _os.path.join(_root, "eonix-core")
+        if _core not in sys.path:
+            sys.path.insert(0, _core)
+
+        ver_lbl = Gtk.Label(label="Current version: v1.5.0")
+        ver_lbl.set_halign(Gtk.Align.START)
+        ver_lbl.set_margin_start(16)
+        ver_lbl.set_margin_top(8)
+        self._content.append(ver_lbl)
+
+        self._update_result = Gtk.Label(label="")
+        self._update_result.set_halign(Gtk.Align.START)
+        self._update_result.set_margin_start(16)
+        self._update_result.set_margin_top(8)
+        self._update_result.set_wrap(True)
+        self._content.append(self._update_result)
+
+        btn = Gtk.Button(label="\ud83d\udd0d Check for Updates")
+        btn.set_css_classes(["settings-nav-btn"])
+        btn.set_halign(Gtk.Align.START)
+        btn.set_margin_start(16)
+        btn.set_margin_top(12)
+        btn.connect("clicked", self._do_update_check)
+        self._content.append(btn)
+
+        note = Gtk.Label(label="\u26a0\ufe0f  Your /home data is always preserved across all updates.")
+        note.set_halign(Gtk.Align.START)
+        note.set_margin_start(16)
+        note.set_margin_top(20)
+        note.set_css_classes(["eonix-muted"])
+        self._content.append(note)
+
+    def _do_update_check(self, _btn):
+        import threading
+        self._update_result.set_text("\u23f3 Checking...")
+        def _check():
+            try:
+                from ota_updater import EonixOTA
+                r = EonixOTA().check_for_updates()
+                if r.get("available"):
+                    msg = (f"\ud83c\udd95 v{r['latest']} available ({r['size_mb']} MB)\n"
+                           f"Type: {r['level'].upper()}\n{r.get('notes','')[:200]}")
+                else:
+                    msg = f"\u2705 You're up to date! (v{r.get('current','1.5.0')})"
+                    if r.get("error"):
+                        msg = f"\u26a0\ufe0f Could not check: {r['error']}"
+            except Exception as e:
+                msg = f"\u274c Error: {e}"
+            GLib.idle_add(self._update_result.set_text, msg)
+        threading.Thread(target=_check, daemon=True).start()
 
     def _show_about(self):
         self._clear()

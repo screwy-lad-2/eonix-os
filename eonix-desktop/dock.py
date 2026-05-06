@@ -27,7 +27,6 @@ HEADLESS = not GTK_AVAILABLE or os.environ.get("EONIX_HEADLESS", "0") == "1" or 
 APPS = [
     ("⚡", "EonixShell",  ""),
     ("📁", "Files",       ""),
-    ("🗂️", "SmartFiles",  ""),
     ("🧠", "Goals",       ""),
     ("⚙️", "Settings",   ""),
     ("📊", "Hub",         ""),
@@ -116,7 +115,7 @@ if GTK_AVAILABLE and not HEADLESS:
     class EonixDock(Gtk.DrawingArea):
         """Full GTK4 physics-based dock widget."""
 
-        H = 82  # widget height
+        H = 110  # widget height (room for hover tooltip above pill)
 
         def __init__(self, on_launch: Optional[Callable] = None) -> None:
             super().__init__()
@@ -259,13 +258,20 @@ if GTK_AVAILABLE and not HEADLESS:
                     cr.set_font_size(12)
                     te2 = cr.text_extents(ic.name)
                     tx = ix + SZ / 2.0 - te2.width / 2.0
-                    ty = oy - 10
-                    # tooltip background
-                    cr.set_source_rgba(13 / 255, 13 / 255, 26 / 255, 0.9)
-                    self._rrect(cr, tx - 8, ty - 16, te2.width + 16, 22, 6)
+                    # Draw ABOVE the pill background
+                    ty = by - 12
+                    # tooltip background pill
+                    tw = te2.width + 20
+                    cr.set_source_rgba(10 / 255, 10 / 255, 26 / 255, 0.94)
+                    self._rrect(cr, tx - 10, ty - 18, tw, 24, 8)
                     cr.fill()
+                    # tooltip border
+                    cr.set_source_rgba(0.48, 0.30, 1.0, 0.3)
+                    self._rrect(cr, tx - 10, ty - 18, tw, 24, 8)
+                    cr.set_line_width(1)
+                    cr.stroke()
                     # tooltip text
-                    cr.set_source_rgba(1, 1, 1, 0.9)
+                    cr.set_source_rgba(0.88, 0.88, 1.0, 0.95)
                     cr.move_to(tx, ty)
                     cr.show_text(ic.name)
 
@@ -302,8 +308,8 @@ def test_stub_dock_launch():
     assert launched[0] == "EonixShell"
 
 
-def test_apps_list_has_seven_entries():
-    assert len(APPS) == 7
+def test_apps_list_has_nine_entries():
+    assert len(APPS) == 9
 
 
 def test_icon_initial_state():

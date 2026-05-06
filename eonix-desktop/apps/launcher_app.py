@@ -16,7 +16,6 @@ class EonixLauncher(Gtk.Window):
     ALL_APPS = [
         ("⚡", "Terminal",    "EonixShell",  "Shell, bash, command line"),
         ("📁", "Files",       "Files",       "File manager, browse, folders"),
-        ("🗂️", "Smart Files", "SmartFiles",  "Files, search, organize, disk, scan"),
         ("🧠", "Goals",       "Goals",       "Goals, tasks, productivity"),
         ("⚙️", "Settings",   "Settings",    "Preferences, appearance, theme"),
         ("📊", "Hub",         "Hub",         "AI Hub, model, accuracy"),
@@ -24,6 +23,8 @@ class EonixLauncher(Gtk.Window):
         ("💬", "AI Chat",     "AIChat",      "Chat, ask, assistant, help"),
         ("📝", "Notes",       "Notes",       "Notes, write, text, memo"),
         ("🖥️", "System",     "System",      "System info, hardware, kernel"),
+        ("🔄", "Updates",     "Updates",     "OTA updater, version"),
+        ("📱", "Phone",       "Phone",       "Phone bridge, mobile, pair"),
     ]
 
     def __init__(self, desktop_ref=None):
@@ -104,10 +105,10 @@ class EonixLauncher(Gtk.Window):
         root.set_margin_end(20)
 
         # Search bar
-        self._search = Gtk.SearchEntry()
+        self._search = Gtk.Entry()
         self._search.set_css_classes(["launcher-search"])
         self._search.set_placeholder_text("🔍  Search apps...")
-        self._search.connect("search-changed", self._on_search)
+        self._search.connect("changed", self._on_search)
         self._search.connect("activate", self._on_search_activate)
         root.append(self._search)
 

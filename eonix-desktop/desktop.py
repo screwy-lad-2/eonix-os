@@ -1,4 +1,4 @@
-"""Eonix Desktop with launcher, memory-integrated GoalPanel, and headless tests."""
+﻿"""Eonix Desktop with launcher, memory-integrated GoalPanel, and headless tests."""
 from __future__ import annotations
 
 import sys as _sys
@@ -229,7 +229,7 @@ class EonixTopBar:
         ai_dot.set_valign(Gtk.Align.CENTER)
         box.append(ai_dot)
 
-        self._label_goal = Gtk.Label(label="⚡ EONIX | No active goal")  # type: ignore
+        self._label_goal = Gtk.Label(label="âš¡ EONIX | No active goal")  # type: ignore
         self._label_goal.set_hexpand(True)
         self._label_goal.set_halign(Gtk.Align.START)
         self._label_metrics = Gtk.Label(label=f"{self.ram_display}  {self.cpu_display}")  # type: ignore
@@ -241,7 +241,7 @@ class EonixTopBar:
 
     def update_goal(self, name: str) -> None:
         self.active_goal = name[:30]
-        text = f"⚡ EONIX | {self.active_goal or 'No active goal'}"
+        text = f"âš¡ EONIX | {self.active_goal or 'No active goal'}"
         self._label_goal.set_text(text)
 
     def update_metrics(self, metrics: SystemMetrics) -> None:
@@ -280,10 +280,10 @@ class EonixGoalPanel:
         self._goal_label = Gtk.Label(label=self.active_goal_text)  # type: ignore
         self._progress_label = Gtk.Label(label="0% complete")  # type: ignore
         self._context_label = Gtk.Label(label="Context: 0 events")  # type: ignore
-        self._memory_header = Gtk.Label(label="🧠 Memories (0)")  # type: ignore
-        self._expand_button = Gtk.Button(label="↗ Expand")  # type: ignore
+        self._memory_header = Gtk.Label(label="ðŸ§  Memories (0)")  # type: ignore
+        self._expand_button = Gtk.Button(label="â†— Expand")  # type: ignore
         self._expand_button.connect("clicked", lambda _: self.open_memory_standalone())  # type: ignore
-        self._open_workspace_button = Gtk.Button(label="▶ Open Workspace")  # type: ignore
+        self._open_workspace_button = Gtk.Button(label="â–¶ Open Workspace")  # type: ignore
         self._open_workspace_button.connect("clicked", lambda _: self.open_workspace())  # type: ignore
         memory_header_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)  # type: ignore
         memory_header_row.append(self._memory_header)  # type: ignore
@@ -313,9 +313,9 @@ class EonixGoalPanel:
             self._progress_label.set_text(pct)
             self._context_label.set_text(f"Context: {self.context_events} events")
             if self.memory_count == 0:
-                self._memory_header.set_text("🧠 Memories (0) — Add your first goal with + Add")
+                self._memory_header.set_text("ðŸ§  Memories (0) â€” Add your first goal with + Add")
             else:
-                self._memory_header.set_text(f"🧠 Memories ({self.memory_count})")
+                self._memory_header.set_text(f"ðŸ§  Memories ({self.memory_count})")
 
     def toggle_memory_section(self) -> None:
         self.memory_expanded = not self.memory_expanded
@@ -358,7 +358,7 @@ def _load_aura_css() -> None:
 
 
 class EonixWallpaper:
-    """Wallpaper wrapper — delegates to AuraWallpaper (particle) or basic window."""
+    """Wallpaper wrapper â€” delegates to AuraWallpaper (particle) or basic window."""
 
     def __init__(self, headless: bool = HEADLESS_DEFAULT):
         self.headless = headless
@@ -413,14 +413,14 @@ class EonixLauncher:
 
     def _default_apps(self) -> list[LauncherApp]:
         return [
-            LauncherApp("EonixShell", "⚡", "eonix-shell", "Natural language shell"),
-            LauncherApp("Eonix Hub", "🌐", "", "Open Eonix Hub"),
-            LauncherApp("Memory", "🧠", "", "Memory browser"),
-            LauncherApp("Settings", "⚙️", "", "Desktop settings"),
-            LauncherApp("Files", "📁", "", "File manager"),
-            LauncherApp("Terminal", "🖥️", "", "Terminal emulator"),
-            LauncherApp("Browser", "🌍", "", "Web browser"),
-            LauncherApp("VS Code", "💻", "", "Code editor"),
+            LauncherApp("EonixShell", "âš¡", "eonix-shell", "Natural language shell"),
+            LauncherApp("Eonix Hub", "ðŸŒ", "", "Open Eonix Hub"),
+            LauncherApp("Memory", "ðŸ§ ", "", "Memory browser"),
+            LauncherApp("Settings", "âš™ï¸", "", "Desktop settings"),
+            LauncherApp("Files", "ðŸ“", "", "File manager"),
+            LauncherApp("Terminal", "ðŸ–¥ï¸", "", "Terminal emulator"),
+            LauncherApp("Browser", "ðŸŒ", "", "Web browser"),
+            LauncherApp("VS Code", "ðŸ’»", "", "Code editor"),
         ]
 
     def _load_apps(self) -> list[LauncherApp]:
@@ -438,7 +438,7 @@ class EonixLauncher:
                 out.append(
                     LauncherApp(
                         name=str(item.get("name", "App")),
-                        icon=str(item.get("icon", "•")),
+                        icon=str(item.get("icon", "â€¢")),
                         cmd=str(item.get("cmd", "")),
                         description=str(item.get("description", "")),
                     )
@@ -618,10 +618,10 @@ class EonixDesktop:
                     f.write(r"""
 source ~/.bashrc 2>/dev/null || true
 function cd() {
-    builtin cd "$@" && echo "📁 $(pwd)"
+    builtin cd "$@" && echo "ðŸ“ $(pwd)"
 }
 PS1='\[\033[01;32m\]eonix@eonix-os:\[\033[01;34m\]\w\[\033[00m\]$ '
-echo "⚡ EonixShell ready — Week 48"
+echo "âš¡ EonixShell ready â€” Week 48"
 """)
 
             term.spawn_async(
@@ -653,7 +653,7 @@ echo "⚡ EonixShell ready — Week 48"
 
         if self.window_manager:
             self.window_manager.open(
-                "⚡ EonixShell",
+                "âš¡ EonixShell",
                 box,
                 x=80, y=60,
                 w=720, h=460
@@ -667,7 +667,7 @@ echo "⚡ EonixShell ready — Week 48"
         except Exception as e:
             app = Gtk.Label(label=f"Files unavailable:\n{e}")
         if self.window_manager:
-            self.window_manager.open("📁 Files", app,
+            self.window_manager.open("ðŸ“ Files", app,
                                      x=140, y=80, w=740, h=500)
 
     def _handle_dock_launch(self, app_name: str) -> None:
@@ -677,14 +677,14 @@ echo "⚡ EonixShell ready — Week 48"
         try:
             if app_name in ("Terminal", "EonixShell"):
                 self._launch_terminal()
-            elif app_name in ("Files", "📁"):
+            elif app_name in ("Files", "ðŸ“"):
                 try:
                     from apps.eonix_files_app import EonixFilesApp
                     files_app = EonixFilesApp()
                 except Exception as e:
                     print(f"[LAUNCH] Files failed: {e}")
                     files_app = Gtk.Label(label=f"Files error:\n{e}")
-                self.window_manager.open("📁 Files", files_app,
+                self.window_manager.open("ðŸ“ Files", files_app,
                                          x=100, y=80, w=860, h=560)
             elif app_name == "Settings":
                 try:
@@ -693,13 +693,13 @@ echo "⚡ EonixShell ready — Week 48"
                 except Exception as e:
                     print(f"[LAUNCH] Settings failed: {e}")
                     app_widget = Gtk.Label(label=f"Settings error:\n{e}")
-                self.window_manager.open("⚙️ Settings", app_widget,
+                self.window_manager.open("âš™ï¸ Settings", app_widget,
                                          x=180, y=100, w=680, h=480)
             elif app_name == "Goals":
                 content = Gtk.Label(
-                    label="🧠 Goal Engine\n\nConnected to GoalEngine\nPort: 7735")
+                    label="ðŸ§  Goal Engine\n\nConnected to GoalEngine\nPort: 7735")
                 content.set_justify(Gtk.Justification.CENTER)
-                self.window_manager.open("🧠 Goals", content,
+                self.window_manager.open("ðŸ§  Goals", content,
                                          x=160, y=90, w=500, h=360)
             elif app_name == "Hub":
                 hub_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -707,7 +707,7 @@ echo "⚡ EonixShell ready — Week 48"
                 hub_box.set_margin_start(20)
                 hub_box.set_margin_end(20)
                 hub_box.set_margin_top(16)
-                title = Gtk.Label(label="📊 Hub Status")
+                title = Gtk.Label(label="ðŸ“Š Hub Status")
                 title.set_css_classes(["mind-title"])
                 title.set_halign(Gtk.Align.START)
                 title.set_margin_bottom(12)
@@ -733,9 +733,9 @@ echo "⚡ EonixShell ready — Week 48"
                     row.append(kl)
                     row.append(vl)
                     hub_box.append(row)
-                self.window_manager.open("📊 Hub", hub_box,
+                self.window_manager.open("ðŸ“Š Hub", hub_box,
                                          x=200, y=110, w=500, h=360)
-            elif app_name in ("MIND", "🤖", "AI"):
+            elif app_name in ("MIND", "ðŸ¤–", "AI"):
                 mind_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
                 mind_box.set_vexpand(True)
                 mind_box.set_hexpand(True)
@@ -746,21 +746,21 @@ echo "⚡ EonixShell ready — Week 48"
                 header.set_margin_end(20)
                 header.set_margin_top(16)
                 header.set_margin_bottom(12)
-                title = Gtk.Label(label="🤖 MIND Agent")
+                title = Gtk.Label(label="ðŸ¤– MIND Agent")
                 title.set_css_classes(["mind-title"])
                 header.append(title)
                 mind_box.append(header)
                 stats = [
-                    ("🧠 Model",        "LightGBM v1.2"),
-                    ("📊 Accuracy",     "63.47%"),
-                    ("✅ Status",       "ONLINE"),
-                    ("🔗 Endpoint",     "localhost:7750"),
-                    ("📦 Rows trained", "148,812"),
-                    ("🔄 Next retrain", "Auto at 120k rows"),
-                    ("🧬 Agents",       "5 connected"),
-                    ("⚡ Brain DB",     "Connected"),
-                    ("📅 Week",         "48"),
-                    ("🏁 Version",      "v1.5.0-dev"),
+                    ("ðŸ§  Model",        "LightGBM v1.2"),
+                    ("ðŸ“Š Accuracy",     "63.47%"),
+                    ("âœ… Status",       "ONLINE"),
+                    ("ðŸ”— Endpoint",     "localhost:7750"),
+                    ("ðŸ“¦ Rows trained", "148,812"),
+                    ("ðŸ”„ Next retrain", "Auto at 120k rows"),
+                    ("ðŸ§¬ Agents",       "5 connected"),
+                    ("âš¡ Brain DB",     "Connected"),
+                    ("ðŸ“… Week",         "48"),
+                    ("ðŸ Version",      "v1.5.0-dev"),
                 ]
                 for k, v in stats:
                     row = Gtk.Box(spacing=12)
@@ -781,36 +781,27 @@ echo "⚡ EonixShell ready — Week 48"
                     row.append(kl)
                     row.append(vl)
                     mind_box.append(row)
-                self.window_manager.open("🤖 MIND", mind_box,
+                self.window_manager.open("ðŸ¤– MIND", mind_box,
                                          x=160, y=90, w=520, h=420)
-            elif app_name in ("AIChat", "💬", "AI Chat"):
+            elif app_name in ("AIChat", "ðŸ’¬", "AI Chat"):
                 try:
                     from apps.ai_chat_app import EonixAIChat
                     chat = EonixAIChat(desktop_ref=self)
                 except Exception as e:
                     print(f"[LAUNCH] AI Chat failed: {e}")
                     chat = Gtk.Label(label=f"AI Chat error:\n{e}")
-                self.window_manager.open("💬 Eonix AI", chat,
+                self.window_manager.open("ðŸ’¬ Eonix AI", chat,
                                          x=180, y=80, w=520, h=620)
-            elif app_name in ("Notes", "📝"):
+            elif app_name in ("Notes", "ðŸ“"):
                 try:
                     from apps.notes_app import EonixNotes
                     notes = EonixNotes()
                 except Exception as e:
                     print(f"[LAUNCH] Notes failed: {e}")
                     notes = Gtk.Label(label=f"Notes error:\n{e}")
-                self.window_manager.open("📝 Notes", notes,
+                self.window_manager.open("ðŸ“ Notes", notes,
                                          x=160, y=80, w=640, h=480)
-            elif app_name in ("SmartFiles", "🗂️", "Smart Files"):
-                try:
-                    from apps.file_intel_app import EonixFileIntelApp
-                    smart = EonixFileIntelApp()
-                except Exception as e:
-                    print(f"[LAUNCH] Smart Files failed: {e}")
-                    smart = Gtk.Label(label=f"Smart Files error:\n{e}")
-                self.window_manager.open("🗂️ Smart Files", smart,
-                                         x=140, y=80, w=760, h=560)
-            elif app_name in ("System", "🖥️"):
+            elif app_name in ("System", "ðŸ–¥ï¸"):
                 import platform
                 sys_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
                 sys_box.set_css_classes(["eonix-mind-root"])
@@ -818,7 +809,7 @@ echo "⚡ EonixShell ready — Week 48"
                 sys_box.set_margin_end(20)
                 sys_box.set_margin_top(16)
                 sys_box.set_margin_bottom(16)
-                title = Gtk.Label(label="🖥️ System Info")
+                title = Gtk.Label(label="ðŸ–¥ï¸ System Info")
                 title.set_css_classes(["mind-title"])
                 title.set_halign(Gtk.Align.START)
                 title.set_margin_bottom(12)
@@ -846,7 +837,7 @@ echo "⚡ EonixShell ready — Week 48"
                     row.append(kl)
                     row.append(vl)
                     sys_box.append(row)
-                self.window_manager.open("🖥️ System", sys_box,
+                self.window_manager.open("ðŸ–¥ï¸ System", sys_box,
                                          x=200, y=120, w=440, h=360)
             else:
                 placeholder = Gtk.Label(label=f"Opening {app_name}...")
@@ -944,21 +935,21 @@ echo "⚡ EonixShell ready — Week 48"
             return
 
         if GTK_AVAILABLE and not self.headless:
-            # ── Build the desktop layout ──────────────────────
-            # Simple Box layout — no Overlay (DrawingArea has 0 natural size
+            # â”€â”€ Build the desktop layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            # Simple Box layout â€” no Overlay (DrawingArea has 0 natural size
             # which causes Overlay to collapse). Particles fill workspace.
             root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
             root.set_hexpand(True)
             root.set_vexpand(True)
 
-            # ── TopBar (spans full width) ────────────────────
+            # â”€â”€ TopBar (spans full width) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             topbar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             topbar_box.set_hexpand(True)
             topbar_box.add_css_class("eonix-topbar")
             topbar_box.set_margin_start(12)
             topbar_box.set_margin_end(12)
-            # ⚡ Launcher button (opens Spotlight-style app launcher)
-            launcher_btn = Gtk.Button(label="⚡")
+            # âš¡ Launcher button (opens Spotlight-style app launcher)
+            launcher_btn = Gtk.Button(label="âš¡")
             launcher_btn.set_css_classes(["topbar-launcher-btn"])
             launcher_btn.set_tooltip_text("App Launcher (Super key)")
             launcher_btn.connect("clicked", lambda _: self._open_launcher())
@@ -977,7 +968,7 @@ echo "⚡ EonixShell ready — Week 48"
             self.top_bar._label_metrics = lbl_metrics
             root.append(topbar_box)
 
-            # ── Content row: GoalPanel + Workspace ───────────
+            # â”€â”€ Content row: GoalPanel + Workspace â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             content_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
             content_row.set_hexpand(True)
             content_row.set_vexpand(True)
@@ -1050,7 +1041,7 @@ echo "⚡ EonixShell ready — Week 48"
 
             root.append(content_row)
 
-            # ── Dock at bottom (spans full width) ────────────
+            # â”€â”€ Dock at bottom (spans full width) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if hasattr(self.dock, 'set_hexpand'):
                 self.dock.set_hexpand(True)
                 root.append(self.dock)
@@ -1104,7 +1095,7 @@ echo "⚡ EonixShell ready — Week 48"
         return True
 
     def _on_global_key(self, ctrl, keyval, keycode, state):
-        """Ctrl+Space → AI Chat, Super → App Launcher."""
+        """Ctrl+Space â†’ AI Chat, Super â†’ App Launcher."""
         CTRL = Gdk.ModifierType.CONTROL_MASK
         if (state & CTRL) and keyval == Gdk.KEY_space:
             self._handle_dock_launch("AIChat")

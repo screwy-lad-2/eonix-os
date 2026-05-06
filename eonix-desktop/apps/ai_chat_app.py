@@ -1,4 +1,4 @@
-"""Eonix AI Chat — the Iron Man assistant.
+﻿"""Eonix AI Chat — the Iron Man assistant.
 
 Text input → command parser → OS action.
 Handles natural language commands for app launching,
@@ -485,6 +485,28 @@ class EonixAIChat(Gtk.Box):
         for phrase in self.COMMANDS:
             if phrase in text:
                 return self._match_command(phrase)
+
+        # Greetings
+        if any(g in text for g in [
+            "hi", "hello", "hey", "how are you", "what's up",
+            "good morning", "good evening", "good afternoon", "sup", "yo"]):
+            import datetime as _dt
+            hour = _dt.datetime.now().hour
+            tod = "morning" if hour < 12 else "afternoon" if hour < 17 else "evening"
+            return (
+                f"👋 Good {tod}! I'm Eonix AI — all good!\n\n"
+                "Try:\n"
+                "• \"open terminal\"\n"
+                "• \"show cpu\"\n"
+                "• \"find file notes.txt\"\n"
+                "• \"scan files\"\n"
+                "• \"dark mode on\"\n\n"
+                "Or press Super for all apps.")
+
+        # Thanks / farewell
+        if any(w in text for w in [
+            "thank", "thanks", "bye", "goodbye", "good night", "see you"]):
+            return "😊 Always here! Press Super or Ctrl+Space to open me anytime."
 
         return (
             f"🤔 I didn't understand \"{text}\"\n\n"

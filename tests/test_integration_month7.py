@@ -563,16 +563,16 @@ def test_file_intel_scan_runs():
     assert idx["stats"]["total_count"] > 0
 
 
-def test_file_intel_app_exists():
+def test_file_intelligence_engine_exists():
     import os
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    f = os.path.join(REPO, "eonix-desktop/apps/file_intel_app.py")
+    f = os.path.join(REPO, "eonix-core/file_intelligence.py")
     assert os.path.exists(f)
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
-    assert "EonixFileIntelApp" in c
-    assert "_on_organize" in c
-    assert "_on_search" in c
+    assert "EonixFileIntel" in c
+    assert "auto_organize" in c
+    assert "get_duplicates" in c
 
 
 def test_phone_bridge_exists():
@@ -588,24 +588,25 @@ def test_phone_bridge_exists():
     assert "phone_command" in c
 
 
-def test_dock_has_10_apps():
+def test_dock_has_9_apps():
     import os
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     f = os.path.join(REPO, "eonix-desktop/dock.py")
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
-    for app in ["EonixShell", "Files", "SmartFiles", "Goals",
+    for app in ["EonixShell", "Files", "Goals",
                 "Settings", "Hub", "MIND", "AIChat", "Notes", "System"]:
         assert app in c, f"Missing: {app}"
 
 
-def test_launcher_has_smart_files():
+def test_launcher_has_updates_and_phone():
     import os
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     f = os.path.join(REPO, "eonix-desktop/apps/launcher_app.py")
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
-    assert "SmartFiles" in c
+    assert "Updates" in c
+    assert "Phone" in c
 
 
 def test_ai_chat_file_commands():
@@ -626,3 +627,76 @@ def test_no_nautilus_in_desktop():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "nautilus" not in c.lower()
+
+
+# ── Week 50 tests ───────────────────────────────────────────
+
+def test_only_one_files_app():
+    """file_intel_app.py must be deleted — merged into Files."""
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/file_intel_app.py")
+    assert not os.path.exists(f), "file_intel_app.py must be deleted"
+
+
+def test_files_app_has_ai_tab():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/eonix_files_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "ai_panel" in c or "AI Scan" in c
+    assert "search_panel" in c or "Search" in c
+    assert "StackSwitcher" in c
+
+
+def test_no_search_entry_in_apps():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for fname in ["launcher_app.py", "eonix_files_app.py", "ai_chat_app.py"]:
+        f = os.path.join(REPO, "eonix-desktop/apps", fname)
+        if not os.path.exists(f):
+            continue
+        with open(f, encoding="utf-8") as fp:
+            c = fp.read()
+        assert "Gtk.SearchEntry()" not in c, f"SearchEntry in {fname}"
+
+
+def test_ota_updater_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-core/ota_updater.py")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "check_for_updates" in c
+    assert "backup_config" in c
+
+
+def test_settings_has_updates_tab():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "Updates" in c
+    assert "_show_updates" in c
+
+
+def test_preseed_cfg_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "iso/preseed.cfg")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "/home" in c
+
+
+def test_no_smartfiles_in_dock():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/dock.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "SmartFiles" not in c
