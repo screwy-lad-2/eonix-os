@@ -8,7 +8,7 @@ apt-get install -y --no-install-recommends \
   linux-image-amd64 live-boot live-boot-initramfs-tools \
   live-config live-config-systemd \
   systemd systemd-sysv sudo curl wget git \
-  python3 python3-pip python3-venv python3-gi python3-gi-cairo \
+  python3 python3-pip python3-venv python3-dev python3-gi python3-gi-cairo \
   gir1.2-gtk-4.0 libgtk-4-dev \
   portaudio19-dev ffmpeg espeak-ng \
   xorg xinit openbox xterm \
@@ -185,7 +185,13 @@ python3 -m pip install --no-cache-dir \
   pycairo PyGObject python-xlib ewmh \
   httpx fastapi uvicorn aiohttp websockets zeroconf requests \
   "qrcode[pil]" flask-cors \
-  SpeechRecognition pyttsx3 pyaudio
+  SpeechRecognition pyttsx3
+
+# pyaudio needs python3-dev + portaudio headers — install separately so
+# a compilation failure doesn't break the entire build
+if ! python3 -m pip install --no-cache-dir --break-system-packages pyaudio; then
+  echo "[chroot_setup] WARNING: pyaudio build failed; voice mic input will be unavailable"
+fi
 
 # Optional heavy AI packages
 for pkg in sentence-transformers chromadb; do
