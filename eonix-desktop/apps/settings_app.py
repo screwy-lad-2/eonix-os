@@ -1,544 +1,531 @@
-"""Eonix Settings — KDE-inspired deep settings panel with live controls.
-
-Five categories: Appearance, AI & Agents, Display, Privacy, About.
-All settings persist to ~/.config/eonix/settings.json and are
-readable/writable by the MIND AI agent (Iron Man mode).
-"""
-import gi
+# -*- coding: utf-8 -*-
+"""Eonix Settings — 7 panels, live font + accent, LLM key management, voice, OTA."""
 import os
 import json
+import sys
+import subprocess
+import threading
 
+import gi
 gi.require_version("Gtk", "4.0")
 from gi.repository import Gtk, Gdk, GLib
 
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_CORE = os.path.join(_ROOT, "eonix-core")
+if _CORE not in sys.path:
+    sys.path.insert(0, _CORE)
+
+MODEL_PATH = os.path.expanduser(
+    "~/.config/eonix/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf")
+
 
 class EonixSettings(Gtk.Box):
-    CONFIG_PATH = os.path.expanduser("~/.config/eonix/settings.json")
 
     SECTIONS = [
-        ("🎨", "Appearance"),
-        ("🤖", "AI & Agents"),
-        ("🖥️", "Display"),
-        ("🎤", "Voice"),
-        ("🔒", "Privacy"),
-        ("🔄", "Updates"),
-        ("👤", "About"),
+        ("appearance", "Appearance"),
+        ("ai", "AI & Agents"),
+        ("display", "Display"),
+        ("voice", "Voice"),
+        ("privacy", "Privacy"),
+        ("updates", "Updates"),
+        ("about", "About"),
     ]
 
     def __init__(self):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
         self.set_vexpand(True)
         self.set_hexpand(True)
-        self.set_css_classes(["eonix-settings-root"])
-        self._apply_dark_fallback()
+        self._cfg = self._load_cfg()
+        self._apply_css()
+        self._build()
+        self._font_provider = Gtk.CssProvider()
 
-        self.config = self._load_config()
-
-        # Sidebar
-        sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        sidebar.set_css_classes(["settings-sidebar"])
-        sidebar.set_margin_top(16)
-        sidebar.set_margin_bottom(16)
-        sidebar.set_margin_start(8)
-        sidebar.set_margin_end(8)
-        sidebar.set_size_request(190, -1)
-
-        self._nav_btns = {}
-        for icon, label in self.SECTIONS:
-            btn = Gtk.Button(label=f"{icon}  {label}")
-            btn.set_css_classes(["settings-nav-btn"])
-            btn.set_halign(Gtk.Align.FILL)
-            btn.connect("clicked", lambda _, l=label: self._switch_section(l))
-            sidebar.append(btn)
-            self._nav_btns[label] = btn
-        self.append(sidebar)
-
-        sep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-        self.append(sep)
-
-        # Content area
-        self._content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self._content.set_vexpand(True)
-        self._content.set_hexpand(True)
-        self._content.set_css_classes(["settings-content"])
-        scroll = Gtk.ScrolledWindow()
-        scroll.set_child(self._content)
-        scroll.set_vexpand(True)
-        scroll.set_hexpand(True)
-        self.append(scroll)
-
-        self._switch_section("About")
-
-    # ── Config persistence ──────────────────────
-
-    def _load_config(self):
-        os.makedirs(os.path.dirname(self.CONFIG_PATH), exist_ok=True)
-        if os.path.exists(self.CONFIG_PATH):
+    # ── Config ────────────────────────────────────────
+    def _load_cfg(self):
+        path = os.path.expanduser("~/.config/eonix/settings.json")
+        if os.path.exists(path):
             try:
-                with open(self.CONFIG_PATH, encoding="utf-8") as f:
+                with open(path, encoding="utf-8") as f:
                     return json.load(f)
             except Exception:
                 pass
-        return {
-            "accent_color": "#7c4dff",
-            "wallpaper_brightness": 1.0,
-            "font_scale": 1.0,
-            "dark_mode": True,
-            "ai_enabled": True,
-            "ai_model": "LightGBM v1.2",
-            "privacy_telemetry": False,
-            "privacy_crash_reports": True,
-            "display_scaling": 1.0,
-        }
+        return {}
 
-    def _save_config(self):
+    def _save_setting(self, key, val):
+        path = os.path.expanduser("~/.config/eonix/settings.json")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         try:
-            with open(self.CONFIG_PATH, "w", encoding="utf-8") as f:
-                json.dump(self.config, f, indent=2)
+            cfg = {}
+            if os.path.exists(path):
+                with open(path, encoding="utf-8") as f:
+                    cfg = json.load(f)
+            cfg[key] = val
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, indent=2)
+            self._cfg = cfg
         except Exception as e:
-            print(f"[SETTINGS] Save failed: {e}")
+            print(f"[Settings] save: {e}")
 
-    def _set(self, key, value):
-        self.config[key] = value
-        self._save_config()
-        self._apply_live(key, value)
-        print(f"[SETTINGS] {key} = {value}")
+    # ── Build ─────────────────────────────────────────
+    def _build(self):
+        sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        sidebar.set_css_classes(["settings-sidebar"])
+        sidebar.set_margin_top(12)
+        sidebar.set_size_request(185, -1)
 
-    def _apply_live(self, key, value):
-        """Apply setting change immediately to the running desktop."""
-        try:
-            display = Gdk.Display.get_default()
-            gs = Gtk.Settings.get_default()
-            if not gs:
-                return
+        self._stack = Gtk.Stack()
+        self._stack.set_vexpand(True)
+        self._stack.set_hexpand(True)
+        self._stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        self._stack.set_transition_duration(130)
 
-            if key == "font_scale":
-                size = max(8, int(10 * float(value)))
-                gs.set_property("gtk-font-name", f"Sans {size}")
+        for key, label in self.SECTIONS:
+            btn = Gtk.Button(label=label)
+            btn.set_css_classes(["settings-nav-btn"])
+            btn.set_halign(Gtk.Align.FILL)
+            _k = key
+            btn.connect("clicked", lambda w, k=_k: self._stack.set_visible_child_name(k))
+            sidebar.append(btn)
 
-            elif key == "dark_mode":
-                gs.set_property(
-                    "gtk-application-prefer-dark-theme", bool(value))
+            content = self._build_panel(key)
+            scroll = Gtk.ScrolledWindow()
+            scroll.set_vexpand(True)
+            scroll.set_hexpand(True)
+            scroll.set_child(content)
+            self._stack.add_titled(scroll, key, label)
 
-            elif key == "accent_color" and display:
-                css = f"""
-                .active-section {{
-                    background: {value}33;
-                    border-left: 3px solid {value};
-                }}
-                """.encode()
-                provider = Gtk.CssProvider()
-                provider.load_from_data(css)
-                Gtk.StyleContext.add_provider_for_display(
-                    display, provider,
-                    Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        self.append(sidebar)
+        sep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        self.append(sep)
+        self.append(self._stack)
+        GLib.idle_add(self._stack.set_visible_child_name, "appearance")
 
-            elif key == "wallpaper_brightness":
-                bf = os.path.expanduser("~/.config/eonix/wp_brightness")
-                os.makedirs(os.path.dirname(bf), exist_ok=True)
-                with open(bf, "w") as f:
-                    f.write(str(value))
-        except Exception as e:
-            print(f"[SETTINGS] live apply failed: {e}")
-
-    # ── Navigation ──────────────────────────────
-
-    def _switch_section(self, name):
-        for lbl, btn in self._nav_btns.items():
-            if lbl == name:
-                btn.set_css_classes(["settings-nav-btn", "active-section"])
-            else:
-                btn.set_css_classes(["settings-nav-btn"])
+    # ── Panel router ──────────────────────────────────
+    def _build_panel(self, key):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box.set_css_classes(["settings-content"])
+        box.set_margin_start(20)
+        box.set_margin_end(20)
+        box.set_margin_top(16)
+        box.set_margin_bottom(16)
         dispatch = {
-            "Appearance": self._show_appearance,
-            "AI & Agents": self._show_ai,
-            "Display": self._show_display,
-            "Voice": self._show_voice,
-            "Privacy": self._show_privacy,
-            "Updates": self._show_updates,
-            "About": self._show_about,
+            "appearance": self._panel_appearance,
+            "ai": self._panel_ai,
+            "display": self._panel_display,
+            "voice": self._panel_voice,
+            "privacy": self._panel_privacy,
+            "updates": self._panel_updates,
+            "about": self._panel_about,
         }
-        fn = dispatch.get(name, self._show_about)
-        fn()
+        fn = dispatch.get(key)
+        if fn:
+            fn(box)
+        return box
 
-    def _clear(self):
-        child = self._content.get_first_child()
-        while child:
-            nxt = child.get_next_sibling()
-            self._content.remove(child)
-            child = nxt
-
-    # ── UI helpers ──────────────────────────────
-
-    def _title(self, text):
+    # ── Helpers ───────────────────────────────────────
+    def _sec(self, box, text):
         lbl = Gtk.Label(label=text)
-        lbl.set_css_classes(["section-title"])
+        lbl.set_css_classes(["settings-sec-title"])
         lbl.set_halign(Gtk.Align.START)
-        lbl.set_margin_start(20)
-        lbl.set_margin_top(16)
-        lbl.set_margin_bottom(12)
-        return lbl
+        lbl.set_margin_top(10)
+        lbl.set_margin_bottom(2)
+        box.append(lbl)
 
-    def _row(self, key_text, widget):
-        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+    def _row(self, box, key, value="", widget=None):
+        row = Gtk.Box(spacing=0)
         row.set_css_classes(["settings-row"])
-        row.set_margin_start(16)
-        row.set_margin_end(16)
-        row.set_margin_bottom(6)
-        row.set_hexpand(True)
-        key = Gtk.Label(label=key_text)
-        key.set_css_classes(["settings-key"])
-        key.set_hexpand(True)
-        key.set_halign(Gtk.Align.START)
-        row.append(key)
-        row.append(widget)
+        row.set_margin_bottom(3)
+        k = Gtk.Label(label=key)
+        k.set_css_classes(["settings-key"])
+        k.set_size_request(190, -1)
+        k.set_halign(Gtk.Align.START)
+        row.append(k)
+        if widget is not None:
+            widget.set_hexpand(True)
+            widget.set_halign(Gtk.Align.END)
+            row.append(widget)
+        else:
+            v = Gtk.Label(label=str(value))
+            v.set_css_classes(["settings-val"])
+            v.set_halign(Gtk.Align.END)
+            v.set_hexpand(True)
+            row.append(v)
+        box.append(row)
         return row
 
-    # ── Sections ────────────────────────────────
+    def _action_btn(self, box, label, callback, style="normal"):
+        btn = Gtk.Button(label=label)
+        classes = ["settings-action-btn"]
+        if style == "warning":
+            classes.append("settings-btn-warn")
+        btn.set_css_classes(classes)
+        btn.set_margin_top(6)
+        btn.connect("clicked", callback)
+        box.append(btn)
+        return btn
 
-    def _show_appearance(self):
-        self._clear()
-        self._content.append(self._title("🎨 Appearance"))
+    # ── APPEARANCE ────────────────────────────────────
+    def _panel_appearance(self, box):
+        self._sec(box, "THEME")
+        accent_box = Gtk.Box(spacing=8)
+        accent_box.set_margin_bottom(4)
+        for color in ["#7c4dff", "#00bcd4", "#e91e63", "#4caf50", "#ff9800", "#f44336"]:
+            btn = Gtk.Button()
+            btn.set_size_request(28, 28)
+            css = (f".swatch-{color[1:]}{{background:{color};border-radius:50%;"
+                   "border:2px solid rgba(255,255,255,0.25);min-width:28px;min-height:28px;}}").encode()
+            pr = Gtk.CssProvider()
+            pr.load_from_data(css)
+            display = Gdk.Display.get_default()
+            if display:
+                Gtk.StyleContext.add_provider_for_display(display, pr, 800)
+            btn.set_css_classes([f"swatch-{color[1:]}"])
+            _c = color
+            btn.connect("clicked", lambda _, c=_c: self._apply_accent(c))
+            accent_box.append(btn)
+        box.append(accent_box)
 
-        # Dark mode toggle
-        sw = Gtk.Switch()
-        sw.set_active(self.config.get("dark_mode", True))
-        sw.connect("notify::active",
-                   lambda s, _: self._set("dark_mode", s.get_active()))
-        self._content.append(self._row("Dark Mode", sw))
+        self._sec(box, "TYPOGRAPHY")
+        self._font_lbl = Gtk.Label(label=f"Font size: {self._cfg.get('font_size', 12)}px")
+        self._font_lbl.set_css_classes(["settings-val"])
+        self._font_lbl.set_halign(Gtk.Align.START)
 
-        # Font scale slider
-        adj = Gtk.Adjustment(
-            value=self.config.get("font_scale", 1.0),
-            lower=0.8, upper=1.4, step_increment=0.05)
-        slider = Gtk.Scale(
-            orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
-        slider.set_size_request(160, -1)
-        slider.set_digits(2)
-        slider.connect("value-changed",
-                       lambda s: self._set("font_scale", round(s.get_value(), 2)))
-        self._content.append(self._row("Font Scale", slider))
+        font_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 9, 18, 1)
+        font_scale.set_value(self._cfg.get("font_size", 12))
+        font_scale.set_hexpand(True)
+        font_scale.set_draw_value(True)
+        font_scale.connect("value-changed", self._live_font_size)
+        self._row(box, "Font Size (px)", widget=font_scale)
+        box.append(self._font_lbl)
 
-        # Wallpaper brightness
-        adj2 = Gtk.Adjustment(
-            value=self.config.get("wallpaper_brightness", 1.0),
-            lower=0.2, upper=1.0, step_increment=0.05)
-        slider2 = Gtk.Scale(
-            orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj2)
-        slider2.set_size_request(160, -1)
-        slider2.set_digits(2)
-        slider2.connect("value-changed",
-                        lambda s: self._set("wallpaper_brightness", round(s.get_value(), 2)))
-        self._content.append(self._row("Wallpaper Brightness", slider2))
+        self._sec(box, "UI SCALE")
+        note = Gtk.Label(label="Font size changes are instant.\nUI scale requires restart.")
+        note.set_css_classes(["settings-note"])
+        note.set_halign(Gtk.Align.START)
+        note.set_wrap(True)
+        box.append(note)
 
-        # Accent color picker
-        color_btn = Gtk.ColorButton()
-        rgba = Gdk.RGBA()
-        rgba.parse(self.config.get("accent_color", "#7c4dff"))
-        color_btn.set_rgba(rgba)
-        color_btn.connect("color-set",
-                          lambda b: self._set("accent_color", b.get_rgba().to_string()))
-        self._content.append(self._row("Accent Color", color_btn))
+        self._scale_dd = Gtk.DropDown.new_from_strings(
+            ["100% (Default)", "125%", "150%", "175%", "200%"])
+        saved_s = self._cfg.get("ui_scale", 1.0)
+        scale_map = {1.0: 0, 1.25: 1, 1.5: 2, 1.75: 3, 2.0: 4}
+        self._scale_dd.set_selected(scale_map.get(saved_s, 0))
+        self._row(box, "UI Scale (restart needed)", widget=self._scale_dd)
+        self._action_btn(box, "Save Scale + Restart Desktop", self._save_scale_restart, style="warning")
 
-    def _show_ai(self):
-        self._clear()
-        self._content.append(self._title("🤖 AI & Agents"))
+    def _live_font_size(self, scale):
+        size = int(scale.get_value())
+        css = f"* {{ font-size: {size}px; }}".encode()
+        display = Gdk.Display.get_default()
+        if display:
+            try:
+                Gtk.StyleContext.remove_provider_for_display(display, self._font_provider)
+            except Exception:
+                pass
+            self._font_provider.load_from_data(css)
+            Gtk.StyleContext.add_provider_for_display(
+                display, self._font_provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        if hasattr(self, "_font_lbl"):
+            self._font_lbl.set_text(f"Font size: {size}px \u2014 applied live")
+        self._save_setting("font_size", size)
 
-        # AI enabled toggle
-        sw = Gtk.Switch()
-        sw.set_active(self.config.get("ai_enabled", True))
-        sw.connect("notify::active",
-                   lambda s, _: self._set("ai_enabled", s.get_active()))
-        self._content.append(self._row("AI Assistant", sw))
+    def _apply_accent(self, color):
+        css = (f".dock-btn:hover{{background:{color}22;}}"
+               f".eonix-btn-primary{{background:{color};}}"
+               f".topbar-launcher-btn{{color:{color};}}").encode()
+        pr = Gtk.CssProvider()
+        pr.load_from_data(css)
+        display = Gdk.Display.get_default()
+        if display:
+            Gtk.StyleContext.add_provider_for_display(display, pr, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        self._save_setting("accent_color", color)
 
-        # Read-only AI stats
-        for k, v in [
-            ("Model", "LightGBM v1.2"),
-            ("Accuracy", "63.47%"),
-            ("Hub", "localhost:7750"),
-            ("GoalEngine", "localhost:7735"),
-            ("Agents", "5 connected"),
-            ("Brain DB", "Connected"),
-        ]:
-            lbl = Gtk.Label(label=v)
-            lbl.set_css_classes(["settings-val"])
-            if v in ("Connected",):
-                lbl.set_css_classes(["settings-val", "mind-online"])
-            self._content.append(self._row(k, lbl))
+    def _save_scale_restart(self, _):
+        factors = [1.0, 1.25, 1.5, 1.75, 2.0]
+        idx = self._scale_dd.get_selected()
+        f = factors[idx]
+        self._save_setting("ui_scale", f)
+        xp = os.path.expanduser("~/.xprofile")
+        lines = []
+        if os.path.exists(xp):
+            with open(xp) as fp:
+                lines = [l for l in fp.readlines() if "GDK_SCALE" not in l and "QT_SCALE" not in l]
+        lines += [f"export GDK_SCALE={f}\n", f"export QT_SCALE_FACTOR={f}\n", f"export GDK_DPI_SCALE={f}\n"]
+        with open(xp, "w") as fp:
+            fp.writelines(lines)
 
-    def _show_display(self):
-        self._clear()
-        self._content.append(self._title("🖥️ Display"))
+    # ── AI & AGENTS ───────────────────────────────────
+    def _panel_ai(self, box):
+        self._sec(box, "AI STATUS")
+        self._row(box, "Model", "LightGBM v1.2")
+        self._row(box, "Accuracy", "63.47%")
+        self._row(box, "Chat Engine", "Multi-backend LLM")
 
-        # Display scaling dropdown
-        combo = Gtk.ComboBoxText()
-        for opt in ["1x (100%)", "1.25x (125%)", "1.5x (150%)", "2x (200%)"]:
-            combo.append_text(opt)
-        combo.set_active(0)
-        self._content.append(self._row("Display Scaling", combo))
+        self._sec(box, "API KEYS")
+        api_note = Gtk.Label(label="Groq = free cloud LLM.\ngroq.com \u2192 free tier \u2192 API keys.\nLlama 3.3 70B, 30 RPM free.")
+        api_note.set_css_classes(["settings-note"])
+        api_note.set_halign(Gtk.Align.START)
+        api_note.set_wrap(True)
+        box.append(api_note)
 
-        # Resolution (read-only)
+        groq = Gtk.Entry()
+        groq.set_placeholder_text("gsk_... (Groq API key)")
+        groq.set_visibility(False)
+        groq.set_hexpand(True)
+        groq.set_text(self._cfg.get("groq_api_key", ""))
+        self._row(box, "Groq API Key", widget=groq)
+
+        oai = Gtk.Entry()
+        oai.set_placeholder_text("sk-... (OpenAI API key)")
+        oai.set_visibility(False)
+        oai.set_hexpand(True)
+        oai.set_text(self._cfg.get("openai_api_key", ""))
+        self._row(box, "OpenAI API Key", widget=oai)
+
+        def _save_keys(_):
+            self._save_setting("groq_api_key", groq.get_text().strip())
+            self._save_setting("openai_api_key", oai.get_text().strip())
+            save_btn.set_label("Saved!")
+            GLib.timeout_add(1500, lambda: save_btn.set_label("Save Keys"))
+        save_btn = self._action_btn(box, "Save Keys", _save_keys)
+
+        # Groq connection test
+        self._groq_test_lbl = Gtk.Label(label="")
+        self._groq_test_lbl.set_css_classes(["settings-note"])
+        self._groq_test_lbl.set_halign(Gtk.Align.START)
+        self._groq_test_lbl.set_margin_top(4)
+
+        def _test_groq_connection(btn):
+            key = groq.get_text().strip()
+            if not key:
+                self._groq_test_lbl.set_text("No key entered.")
+                return
+            btn.set_sensitive(False)
+            btn.set_label("Testing...")
+            import urllib.request
+            def _run():
+                try:
+                    data = json.dumps({
+                        "model": "llama-3.3-70b-versatile",
+                        "messages": [{"role": "user", "content": "Say: OK"}],
+                        "max_tokens": 5
+                    }).encode()
+                    req = urllib.request.Request(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        data=data,
+                        headers={"Authorization": f"Bearer {key}",
+                                  "Content-Type": "application/json"},
+                        method="POST")
+                    with urllib.request.urlopen(req, timeout=8) as r:
+                        res = json.loads(r.read())
+                    reply = res["choices"][0]["message"]["content"].strip()
+                    msg = f'Connected! Groq responded: "{reply}"'
+                except Exception as e:
+                    msg = f"Failed: {e}\nCheck key is correct & has internet."
+                GLib.idle_add(self._groq_test_lbl.set_text, msg)
+                GLib.idle_add(btn.set_sensitive, True)
+                GLib.idle_add(btn.set_label, "Test Groq Connection")
+            threading.Thread(target=_run, daemon=True).start()
+
+        test_btn = Gtk.Button(label="Test Groq Connection")
+        test_btn.set_css_classes(["settings-action-btn"])
+        test_btn.set_margin_top(6)
+        test_btn.connect("clicked", _test_groq_connection)
+        box.append(test_btn)
+        box.append(self._groq_test_lbl)
+
+        self._sec(box, "LOCAL LLM (OFFLINE)")
+        installed = os.path.exists(MODEL_PATH)
+        self._row(box, "Model", "TinyLlama 1.1B Q4 (637MB)")
+        self._row(box, "Status", "Ready" if installed else "Not installed")
+        if not installed:
+            self._action_btn(box, "Download TinyLlama (offline AI)", self._download_model)
+        else:
+            lbl = Gtk.Label(label="Local LLM ready. No internet needed.")
+            lbl.set_css_classes(["settings-note"])
+            lbl.set_halign(Gtk.Align.START)
+            box.append(lbl)
+
+    def _download_model(self, btn):
+        btn.set_sensitive(False)
+        btn.set_label("Downloading (637MB)...")
+        URL = ("https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/"
+               "main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf")
+        def _dl():
+            try:
+                import urllib.request
+                os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
+                urllib.request.urlretrieve(URL, MODEL_PATH)
+                GLib.idle_add(btn.set_label, "Done! TinyLlama ready.")
+            except Exception as e:
+                GLib.idle_add(btn.set_label, f"Failed: {e}")
+                GLib.idle_add(btn.set_sensitive, True)
+        threading.Thread(target=_dl, daemon=True).start()
+
+    # ── DISPLAY ───────────────────────────────────────
+    def _panel_display(self, box):
+        self._sec(box, "SCREEN")
+        res = "1920x1080"
         try:
-            import subprocess as _sp
-            res = _sp.check_output(
-                ["xrandr", "--current"], text=True, timeout=2)
-            resolution = "Unknown"
-            for line in res.splitlines():
+            r = subprocess.run(["xrandr", "--current"], capture_output=True, text=True, timeout=3)
+            for line in r.stdout.split("\n"):
                 if "*" in line:
-                    resolution = line.split()[0]
+                    parts = line.split()
+                    if parts:
+                        res = parts[0]
                     break
         except Exception:
-            resolution = "1280×800"
-        lbl = Gtk.Label(label=resolution)
-        lbl.set_css_classes(["settings-val"])
-        self._content.append(self._row("Resolution", lbl))
+            pass
+        self._row(box, "Resolution", res)
+        self._row(box, "Compositor", "X11")
 
-    def _show_privacy(self):
-        self._clear()
-        self._content.append(self._title("🔒 Privacy"))
+        self._sec(box, "BRIGHTNESS")
+        bright = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 5)
+        bright.set_value(self._cfg.get("brightness", 80))
+        bright.set_hexpand(True)
+        bright.set_draw_value(True)
+        bright.connect("value-changed", lambda s: self._save_setting("brightness", int(s.get_value())))
+        self._row(box, "Brightness %", widget=bright)
 
-        for key, label, default in [
-            ("privacy_telemetry", "Send Telemetry", False),
-            ("privacy_crash_reports", "Crash Reports", True),
-        ]:
-            sw = Gtk.Switch()
-            sw.set_active(self.config.get(key, default))
-            sw.connect("notify::active",
-                       lambda s, _, k=key: self._set(k, s.get_active()))
-            self._content.append(self._row(label, sw))
+    # ── VOICE ─────────────────────────────────────────
+    def _panel_voice(self, box):
+        self._sec(box, "VOICE COMMANDS")
+        v_sw = Gtk.Switch()
+        v_sw.set_active(self._cfg.get("voice_enabled", True))
+        v_sw.connect("notify::active", lambda s, _: self._save_setting("voice_enabled", s.get_active()))
+        self._row(box, "Enable Voice", widget=v_sw)
+        self._row(box, "Wake Word", '"Hey Eonix"')
+        self._row(box, "Offline TTS", "espeak-ng")
 
-    def _show_voice(self):
-        self._clear()
-        self._content.append(self._title("\ud83c\udfa4 Voice"))
+        self._sec(box, "SPEECH SETTINGS")
+        speed = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 80, 220, 10)
+        speed.set_value(self._cfg.get("voice_speed", 160))
+        speed.set_hexpand(True)
+        speed.set_draw_value(True)
+        speed.connect("value-changed", lambda s: self._save_setting("voice_speed", int(s.get_value())))
+        self._row(box, "Speed (words/min)", widget=speed)
 
-        import sys as _s, os as _os
-        _root = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-        _core = _os.path.join(_root, "eonix-core")
-        if _core not in _s.path:
-            _s.path.insert(0, _core)
+        vol = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 5)
+        vol.set_value(self._cfg.get("voice_vol", 90))
+        vol.set_hexpand(True)
+        vol.set_draw_value(True)
+        vol.connect("value-changed", lambda s: self._save_setting("voice_vol", int(s.get_value())))
+        self._row(box, "Volume", widget=vol)
 
-        # Voice toggle
-        sw = Gtk.Switch()
-        sw.set_active(self.config.get("voice_enabled", True))
-        sw.connect("notify::active",
-                    lambda s, _: self._set("voice_enabled", s.get_active()))
-        self._content.append(self._row("Voice Commands", sw))
+    # ── PRIVACY ───────────────────────────────────────
+    def _panel_privacy(self, box):
+        self._sec(box, "DATA POLICY")
+        self._row(box, "Data stored", "Locally only")
+        self._row(box, "Cloud sync", "Never (opt-in)")
+        self._row(box, "Telemetry", "None")
 
-        # Wake word display
-        wake_lbl = Gtk.Label(label='"Hey Eonix"')
-        wake_lbl.set_halign(Gtk.Align.END)
-        self._content.append(self._row("Wake Word", wake_lbl))
+        self._sec(box, "AI LEARNING")
+        ai_sw = Gtk.Switch()
+        ai_sw.set_active(self._cfg.get("ai_learn", True))
+        ai_sw.connect("notify::active", lambda s, _: self._save_setting("ai_learn", s.get_active()))
+        self._row(box, "AI learns from usage", widget=ai_sw)
 
-        # Speed slider
-        speed_adj = Gtk.Adjustment(value=self.config.get("voice_speed", 160),
-                                    lower=80, upper=200, step_increment=10)
-        speed_scale = Gtk.Scale(adjustment=speed_adj, orientation=Gtk.Orientation.HORIZONTAL)
-        speed_scale.set_hexpand(True)
-        speed_scale.set_digits(0)
-        speed_scale.set_value_pos(Gtk.PositionType.RIGHT)
-        speed_scale.connect("value-changed",
-                             lambda s: self._set("voice_speed", int(s.get_value())))
-        self._content.append(self._row("Voice Speed (WPM)", speed_scale))
+    # ── UPDATES ───────────────────────────────────────
+    def _panel_updates(self, box):
+        self._sec(box, "EONIX OS")
+        self._row(box, "Version", "v1.5.0")
+        self._row(box, "Build", "Week 51")
 
-        # Volume slider
-        vol_adj = Gtk.Adjustment(value=self.config.get("voice_volume", 90),
-                                  lower=0, upper=100, step_increment=5)
-        vol_scale = Gtk.Scale(adjustment=vol_adj, orientation=Gtk.Orientation.HORIZONTAL)
-        vol_scale.set_hexpand(True)
-        vol_scale.set_digits(0)
-        vol_scale.set_value_pos(Gtk.PositionType.RIGHT)
-        vol_scale.connect("value-changed",
-                           lambda s: self._set("voice_volume", int(s.get_value())))
-        self._content.append(self._row("Volume (%)", vol_scale))
+        self._upd_lbl = Gtk.Label(label="Not checked yet")
+        self._upd_lbl.set_css_classes(["settings-note"])
+        self._upd_lbl.set_halign(Gtk.Align.START)
+        self._upd_lbl.set_margin_top(6)
+        box.append(self._upd_lbl)
 
-        # Mic test button
-        self._mic_result = Gtk.Label(label="")
-        self._mic_result.set_halign(Gtk.Align.START)
-        self._mic_result.set_margin_start(16)
-        mic_btn = Gtk.Button(label="\ud83c\udfa4 Test Microphone")
-        mic_btn.set_css_classes(["settings-nav-btn"])
-        mic_btn.set_halign(Gtk.Align.START)
-        mic_btn.set_margin_start(16)
-        mic_btn.set_margin_top(12)
-        mic_btn.connect("clicked", self._test_mic)
-        self._content.append(mic_btn)
-        self._content.append(self._mic_result)
+        self._action_btn(box, "Check for Updates", self._check_updates)
 
-        # Status
-        self._content.append(self._title("Status"))
-        try:
-            import speech_recognition
-            sr_ok = "\ud83d\udfe2 speech_recognition: installed"
-        except ImportError:
-            sr_ok = "\u26aa speech_recognition: not installed"
-        try:
-            import pyttsx3
-            tts_ok = "\ud83d\udfe2 pyttsx3 (espeak-ng): installed"
-        except ImportError:
-            tts_ok = "\u26aa pyttsx3: not installed"
-
-        for s in [sr_ok, tts_ok, "\ud83d\udfe2 Engine: espeak-ng (offline)", "\u26aa Google API: online fallback"]:
-            lbl = Gtk.Label(label=s)
-            lbl.set_halign(Gtk.Align.START)
-            lbl.set_margin_start(16)
-            lbl.set_margin_top(4)
-            self._content.append(lbl)
-
-    def _test_mic(self, _btn):
-        self._mic_result.set_text("\u23f3 Testing...")
-        import threading
-        def _t():
-            try:
-                from voice_engine import EonixVoice
-                v = EonixVoice()
-                ok = v.test_microphone()
-                msg = "\ud83d\udfe2 Microphone detected!" if ok else "\ud83d\udd34 No microphone found"
-            except Exception as e:
-                msg = f"\ud83d\udd34 Error: {e}"
-            GLib.idle_add(self._mic_result.set_text, msg)
-        threading.Thread(target=_t, daemon=True).start()
-
-    def _show_updates(self):
-        self._clear()
-        self._content.append(self._title("\ud83d\udd04 Updates"))
-        import sys, os as _os
-        _root = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-        _core = _os.path.join(_root, "eonix-core")
-        if _core not in sys.path:
-            sys.path.insert(0, _core)
-
-        ver_lbl = Gtk.Label(label="Current version: v1.5.0")
-        ver_lbl.set_halign(Gtk.Align.START)
-        ver_lbl.set_margin_start(16)
-        ver_lbl.set_margin_top(8)
-        self._content.append(ver_lbl)
-
-        self._update_result = Gtk.Label(label="")
-        self._update_result.set_halign(Gtk.Align.START)
-        self._update_result.set_margin_start(16)
-        self._update_result.set_margin_top(8)
-        self._update_result.set_wrap(True)
-        self._content.append(self._update_result)
-
-        btn = Gtk.Button(label="\ud83d\udd0d Check for Updates")
-        btn.set_css_classes(["settings-nav-btn"])
-        btn.set_halign(Gtk.Align.START)
-        btn.set_margin_start(16)
-        btn.set_margin_top(12)
-        btn.connect("clicked", self._do_update_check)
-        self._content.append(btn)
-
-        note = Gtk.Label(label="\u26a0\ufe0f  Your /home data is always preserved across all updates.")
+        self._sec(box, "HOME SAFETY")
+        note = Gtk.Label(label="/home is always preserved.\nGoals, Notes, AI data survive all updates.")
+        note.set_css_classes(["settings-note"])
         note.set_halign(Gtk.Align.START)
-        note.set_margin_start(16)
-        note.set_margin_top(20)
-        note.set_css_classes(["eonix-muted"])
-        self._content.append(note)
+        note.set_wrap(True)
+        box.append(note)
 
-    def _do_update_check(self, _btn):
-        import threading
-        self._update_result.set_text("\u23f3 Checking...")
-        def _check():
+    def _check_updates(self, btn):
+        btn.set_sensitive(False)
+        btn.set_label("Checking...")
+        def _run():
+            import datetime
             try:
                 from ota_updater import EonixOTA
                 r = EonixOTA().check_for_updates()
                 if r.get("available"):
-                    msg = (f"\ud83c\udd95 v{r['latest']} available ({r['size_mb']} MB)\n"
-                           f"Type: {r['level'].upper()}\n{r.get('notes','')[:200]}")
+                    msg = f"Update available: v{r['latest']}"
+                elif "error" in r:
+                    msg = "No internet."
                 else:
-                    msg = f"\u2705 You're up to date! (v{r.get('current','1.5.0')})"
-                    if r.get("error"):
-                        msg = f"\u26a0\ufe0f Could not check: {r['error']}"
-            except Exception as e:
-                msg = f"\u274c Error: {e}"
-            GLib.idle_add(self._update_result.set_text, msg)
-        threading.Thread(target=_check, daemon=True).start()
+                    msg = "Up to date!"
+            except Exception:
+                msg = "Check failed."
+            now = datetime.datetime.now().strftime("%d %b %H:%M")
+            GLib.idle_add(self._upd_lbl.set_text, f"Checked {now}: {msg}")
+            GLib.idle_add(btn.set_sensitive, True)
+            GLib.idle_add(btn.set_label, "Check for Updates")
+        threading.Thread(target=_run, daemon=True).start()
 
-    def _show_about(self):
-        self._clear()
-        self._content.append(self._title("👤 About"))
-        for k, v in [
-            ("Version", "v1.5.0-dev"),
-            ("Desktop", "Eonix Aura"),
-            ("AI Core", "MIND v1.2"),
-            ("Accuracy", "63.47%"),
-            ("Tests", "222+ passing"),
-            ("Boot time", "~30 seconds"),
-            ("RAM idle", "~1.2 GB"),
-            ("Built by", "Shahnoor"),
-            ("Started", "July 2025"),
-            ("Release", "v1.0.0 May 2026"),
-        ]:
-            lbl = Gtk.Label(label=v)
-            lbl.set_css_classes(["settings-val"])
-            self._content.append(self._row(k, lbl))
+    # ── ABOUT ─────────────────────────────────────────
+    def _panel_about(self, box):
+        import platform
+        self._sec(box, "EONIX OS")
+        self._row(box, "Version", "v1.5.0")
+        self._row(box, "Build Week", "51")
+        self._row(box, "Kernel", platform.release())
+        self._row(box, "Python", platform.python_version())
+        self._row(box, "Desktop", "Eonix Aura GTK4")
 
-    # ── Dark CSS fallback ───────────────────────
+        self._sec(box, "AI STACK")
+        self._row(box, "Chat Engine", "Multi-backend LLM")
+        self._row(box, "Cloud LLM", "Groq / OpenAI (opt-in)")
+        self._row(box, "Local model", "TinyLlama 1.1B (opt-in)")
+        self._row(box, "Voice TTS", "espeak-ng (offline)")
 
-    def _apply_dark_fallback(self):
-        """Inline CSS fallback for dark theme."""
+        self._sec(box, "CREDITS")
+        c = Gtk.Label(label="Built with Python + GTK4\nMIT License \u2014 Open Source\ngithub.com/shahnoor-exe/eonix-os")
+        c.set_css_classes(["settings-note"])
+        c.set_halign(Gtk.Align.START)
+        box.append(c)
+
+    # ── CSS ───────────────────────────────────────────
+    def _apply_css(self):
         css = b"""
-        .eonix-settings-root {
-          background-color: #0d0d1a;
-          color: #e0e0e0;
-        }
         .settings-sidebar {
-          background-color: #0a0a16;
-          border-right: 1px solid rgba(124,77,255,0.15);
-        }
+          background-color: #0a0a16; min-width: 185px;
+          padding-top: 6px; padding-bottom: 6px; }
         .settings-nav-btn {
-          background: transparent;
-          color: #a0a0c0;
-          border: none;
-          padding: 10px 14px;
-          border-radius: 8px;
-          font-weight: 500;
-        }
+          background: transparent; color: #7a7a9a; border: none;
+          border-radius: 8px; padding: 9px 14px; margin: 1px 8px; font-size: 13px; }
         .settings-nav-btn:hover {
-          background: rgba(124,77,255,0.2);
-          color: #e0e0e0;
-        }
-        .active-section {
-          background: rgba(124,77,255,0.25);
-          color: #ffffff;
-          font-weight: 700;
-        }
-        .settings-content {
-          background: transparent;
-          padding: 20px 24px;
-        }
+          background: rgba(124,77,255,.18); color: #d0d0f0; }
+        .settings-content { background: transparent; }
+        .settings-sec-title {
+          font-size: 10px; font-weight: 800; color: #444466;
+          letter-spacing: 1.8px; }
         .settings-row {
-          background-color: rgba(255,255,255,0.04);
-          border-radius: 10px;
-          padding: 10px 14px;
-          margin-bottom: 6px;
-        }
-        .settings-row:hover {
-          background: rgba(124,77,255,0.08);
-        }
-        .settings-key {
-          color: #888aa0;
-          font-size: 13px;
-        }
-        .settings-val {
-          color: #e0e0e0;
-          font-size: 13px;
-          font-weight: 600;
-        }
-        .section-title {
-          font-size: 18px;
-          font-weight: 700;
-          color: #a78bfa;
-          margin-bottom: 12px;
-        }
+          background: rgba(255,255,255,.04); border-radius: 8px;
+          padding: 8px 12px; min-height: 34px; }
+        .settings-key { font-size: 13px; color: #8888a8; }
+        .settings-val { font-size: 13px; font-weight: 600; color: #d0d0e8; }
+        .settings-note { font-size: 12px; color: #505072; line-height: 1.6; }
+        .settings-action-btn {
+          background: rgba(124,77,255,.18); color: #a78bfa;
+          border: 1px solid rgba(124,77,255,.3); border-radius: 8px;
+          padding: 8px 16px; font-size: 13px; font-weight: 600; }
+        .settings-action-btn:hover {
+          background: rgba(124,77,255,.35); color: #d0b0ff; }
+        .settings-btn-warn {
+          background: rgba(255,152,0,.15); color: #ffa726;
+          border-color: rgba(255,152,0,.3); }
+        .settings-btn-warn:hover {
+          background: rgba(255,152,0,.28); }
         """
-        try:
-            provider = Gtk.CssProvider()
-            provider.load_from_data(css)
-            display = Gdk.Display.get_default()
-            if display:
-                Gtk.StyleContext.add_provider_for_display(
-                    display, provider,
-                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        except Exception as e:
-            print(f"[SETTINGS] CSS fallback failed: {e}")
+        pr = Gtk.CssProvider()
+        pr.load_from_data(css)
+        display = Gdk.Display.get_default()
+        if display:
+            Gtk.StyleContext.add_provider_for_display(
+                display, pr, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)

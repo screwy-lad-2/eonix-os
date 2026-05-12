@@ -1,5 +1,11 @@
+﻿# -*- coding: utf-8 -*-
 """Eonix Desktop with launcher, memory-integrated GoalPanel, and headless tests."""
 from __future__ import annotations
+
+import os as _os
+_os.environ.setdefault("LANG", "en_US.UTF-8")
+_os.environ.setdefault("LC_ALL", "en_US.UTF-8")
+_os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 
 import sys as _sys
 from pathlib import Path as _P
@@ -1067,11 +1073,40 @@ echo "âš¡ EonixShell ready â€” Week 48"
         if GTK_AVAILABLE and not self.headless:
             # Settings file watcher (polls every 3s for AI-driven changes)
             self._start_settings_watcher()
+            # Apply saved settings on startup (font, accent)
+            GLib.idle_add(self._load_settings)
             # Global keyboard shortcut: Ctrl+Space opens AI Chat
             ctrl = Gtk.EventControllerKey()
             ctrl.connect("key-pressed", self._on_global_key)
             self.wallpaper.window.add_controller(ctrl)
             GLib.MainLoop().run()  # GTK4 event loop
+
+    def _load_settings(self):
+        """Apply saved font size + accent color on startup."""
+        import json
+        path = os.path.expanduser("~/.config/eonix/settings.json")
+        if not os.path.exists(path):
+            return
+        try:
+            with open(path, encoding="utf-8") as f:
+                cfg = json.load(f)
+            size = cfg.get("font_size", 12)
+            css = f"* {{font-size: {size}px;}}".encode()
+            pr = Gtk.CssProvider()
+            pr.load_from_data(css)
+            display = Gdk.Display.get_default()
+            if display:
+                Gtk.StyleContext.add_provider_for_display(
+                    display, pr, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+            accent = cfg.get("accent_color", "#7c4dff")
+            css2 = f".eonix-btn-primary{{background:{accent};}}".encode()
+            pr2 = Gtk.CssProvider()
+            pr2.load_from_data(css2)
+            if display:
+                Gtk.StyleContext.add_provider_for_display(
+                    display, pr2, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+        except Exception as e:
+            print(f"[startup] settings: {e}")
 
     def _start_settings_watcher(self):
         """Poll settings.json every 3s to apply AI-driven config changes."""

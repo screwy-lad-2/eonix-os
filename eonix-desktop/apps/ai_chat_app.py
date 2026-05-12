@@ -1,4 +1,4 @@
-"""Eonix AI Chat — the Iron Man assistant.
+﻿"""Eonix AI Chat — the Iron Man assistant.
 
 Text input → command parser → OS action.
 Handles natural language commands for app launching,
@@ -57,9 +57,16 @@ class EonixAIChat(Gtk.Box):
             self._voice = EonixVoice(command_callback=self._on_voice_command)
         except Exception as e:
             print(f"[AI CHAT] Voice init: {e}")
+        self._llm = None
+        try:
+            from llm_engine import EonixLLM
+            self._llm = EonixLLM()
+        except Exception as e:
+            print(f"[AI CHAT] LLM init: {e}")
         self._apply_css()
         self._build_ui()
 
+        self._maybe_show_setup_banner()
     def _apply_css(self):
         css = b"""
         .ai-root {
@@ -142,6 +149,12 @@ class EonixAIChat(Gtk.Box):
         .chat-voice-btn:hover {
           background: rgba(124,77,255,0.4);
         }
+        .ai-banner-title {
+          font-size: 13px; font-weight: 700; color: #a78bfa; margin-bottom: 4px;
+        }
+        .ai-source-badge {
+          font-size: 10px; color: #444466; font-style: italic;
+        }
         """
         try:
             provider = Gtk.CssProvider()
@@ -175,6 +188,11 @@ class EonixAIChat(Gtk.Box):
         status.set_css_classes(["ai-status-online"])
         header.append(status)
         self.append(header)
+        self._src_lbl = Gtk.Label(label="")
+        self._src_lbl.set_halign(Gtk.Align.END)
+        self._src_lbl.set_hexpand(True)
+        self._src_lbl.set_margin_end(8)
+        header.append(self._src_lbl)
 
         # Chat scroll area
         self._scroll = Gtk.ScrolledWindow()
@@ -648,3 +666,87 @@ class EonixAIChat(Gtk.Box):
                 json.dump(cfg, f, indent=2)
         except Exception as e:
             print(f"[AI] settings write error: {e}")
+
+    def _sys_cmd(self, t):
+        """Fast system command check — returns command key or None."""
+        pairs = [
+            (["open terminal", "terminal", "launch terminal"], "terminal"),
+            (["open files", "files", "launch files"], "files"),
+            (["open notes", "my notes", "notes"], "notes"),
+            (["open goals", "my goals", "show goals", "goals"], "goals"),
+            (["open mind", "mind agent"], "mind"),
+            (["open settings", "settings", "preferences"], "settings"),
+            (["create a note", "new note", "add note", "make a note",
+              "take a note", "write a note"], "create_note"),
+            (["screenshot", "take screenshot"], "screenshot"),
+            (["volume up", "louder"], "vol+"),
+            (["volume down", "quieter"], "vol-"),
+            (["mute", "unmute"], "mute"),
+            (["lock screen", "lock"], "lock"),
+            (["show cpu", "cpu usage", "cpu"], "cpu"),
+            (["show ram", "memory", "ram"], "ram"),
+        ]
+        for patterns, cmd in pairs:
+            if any(p in t for p in patterns):
+                return cmd
+        return None
+
+    def _maybe_show_setup_banner(self):
+        """Show Groq setup nudge if no API key is configured."""
+        cfg_path = os.path.expanduser("~/.config/eonix/settings.json")
+        has_key = False
+        if os.path.exists(cfg_path):
+            try:
+                with open(cfg_path) as f:
+                    cfg = json.load(f)
+                has_key = bool(cfg.get("groq_api_key", "").strip())
+            except Exception:
+                pass
+        if not has_key:
+            banner = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+            banner.set_margin_start(12)
+            banner.set_margin_end(12)
+            banner.set_margin_top(8)
+            banner.set_margin_bottom(4)
+
+            title = Gtk.Label(label="Unlock full AI \u2014 add a free Groq key")
+            title.set_css_classes(["ai-banner-title"])
+            title.set_halign(Gtk.Align.START)
+            banner.append(title)
+
+            steps = Gtk.Label(label=(
+                "1. groq.com \u2192 sign up (free)\n"
+                "2. API Keys \u2192 Create new key\n"
+                "3. Settings \u2192 AI & Agents \u2192 paste key\n"
+                "Gets you Llama 3.3 70B \u2014 best free LLM."))
+            steps.set_css_classes(["settings-note"])
+            steps.set_halign(Gtk.Align.START)
+            steps.set_wrap(True)
+            banner.append(steps)
+
+            dismiss = Gtk.Button(label="Got it, ask away")
+            dismiss.set_css_classes(["settings-action-btn"])
+            dismiss.set_halign(Gtk.Align.START)
+            dismiss.set_margin_top(4)
+            dismiss.connect("clicked", lambda _: self._chat_box.remove(banner))
+            banner.append(dismiss)
+            self._chat_box.prepend(banner)
+
+    def _llm_resp(self, text):
+        """Handle LLM response."""
+        if text:
+            self._add_eonix_msg(text)
+        self._entry.set_sensitive(True)
+
+    def _llm_src(self, src):
+        """Show source badge."""
+        badge_map = {
+            "groq": "Groq Llama 3.3 70B",
+            "openai": "OpenAI GPT-4o-mini",
+            "ollama": "Ollama (local)",
+            "local": "TinyLlama (offline)",
+            "offline": "Offline rules",
+        }
+        label = badge_map.get(src, src)
+        if hasattr(self, "_src_lbl"):
+            self._src_lbl.set_text(f"via {label}")

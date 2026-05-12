@@ -17,7 +17,18 @@ apt-get install -y --no-install-recommends \
 # Optional font and VTE packages — must not break the build
 apt-get install -y --no-install-recommends fonts-noto-color-emoji || true
 apt-get install -y --no-install-recommends fonts-noto || true
+apt-get install -y --no-install-recommends fonts-noto-core fonts-liberation locales || true
 apt-get install -y --no-install-recommends gir1.2-vte-2.91 libvte-2.91-0 || true
+
+# Locale: UTF-8 for emoji rendering
+echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+locale-gen en_US.UTF-8 || true
+update-locale LANG=en_US.UTF-8 || true
+echo "LANG=en_US.UTF-8" >> /etc/environment
+echo "LC_ALL=en_US.UTF-8" >> /etc/environment
+
+# Font cache rebuild
+fc-cache -fv || true
 
 # Nautilus file manager + GVFS backends for full file support
 apt-get install -y --no-install-recommends \

@@ -282,7 +282,7 @@ def test_settings_has_dark_css_class():
     f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
-    assert "eonix-settings-root" in c
+    assert "settings-sidebar" in c or "CssProvider" in c
 
 
 def test_terminal_sets_vte_colors():
@@ -363,7 +363,7 @@ def test_settings_saves_json():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "settings.json" in c
-    assert "_save_config" in c
+    assert "_save_setting" in c
 
 
 def test_settings_has_appearance_controls():
@@ -374,7 +374,7 @@ def test_settings_has_appearance_controls():
         c = fp.read()
     assert "Gtk.Switch" in c
     assert "Gtk.Scale" in c
-    assert "ColorButton" in c
+    assert "_apply_accent" in c or "swatch" in c
 
 
 def test_ai_can_write_settings():
@@ -448,8 +448,8 @@ def test_settings_live_apply():
     f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
-    assert "_apply_live" in c
-    assert "gtk-font-name" in c
+    assert "_live_font_size" in c
+    assert "font-size" in c or "font_size" in c
 
 
 def test_desktop_xdg_dirs_in_iso():
@@ -680,7 +680,7 @@ def test_settings_has_updates_tab():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "Updates" in c
-    assert "_show_updates" in c
+    assert "_panel_updates" in c
 
 
 def test_preseed_cfg_exists():
@@ -735,8 +735,8 @@ def test_voice_settings_tab():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "Voice" in c
-    assert "_show_voice" in c
-    assert "voice_speed" in c or "Test Microphone" in c
+    assert "_panel_voice" in c
+    assert "voice_speed" in c
 
 
 def test_voice_commands_in_chat():
@@ -757,3 +757,132 @@ def test_topbar_mic_indicator():
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
     assert "_mic_lbl" in c
+
+
+# ── Week 51 Final Fix tests ─────────────────────────────────
+
+def test_utf8_in_start_script():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "start_eonix.sh")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "UTF-8" in c
+    assert "PYTHONIOENCODING" in c
+
+
+def test_settings_all_7_panels():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    for p in ["appearance", "ai", "display", "voice", "privacy", "updates", "about"]:
+        assert p in c, f"Missing panel: {p}"
+    assert "add_titled" in c
+    assert "set_visible_child_name" in c
+
+
+def test_font_live_apply():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "_font_provider" in c
+    assert "remove_provider_for_display" in c
+    assert "_live_font_size" in c
+
+
+def test_scale_writes_xprofile():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert ".xprofile" in c
+    assert "GDK_SCALE" in c
+    assert "_save_scale_restart" in c
+
+
+def test_llm_engine_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-core/llm_engine.py")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "EonixLLM" in c
+    assert "_try_groq" in c
+    assert "_try_ollama" in c
+    assert "_rag_context" in c
+    assert "_fallback" in c
+
+
+def test_llm_no_ollama_in_iso():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "iso/chroot_setup.sh")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "ollama" not in c.lower()
+
+
+def test_ai_chat_uses_llm_engine():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/ai_chat_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "EonixLLM" in c
+    assert "_sys_cmd" in c
+    assert "create a note" in c
+
+
+def test_startup_applies_settings():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/desktop.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "_load_settings" in c
+    assert "idle_add" in c
+
+
+def test_groq_test_connection_btn():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/settings_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "Test Groq" in c
+
+
+def test_setup_banner_shown():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/ai_chat_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "_maybe_show_setup_banner" in c
+    assert "groq.com" in c
+
+
+def test_source_badge_in_chat():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "eonix-desktop/apps/ai_chat_app.py")
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "_src_lbl" in c
+    assert "Groq Llama" in c
+
+
+def test_emoji_fontconfig_exists():
+    import os
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    f = os.path.join(REPO, "iso/files/etc/fonts/conf.d/99-eonix-emoji.conf")
+    assert os.path.exists(f)
+    with open(f, encoding="utf-8") as fp:
+        c = fp.read()
+    assert "Noto Color Emoji" in c

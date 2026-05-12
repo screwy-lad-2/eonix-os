@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export PYTHONIOENCODING=utf-8
+export GDK_BACKEND=x11
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 RESULTS_DIR="${ROOT_DIR}/results"
 HUB_PROOF="${RESULTS_DIR}/week28_hub_health_proof.json"
