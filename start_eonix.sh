@@ -16,11 +16,7 @@ if ! fc-list 2>/dev/null | grep -q "Noto Color Emoji"; then
 	fi
 fi
 
-# Start sync server in background
-if [[ -f "${ROOT_DIR}/eonix-sync/sync_server.py" ]]; then
-	"${PYTHON_BIN:-python3}" "${ROOT_DIR}/eonix-sync/sync_server.py" &
-	echo "[Eonix] Sync server on :7740"
-fi
+# Sync server is started after SMOKE_MODE check (see below)
 
 RESULTS_DIR="${ROOT_DIR}/results"
 HUB_PROOF="${RESULTS_DIR}/week28_hub_health_proof.json"
@@ -136,6 +132,12 @@ if [[ "${SMOKE_MODE}" -eq 1 ]]; then
 	overall_success=1
 	print_summary
 	exit 0
+fi
+
+# Start sync server in background (after SMOKE check)
+if [[ -f "${ROOT_DIR}/eonix-sync/sync_server.py" ]]; then
+	"${PYTHON_BIN}" "${ROOT_DIR}/eonix-sync/sync_server.py" &
+	echo "[Eonix] Sync server on :7740"
 fi
 
 start_bg "GoalEngine" "$PYTHON_BIN" eonix-cortex/goal-engine/engine.py --start

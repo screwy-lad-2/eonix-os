@@ -3,6 +3,8 @@
 Prerequisite:
   Run stack first, e.g.:
     EONIX_START_NO_MIND=1 bash start_eonix.sh
+
+  These tests are auto-skipped in CI when the services aren't running.
 """
 
 from __future__ import annotations
@@ -10,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import platform
+import socket
 import subprocess
 import sys
 import time
@@ -28,6 +31,23 @@ BASE = {
     "sync": "http://127.0.0.1:7740",
     "hub": "http://127.0.0.1:7750",
 }
+
+
+def _is_port_open(port: int) -> bool:
+    """Quick check if a TCP port is listening."""
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=1):
+            return True
+    except (ConnectionRefusedError, OSError, TimeoutError):
+        return False
+
+
+# Auto-skip entire module if the hub isn't running (CI-safe)
+_HUB_ALIVE = _is_port_open(7750)
+pytestmark = pytest.mark.skipif(
+    not _HUB_ALIVE,
+    reason="Eonix stack not running (port 7750 unreachable) — skipping live integration tests"
+)
 
 
 @pytest_asyncio.fixture

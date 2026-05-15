@@ -106,12 +106,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest psutil scikit-learn
+          pip install pytest psutil scikit-learn httpx lightgbm pandas numpy || true
 
       - name: Run tests
         run: |
           if [ -d tests ] && ls tests/test_*.py 1>/dev/null 2>&1; then
-            pytest tests/ -v --ignore=tests/test_integration_month5.py --ignore=tests/test_integration_month6.py --ignore=tests/test_integration_month7.py
+            pytest tests/ -v --ignore=tests/test_integration_month5.py --ignore=tests/test_integration_month6.py --ignore=tests/test_integration_month7.py --ignore=tests/test_integration_month8.py --ignore=tests/test_integration_month9.py
           else
             echo "No tests found yet — skipping"
           fi

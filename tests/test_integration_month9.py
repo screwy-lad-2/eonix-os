@@ -152,7 +152,7 @@ def test_hub_status_all_fields_present():
         os.path.dirname(os.path.dirname(__file__)),
         "eonix-hub/hub_server.py"
     )
-    with open(hub_file) as f:
+    with open(hub_file, encoding="utf-8") as f:
         content = f.read()
     assert "model_version" in content
     assert "model_ready" in content
@@ -165,7 +165,7 @@ def test_hub_uses_json_flag_for_model_info():
         os.path.dirname(os.path.dirname(__file__)),
         "eonix-hub/hub_server.py"
     )
-    with open(hub_file) as f:
+    with open(hub_file, encoding="utf-8") as f:
         content = f.read()
     assert "--json" in content
     # Should NOT use regex for parsing anymore
@@ -177,7 +177,7 @@ def test_mind_memory_empty_recall_guard():
     import os
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     mem_file = os.path.join(REPO, "eonix-mind/memory.py")
-    with open(mem_file) as f:
+    with open(mem_file, encoding="utf-8") as f:
         content = f.read()
     # Should have a guard for empty results
     assert "if not" in content or "len(" in content or \
@@ -188,7 +188,7 @@ def test_proactive_monitor_no_hardcoded_2025_dates():
     import os
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     pm_file = os.path.join(REPO, "eonix-mind/proactive_monitor.py")
-    with open(pm_file) as f:
+    with open(pm_file, encoding="utf-8") as f:
         content = f.read()
     # Should not have hardcoded year 2025 as a deadline
     assert "2025-" not in content or "datetime" in content
@@ -199,7 +199,7 @@ def test_auto_retrain_has_json_flag():
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     ar_file = os.path.join(REPO,
         "eonix-core/scheduler/auto_retrain.py")
-    with open(ar_file) as f:
+    with open(ar_file, encoding="utf-8") as f:
         content = f.read()
     assert "--json" in content
     assert "json.dumps" in content
@@ -210,7 +210,7 @@ def test_rollback_checks_top3_degradation():
     REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     ar_file = os.path.join(REPO,
         "eonix-core/scheduler/auto_retrain.py")
-    with open(ar_file) as f:
+    with open(ar_file, encoding="utf-8") as f:
         content = f.read()
     assert "top3_drop" in content
     assert "0.03" in content
