@@ -25,15 +25,15 @@ HEADLESS = not GTK_AVAILABLE or os.environ.get("EONIX_HEADLESS", "0") == "1" or 
 
 # ── App definitions ─────────────────────────────────
 APPS = [
-    ("⚡", "EonixShell",  ""),
-    ("📁", "Files",       ""),
-    ("🧠", "Goals",       ""),
-    ("⚙️", "Settings",   ""),
-    ("📊", "Hub",         ""),
-    ("🤖", "MIND",        ""),
-    ("💬", "AIChat",      ""),
-    ("📝", "Notes",       ""),
-    ("🖥️", "System",     ""),
+    ("SH",  "EonixShell", "Terminal"),
+    ("DIR", "Files",      "Files"),
+    ("AIM", "Goals",      "Goals"),
+    ("CFG", "Settings",   "Settings"),
+    ("HUB", "Hub",        "Hub"),
+    ("BOT", "MIND",       "MIND"),
+    ("AI",  "AIChat",     "AI Chat"),
+    ("PAD", "Notes",      "Notes"),
+    ("SYS", "System",     "System"),
 ]
 
 # ── Constants ───────────────────────────────────────
@@ -137,7 +137,7 @@ if GTK_AVAILABLE and not HEADLESS:
             click.connect("pressed", self._click)
             self.add_controller(click)
 
-            GLib.timeout_add(16, self._tick)  # 60fps
+            GLib.timeout_add(80, self._tick)  # 12fps — CPU friendly
 
         def _icon_x(self, i: int, w: int) -> float:
             total = len(self.icons) * (SZ + GAP) - GAP
@@ -232,13 +232,18 @@ if GTK_AVAILABLE and not HEADLESS:
                 self._rrect(cr, ox, oy, sz, sz, 14 * s)
                 cr.fill()
 
-                # ── Emoji ────────────────────────────
-                cr.set_source_rgba(1, 1, 1, 0.92)
-                # Font fallback chain for Linux
-                for font in ["Noto Color Emoji", "Noto Emoji", "DejaVu Sans", "Sans"]:
-                    cr.select_font_face(font, 0, 0)
-                    break  # Use first available
-                cr.set_font_size(sz * 0.58)
+                # ── ASCII label (color-coded per app) ─
+                _LABEL_COLORS = {
+                    "SH": (0.31,0.98,0.48), "DIR": (0.55,0.91,0.99),
+                    "AIM": (0.74,0.58,0.97), "CFG": (1.0,0.72,0.42),
+                    "HUB": (1.0,0.47,0.78), "BOT": (0.65,0.55,0.98),
+                    "AI": (0.31,0.98,0.48), "PAD": (0.95,0.98,0.55),
+                    "SYS": (1.0,0.33,0.33),
+                }
+                _r, _g, _b = _LABEL_COLORS.get(ic.emoji, (1,1,1))
+                cr.set_source_rgba(_r, _g, _b, 0.92)
+                cr.select_font_face("Sans", 0, 1)  # bold
+                cr.set_font_size(sz * 0.28)
                 te = cr.text_extents(ic.emoji)
                 cr.move_to(
                     ox + (sz - te.width) / 2 - te.x_bearing,

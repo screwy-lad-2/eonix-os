@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Eonix Desktop with launcher, memory-integrated GoalPanel, and headless tests."""
 from __future__ import annotations
 
@@ -845,6 +845,24 @@ echo "âš¡ EonixShell ready â€” Week 48"
                     sys_box.append(row)
                 self.window_manager.open("ðŸ–¥ï¸ System", sys_box,
                                          x=200, y=120, w=440, h=360)
+            elif app_name in ("Phone", "PHONE"):
+                try:
+                    from apps.phone_app import PhoneApp
+                    phone = PhoneApp()
+                except Exception as e:
+                    print(f"[LAUNCH] Phone failed: {e}")
+                    phone = Gtk.Label(label=f"Phone error:\n{e}")
+                self.window_manager.open("Phone", phone,
+                                         x=140, y=80, w=540, h=420)
+            elif app_name in ("Updates", "UPDATES"):
+                try:
+                    from apps.updates_app import UpdatesApp
+                    updates = UpdatesApp()
+                except Exception as e:
+                    print(f"[LAUNCH] Updates failed: {e}")
+                    updates = Gtk.Label(label=f"Updates error:\n{e}")
+                self.window_manager.open("Updates", updates,
+                                         x=160, y=80, w=500, h=480)
             else:
                 placeholder = Gtk.Label(label=f"Opening {app_name}...")
                 self.window_manager.open(app_name, placeholder,

@@ -27,3 +27,4 @@ pytest-asyncio>=0.24.0
 prompt_toolkit>=3.0.47
 pyttsx3>=2.90
 SpeechRecognition>=3.10.0
+qrcode[pil]>=7.4

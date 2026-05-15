@@ -5,7 +5,23 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
 export GDK_BACKEND=x11
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+
+# Auto-fix emoji fonts if missing (first boot in VM)
+if ! fc-list 2>/dev/null | grep -q "Noto Color Emoji"; then
+	if [[ -f "${ROOT_DIR}/eonix-desktop/fix_emoji_vm.sh" ]]; then
+		echo "[Eonix] Fixing emoji fonts..."
+		bash "${ROOT_DIR}/eonix-desktop/fix_emoji_vm.sh" || true
+	fi
+fi
+
+# Start sync server in background
+if [[ -f "${ROOT_DIR}/eonix-sync/sync_server.py" ]]; then
+	"${PYTHON_BIN:-python3}" "${ROOT_DIR}/eonix-sync/sync_server.py" &
+	echo "[Eonix] Sync server on :7740"
+fi
+
 RESULTS_DIR="${ROOT_DIR}/results"
 HUB_PROOF="${RESULTS_DIR}/week28_hub_health_proof.json"
 mkdir -p "${RESULTS_DIR}"

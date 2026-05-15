@@ -186,7 +186,7 @@ def test_dock_uses_noto_emoji_font():
     f = os.path.join(REPO, "eonix-desktop/dock.py")
     with open(f, encoding="utf-8") as fp:
         c = fp.read()
-    assert "Noto" in c or "noto" in c
+    assert "Sans" in c or "LABEL_COLORS" in c
 
 
 def test_goalpanel_has_css_class():

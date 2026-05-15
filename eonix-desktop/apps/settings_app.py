@@ -26,6 +26,7 @@ class EonixSettings(Gtk.Box):
         ("ai", "AI & Agents"),
         ("display", "Display"),
         ("voice", "Voice"),
+        ("sync", "Sync"),
         ("privacy", "Privacy"),
         ("updates", "Updates"),
         ("about", "About"),
@@ -113,6 +114,7 @@ class EonixSettings(Gtk.Box):
             "ai": self._panel_ai,
             "display": self._panel_display,
             "voice": self._panel_voice,
+            "sync": self._panel_sync,
             "privacy": self._panel_privacy,
             "updates": self._panel_updates,
             "about": self._panel_about,
@@ -411,6 +413,87 @@ class EonixSettings(Gtk.Box):
         vol.set_draw_value(True)
         vol.connect("value-changed", lambda s: self._save_setting("voice_vol", int(s.get_value())))
         self._row(box, "Volume", widget=vol)
+
+    # ── SYNC ──────────────────────────────────────────
+    def _panel_sync(self, box):
+        self._sec(box, "SYNC ENGINE")
+        self._row(box, "Sync Server", "localhost:7740")
+        self._row(box, "Protocol", "HTTP push/pull")
+        self._row(box, "Tables", "notes  goals  settings")
+
+        self._sync_status = Gtk.Label(label="Not checked yet")
+        self._sync_status.set_css_classes(["settings-note"])
+        self._sync_status.set_halign(Gtk.Align.START)
+        self._sync_status.set_margin_top(6)
+        box.append(self._sync_status)
+
+        self._sec(box, "ACTIONS")
+        btn_row = Gtk.Box(spacing=10)
+        btn_row.set_margin_top(6)
+
+        sync_btn = Gtk.Button(label="Sync Now")
+        sync_btn.set_css_classes(["settings-action-btn"])
+        sync_btn.connect("clicked", self._do_sync)
+        btn_row.append(sync_btn)
+
+        qr_btn = Gtk.Button(label="Show QR Code")
+        qr_btn.set_css_classes(["settings-action-btn"])
+        qr_btn.connect("clicked", self._show_qr)
+        btn_row.append(qr_btn)
+
+        box.append(btn_row)
+
+        self._sec(box, "CONNECTED DEVICES")
+        self._row(box, "eonix-pc", "This device")
+        note = Gtk.Label(label="Scan QR on another device to pair.\nSync runs on local network only.")
+        note.set_css_classes(["settings-note"])
+        note.set_halign(Gtk.Align.START)
+        note.set_wrap(True)
+        note.set_margin_top(6)
+        box.append(note)
+
+    def _do_sync(self, btn):
+        btn.set_sensitive(False)
+        btn.set_label("Syncing...")
+        import sys as _s
+        _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        sync_path = os.path.join(_root, "eonix-sync")
+        if sync_path not in _s.path:
+            _s.path.insert(0, sync_path)
+        def _run():
+            try:
+                from sync_client import EonixSyncClient
+                result = EonixSyncClient().full_sync()
+                import datetime
+                now = datetime.datetime.now().strftime("%d %b %H:%M")
+                msg = f"Synced {now}: " + ", ".join(f"{k}={v}" for k, v in result.items())
+            except Exception as e:
+                msg = f"Sync failed: {e}"
+            GLib.idle_add(self._sync_status.set_text, msg)
+            GLib.idle_add(btn.set_sensitive, True)
+            GLib.idle_add(btn.set_label, "Sync Now")
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _show_qr(self, btn):
+        import sys as _s
+        _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        sync_path = os.path.join(_root, "eonix-sync")
+        if sync_path not in _s.path:
+            _s.path.insert(0, sync_path)
+        try:
+            from qr_pair import make_qr, get_local_ip
+            path, url = make_qr()
+            if path:
+                info = Gtk.Label(label=f"Scan to pair\n{url}")
+                info.set_css_classes(["settings-note"])
+                info.set_halign(Gtk.Align.CENTER)
+                info.set_margin_top(10)
+                self._sync_status.set_text(f"QR saved to {path} - URL: {url}")
+            else:
+                self._sync_status.set_text(f"QR: {url}")
+        except Exception as e:
+            ip = "localhost"
+            self._sync_status.set_text(f"Pair URL: http://{ip}:7740 (qrcode pkg not installed)")
 
     # ── PRIVACY ───────────────────────────────────────
     def _panel_privacy(self, box):
